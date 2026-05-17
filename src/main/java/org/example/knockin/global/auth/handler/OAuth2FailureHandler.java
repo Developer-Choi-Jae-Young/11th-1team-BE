@@ -6,15 +6,18 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.example.knockin.global.KnockInProps;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
+@RequiredArgsConstructor
 public class OAuth2FailureHandler implements AuthenticationFailureHandler {
+    private final KnockInProps knockInProps;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private static final String URI = "http://localhost:5173/login?error=";
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
@@ -25,7 +28,7 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
             res.put("error", "인증 실패: " + exception.getMessage());
             response.getWriter().write(objectMapper.writeValueAsString(res));
         } else {
-            response.sendRedirect(URI + exception.getMessage());
+            response.sendRedirect(knockInProps.getClientErrorUrl() + exception.getMessage());
         }
     }
 }

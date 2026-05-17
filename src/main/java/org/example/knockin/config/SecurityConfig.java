@@ -2,6 +2,7 @@ package org.example.knockin.config;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.global.KnockInProps;
 import org.example.knockin.global.auth.service.CustomOAuth2UserService;
 import org.example.knockin.global.auth.filter.CustomOAuth2Filter;
 import org.example.knockin.global.auth.filter.TokenAuthenticationFilter;
@@ -52,9 +53,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(KnockInProps knockInProps) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(knockInProps.getCorsUrls());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
