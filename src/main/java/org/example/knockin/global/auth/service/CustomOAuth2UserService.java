@@ -43,7 +43,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     public MemberEntity getOrSave(OAuth2UserInfo oAuth2UserInfo) {
-        return memberRepository.findByMemberId(oAuth2UserInfo.getId())
+        String providerId = String.valueOf(oAuth2UserInfo.getId());
+        return memberRepository.findByProviderTypeAndProviderId(oAuth2UserInfo.getProviderType() ,providerId)
                 .orElseGet(() -> {
                     MemberEntity newMember = MemberEntity.builder()
                             .providerType(oAuth2UserInfo.getProviderType())
