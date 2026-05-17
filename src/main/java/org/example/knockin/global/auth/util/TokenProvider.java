@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -28,7 +29,8 @@ public class TokenProvider {
     @Value("${jwt.key}")
     private String key;
     private SecretKey secretKey;
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30L;
+    public static final Duration ACCESS_TOKEN_EXPIRE_DURATION = Duration.ofMinutes(30);
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = ACCESS_TOKEN_EXPIRE_DURATION.toMillis();
     private static final String KEY_ROLE = "role";
 
     @PostConstruct

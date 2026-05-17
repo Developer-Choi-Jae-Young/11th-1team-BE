@@ -2,9 +2,11 @@ package org.example.knockin.global.auth.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.global.auth.util.TokenConstants;
 import org.example.knockin.global.auth.util.TokenProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,8 +18,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
     private final TokenProvider tokenProvider;
-    public static String AUTHORIZATION = "AUTHORIZATION";
-    public static String TOKEN_PREFIX = "Bearer ";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -36,10 +36,22 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String resolveToken(HttpServletRequest request) {
-        String token = request.getHeader(AUTHORIZATION);
-        if (ObjectUtils.isEmpty(token) || !token.startsWith(TOKEN_PREFIX)) {
+        String token = request.getHeader(TokenConstants.AUTHORIZATION_HEADER);
+        if (!ObjectUtils.isEmpty(token) && token.startsWith(TokenConstants.BEARER_PREFIX)) {
+            return token.substring(TokenConstants.BEARER_PREFIX.length());
+        }
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
             return null;
         }
-        return token.substring(TOKEN_PREFIX.length());
+
+        for (Cookie cookie : cookies) {
+            if (TokenConstants.ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+
+        return null;
     }
 }
