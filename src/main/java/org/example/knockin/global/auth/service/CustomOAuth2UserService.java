@@ -2,7 +2,7 @@ package org.example.knockin.global.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.MemberRole;
-import org.example.knockin.entity.MemberEntity;
+import org.example.knockin.entity.Member;
 import org.example.knockin.global.auth.util.OAuth2UserInfoProvider;
 import org.example.knockin.global.auth.dto.OAuth2UserInfo;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
@@ -37,16 +37,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .getInfoClass();
 
         OAuth2UserInfo oAuth2UserInfo = objectMapper.convertValue(oAuth2UserAttributes, infoClass);
-        MemberEntity member = getOrSave(oAuth2UserInfo);
+        Member member = getOrSave(oAuth2UserInfo);
 
         return new PrincipalDetails(member, oAuth2UserAttributes, userNameAttributeName);
     }
 
-    public MemberEntity getOrSave(OAuth2UserInfo oAuth2UserInfo) {
+    public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
         String providerId = String.valueOf(oAuth2UserInfo.getId());
         return memberRepository.findByProviderTypeAndProviderId(oAuth2UserInfo.getProviderType() ,providerId)
                 .orElseGet(() -> {
-                    MemberEntity newMember = MemberEntity.builder()
+                    Member newMember = Member.builder()
                             .providerType(oAuth2UserInfo.getProviderType())
                             .providerId(String.valueOf(oAuth2UserInfo.getId()))
                             .role(MemberRole.USER)

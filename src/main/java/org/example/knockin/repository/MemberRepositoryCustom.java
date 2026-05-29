@@ -1,9 +1,8 @@
 package org.example.knockin.repository;
 
-import org.example.knockin.entity.MemberEntity;
-
 import java.util.List;
+import org.example.knockin.entity.Member;
 
 public interface MemberRepositoryCustom {
-    List<MemberEntity> searchMembers(String username);
+    List<Member> searchMembers(String providerId, String providerType);
 }
