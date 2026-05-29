@@ -1,9 +1,9 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.entity.LoginProviderType;
-import org.example.knockin.entity.Member;
-import org.example.knockin.entity.MemberRole;
+import org.example.knockin.entity.auth.LoginProviderType;
+import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberRole;
 import org.example.knockin.repository.MemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

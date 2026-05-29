@@ -3,14 +3,14 @@ package org.example.knockin.repository.impl;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.entity.Member;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.MemberRepositoryCustom;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
-import static org.example.knockin.entity.QMember.member;
+import static org.example.knockin.entity.member.QMember.member;
 
 @Repository
 @RequiredArgsConstructor
