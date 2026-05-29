@@ -14,7 +14,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 public abstract class CreatedAtEntity {
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false, comment = "생성 일시")
+    @Column(name = "created_at", updatable = false, comment = "생성 일시")
     private LocalDateTime createdAt;
 
 }

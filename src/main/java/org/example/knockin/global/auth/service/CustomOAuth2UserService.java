@@ -1,8 +1,8 @@
 package org.example.knockin.global.auth.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.MemberRole;
 import org.example.knockin.entity.Member;
+import org.example.knockin.entity.MemberRole;
 import org.example.knockin.global.auth.util.OAuth2UserInfoProvider;
 import org.example.knockin.global.auth.dto.OAuth2UserInfo;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
