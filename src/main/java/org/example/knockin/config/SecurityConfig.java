@@ -44,7 +44,7 @@ public class SecurityConfig {
     private final SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity.formLogin(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -56,7 +56,19 @@ public class SecurityConfig {
                 .addFilterBefore(new TokenAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new TokenExceptionFilter(securityErrorResponseWriter), TokenAuthenticationFilter.class)
                 .addFilterBefore(new CustomOAuth2Filter(clientRegistrationRepository, customOAuth2UserService, oAuth2SuccessHandler, oAuth2FailureHandler), OAuth2AuthorizationRequestRedirectFilter.class)
-                .authorizeHttpRequests(request -> request.requestMatchers("/h2-console/**","/auth/success","/error","/login/**","/oauth2/**").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(request -> request.requestMatchers(
+                        "/h2-console/**",
+                        "/auth/success",
+                        "/error",
+                        "/login/**",
+                        "/oauth2/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/webjars/**"
+                ).permitAll().anyRequest().authenticated())
                 .build();
     }
 

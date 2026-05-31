@@ -1,5 +1,7 @@
 package org.example.knockin.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.knockin.dto.MetaLifestylePatternsDto;
 import org.example.knockin.dto.MetaRegionsDto;
 import org.example.knockin.dto.MetaRoomAddOptionsDto;
@@ -14,39 +16,48 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "3. 일반/메타데이터")
 public class UtilsController {
     @GetMapping("/terms")
+    @Operation(summary = "약관 목록 조회")
     public CommonResponse<TermsListDto.Response> findTermList() {
         return CommonResponse.status(HttpStatus.OK).body(new TermsListDto.Response());
     }
 
     @GetMapping("/terms/{termsId}")
+    @Operation(summary = "약관 상세 조회")
     public CommonResponse<TermsDetailDto.Response> findTerm(@PathVariable Long termsId) {
         return CommonResponse.status(HttpStatus.OK).body(new TermsDetailDto.Response());
     }
 
     @GetMapping("/search/popular")
+    @Operation(summary = "인기 검색어 조회")
     public CommonResponse<PopularSearchDto.Response> findPopSearch() {
         return CommonResponse.status(HttpStatus.OK).body(new PopularSearchDto.Response());
     }
 
     @GetMapping("/meta/lifestyle-patterns")
+    @Operation(summary = "라이프스타일 패턴 메타데이터 조회")
     public CommonResponse<MetaLifestylePatternsDto.Response> findLifeStylePatterns() {
         return CommonResponse.status(HttpStatus.OK).body(new MetaLifestylePatternsDto.Response());
     }
 
     @GetMapping("/meta/room-types")
+    @Operation(summary = "방 유형 메타데이터 조회")
     public CommonResponse<MetaRoomTypesDto.Response> findRoomTypes() {
         return CommonResponse.status(HttpStatus.OK).body(new MetaRoomTypesDto.Response());
     }
 
     @GetMapping("/meta/regions")
+    @Operation(summary = "지역 메타데이터 조회")
     public CommonResponse<MetaRegionsDto.Response> findRegions() {
         return CommonResponse.status(HttpStatus.OK).body(new MetaRegionsDto.Response());
     }
 
     @GetMapping("/meta/room-add-options")
+    @Operation(summary = "방 추가 옵션 메타데이터 조회")
     public CommonResponse<MetaRoomAddOptionsDto.Response> findRoomAddOptions() {
         return CommonResponse.status(HttpStatus.OK).body(new MetaRoomAddOptionsDto.Response());
     }
 }
+
