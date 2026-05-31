@@ -2,8 +2,10 @@ package org.example.knockin.global.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.global.api.CommonResponse;
-import org.springframework.http.ResponseEntity;
+import org.example.knockin.global.api.ErrorResponse;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -64,6 +66,6 @@ public class GlobalExceptionHandler {
     }
 
     private CommonResponse<?> handleExceptionInternal(ErrorCode errorCode) {
-        return CommonResponse.status(errorCode.getHttpStatus()).body(errorCode);
+        return CommonResponse.status(errorCode.getHttpStatus()).error(ErrorResponse.of(errorCode));
     }
 }

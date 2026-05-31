@@ -1,7 +1,12 @@
 package org.example.knockin.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.ChatMessageDto;
+import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.global.api.CommonResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -17,18 +22,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChatController {
     private final SimpMessageSendingOperations messagingTemplate;
 
-    @GetMapping("/")
-    public CommonResponse<?> findChatList() {
-        return CommonResponse.status(HttpStatus.OK).body(null);
+    @GetMapping("")
+    public CommonResponse<ChatRoomListDto.Response> findChatRoomList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(new ChatRoomListDto.Response());
     }
 
+
     @MessageMapping("/chats/{chatId}/messages")
-    public void sendMessage(@DestinationVariable("chatId") Long chatId, @Payload Object request) {
+    public void sendMessage(@DestinationVariable("chatId") Long chatId, @Payload ChatMessageDto.Request request) {
         messagingTemplate.convertAndSend("/sub/chats/" + chatId, request);
     }
 
     @MessageMapping("/chats/{chatId}/leave")
-    public void leaveChat(@DestinationVariable("chatId") Long chatId, @Payload Object request) {
+    public void leaveChat(@DestinationVariable("chatId") Long chatId, @Payload ChatMessageDto.Request request) {
         messagingTemplate.convertAndSend("/sub/chats/" + chatId, request);
     }
 }
