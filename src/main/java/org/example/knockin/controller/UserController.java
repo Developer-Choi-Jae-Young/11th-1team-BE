@@ -1,0 +1,151 @@
+package org.example.knockin.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.example.knockin.dto.*;
+import org.example.knockin.global.api.CommonResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/users/me")
+@Tag(name = "2. 온보딩/프로필")
+public class UserController {
+    @DeleteMapping("/")
+    @Operation(summary = "회원 탈퇴")
+    public CommonResponse<DeleteUserDto.Response> deleteUser(@AuthenticationPrincipal User user) {
+        return CommonResponse.status(HttpStatus.OK).body(new DeleteUserDto.Response());
+    }
+
+    @PostMapping("/profile/basic")
+    @Operation(summary = "기본정보 저장")
+    public CommonResponse<SaveProfileBasicDto.Response> saveBasicInfo(@RequestBody SaveProfileBasicDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileBasicDto.Response());
+    }
+
+    @PostMapping("/profile/lifestyle")
+    @Operation(summary = "라이프스타일 저장")
+    public CommonResponse<SaveProfileLifeStyleDto.Response> saveLifeStyle(@RequestBody SaveProfileLifeStyleDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileLifeStyleDto.Response());
+    }
+
+    @PostMapping("/profile/roominfo")
+    @Operation(summary = "방 정보 저장")
+    public CommonResponse<SaveProfileRoomInfoDto.Response> saveRoomInfo(@RequestBody SaveProfileRoomInfoDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileRoomInfoDto.Response());
+    }
+
+    @PostMapping("/profile/all")
+    @Operation(summary = "전체 정보 저장")
+    public CommonResponse<SaveProfileAllDto.Response> saveAll(@RequestBody SaveProfileAllDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileAllDto.Response());
+    }
+
+    @PutMapping("/profile/basic")
+    @Operation(summary = "기본정보 수정")
+    public CommonResponse<ModifyProfileBasicDto.Response> modifyBasicInfo(@RequestBody ModifyProfileBasicDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileBasicDto.Response());
+    }
+
+    @PutMapping("/profile/lifestyle")
+    @Operation(summary = "라이프스타일 수정")
+    public CommonResponse<ModifyProfileLifeStyleDto.Response> modifyLifeStyle(@RequestBody ModifyProfileLifeStyleDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileLifeStyleDto.Response());
+    }
+
+    @PutMapping("/profile/roominfo")
+    @Operation(summary = "방 정보 수정")
+    public CommonResponse<ModifyProfileRoomInfoDto.Response> modifyRoomInfo(@RequestBody ModifyProfileRoomInfoDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileRoomInfoDto.Response());
+    }
+
+    @PutMapping("/profile/all")
+    @Operation(summary = "전체 정보 수정")
+    public CommonResponse<ModifyProfileAllDto.Response> modifyAll(@RequestBody ModifyProfileAllDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileAllDto.Response());
+    }
+
+    @PostMapping("/preferences/lifestyle")
+    @Operation(summary = "선호 라이프스타일 저장")
+    public CommonResponse<SavePreferencesLifeStyleDto.Response> savePreLifeStyle(@RequestBody SavePreferencesLifeStyleDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SavePreferencesLifeStyleDto.Response());
+    }
+
+    @PostMapping("/preferences/conditions")
+    @Operation(summary = "선호 조건 저장")
+    public CommonResponse<SavePreferencesConditionsDto.Response> savePreConditions(@RequestBody SavePreferencesConditionsDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SavePreferencesConditionsDto.Response());
+    }
+
+    @PostMapping("/preferences/all")
+    @Operation(summary = "선호 전체 저장")
+    public CommonResponse<SavePreferencesAllDto.Response> savePreAll(@RequestBody SavePreferencesAllDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new SavePreferencesAllDto.Response());
+    }
+
+    @PutMapping("/preferences/lifestyle")
+    @Operation(summary = "선호 라이프스타일 수정")
+    public CommonResponse<ModifyPreferencesLifeStyleDto.Response> modifyPreLifeStyle(@RequestBody ModifyPreferencesLifeStyleDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesLifeStyleDto.Response());
+    }
+
+    @PutMapping("/preferences/conditions")
+    @Operation(summary = "선호 조건 수정")
+    public CommonResponse<ModifyPreferencesConditionsDto.Response> modifyPreConditions(@RequestBody ModifyPreferencesConditionsDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesConditionsDto.Response());
+    }
+
+    @PutMapping("/preferences/all")
+    @Operation(summary = "선호 전체 수정")
+    public CommonResponse<ModifyPreferencesAllDto.Response> modifyPreAll(@RequestBody ModifyPreferencesAllDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesAllDto.Response());
+    }
+
+    @GetMapping("/preferences/all")
+    @Operation(summary = "선호 전체 조회")
+    public CommonResponse<MyPreferencesAllDto.Response> findPreAll() {
+        return CommonResponse.status(HttpStatus.OK).body(new MyPreferencesAllDto.Response());
+    }
+
+    @GetMapping("/profile/all")
+    @Operation(summary = "내 프로필 전체 조회")
+    public CommonResponse<MyProfileAllDto.Response> findProfileAll() {
+        return CommonResponse.status(HttpStatus.OK).body(new MyProfileAllDto.Response());
+    }
+
+    @PatchMapping("/visibility")
+    @Operation(summary = "프로필 공개 여부 변경")
+    public CommonResponse<ProfileVisibilityDto.Response> changeProfileStatus(@RequestBody ProfileVisibilityDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new ProfileVisibilityDto.Response());
+    }
+
+    @GetMapping("/boards")
+    @Operation(summary = "내가 쓴 게시글 조회")
+    public CommonResponse<MyBoardListDto.Response> findMyBoardList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(new MyBoardListDto.Response());
+    }
+
+    @GetMapping("/verifications")
+    @Operation(summary = "내 인증 현황 조회")
+    public CommonResponse<MyVerificationListDto.Response> findVerificationList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(new MyVerificationListDto.Response());
+    }
+
+    @GetMapping("/notification-settings")
+    @Operation(summary = "알림 설정 조회")
+    public CommonResponse<MyNotificationSettingsDto.Response> findAlaramSettingList() {
+        return CommonResponse.status(HttpStatus.OK).body(new MyNotificationSettingsDto.Response());
+    }
+
+
+    @PatchMapping("/notification-settings")
+    @Operation(summary = "알림 설정 수정")
+    public CommonResponse<AlarmSettingDto.Response> modifyAlaramSetting(@RequestBody AlarmSettingDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(new AlarmSettingDto.Response());
+    }
+}

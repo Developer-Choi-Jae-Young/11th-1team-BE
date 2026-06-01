@@ -1,5 +1,7 @@
 package org.example.knockin.global.api;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.*;
@@ -7,8 +9,12 @@ import org.springframework.util.Assert;
 
 @Getter
 public class CommonResponse<T> {
+    @JsonIgnore
     private HttpStatusCode status;
+
+    @JsonProperty("data")
     private T body;
+
     private final ErrorResponse error;
 
     public CommonResponse(T body, HttpStatusCode status, ErrorResponse error) {
@@ -17,8 +23,14 @@ public class CommonResponse<T> {
         this.status = status;
     }
 
+    @JsonProperty("status")
+    public int getStatusValue() {
+        return status.value();
+    }
+
     public interface BodyBuilder {
         <T> CommonResponse<T> body(@Nullable T body);
+        <T> CommonResponse<T> error(ErrorResponse error);
     }
 
     public static BodyBuilder status(HttpStatusCode status) {
@@ -43,6 +55,10 @@ public class CommonResponse<T> {
 
         public <T> CommonResponse<T> body(@Nullable T body) {
             return new CommonResponse<>(body, this.statusCode, null);
+        }
+
+        public <T> CommonResponse<T> error(ErrorResponse error) {
+            return new CommonResponse<>(null, this.statusCode, error);
         }
     }
 }
