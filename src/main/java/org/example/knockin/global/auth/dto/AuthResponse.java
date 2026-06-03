@@ -16,5 +16,6 @@ public class AuthResponse {
 
     private boolean basicInfo;
     private boolean preferenceInfo;
+    private boolean isDelete;
 }
 

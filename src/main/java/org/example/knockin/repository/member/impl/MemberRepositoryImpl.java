@@ -42,7 +42,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         JPAExpressions.selectOne()
                                 .from(preferenceCondition)
                                 .where(preferenceCondition.member.eq(member))
-                                .exists().as("preferenceInfo")
+                                .exists().as("preferenceInfo"),
+                        member.deleteState.as("isDelete")
                 ))
                 .from(member)
                 .where(member.id.eq(memberEntity.getId()))
