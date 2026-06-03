@@ -1,4 +1,4 @@
-package org.example.knockin.entity.board;
+package org.example.knockin.entity.member;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,27 +12,25 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.jpa.CreatedAtEntity;
-
 
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "roommate_board_declaration")
-public class RoommateBoardDeclaration extends CreatedAtEntity {
+@Table(name = "member_declaration")
+public class MemberDeclaration extends CreatedAtEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @JoinColumn(name = "reporter_id", nullable = false)
+    private Member reporter;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "roommate_board_id", nullable = false)
-    private RoommateBoard roommateBoard;
+    @JoinColumn(name = "reported_id", nullable = false)
+    private Member reported;
 
     @Column(name = "reason", length = 500)
     private String reason;
