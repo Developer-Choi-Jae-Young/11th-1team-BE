@@ -67,7 +67,7 @@ jobs:
               echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
             else
               echo "> kill -15 $CURRENT_PID"
-              kill -15 $CURRENT_PID || true
+              sudo kill -15 $CURRENT_PID || true
               sleep 10
             fi
             
@@ -80,4 +80,4 @@ jobs:
             fi
             
             echo "> 새 애플리케이션 배포: ${JAR_PATH}"
-            nohup java -Dspring.profiles.active=prod -jar "${JAR_PATH}" > "${REPOSITORY}/nohup.out" 2>&1 < /dev/null &
+            sudo nohup java -Dspring.profiles.active=prod -jar "${JAR_PATH}" > "${REPOSITORY}/nohup.out" 2>&1 < /dev/null &
