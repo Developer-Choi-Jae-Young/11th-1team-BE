@@ -2,14 +2,17 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.SaveProfileBasicDto;
+import org.example.knockin.dto.SaveProfileLifeStyleDto;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.MemberAgreement;
+import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.repository.agreement.MemberAgreementRepository;
+import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,7 @@ public class OnBoardingServiceImpl {
     private final BasicInformationRepository basicInformationRepository;
     private final MemberServiceImpl memberService;
     private final MemberAgreementRepository memberAgreementRepository;
+    private final MemberLifePatternRepository memberLifePatternRepository;
     private final MetaServiceImpl metaService;
 
     @Transactional
@@ -50,5 +54,23 @@ public class OnBoardingServiceImpl {
         if(ObjectUtils.isEmpty(saveBasicInfo(request, member))) throw new BusinessException(OnBoardErrorCode.ONBOARD_BASIC_SAVE_ERROR);
         if(saveMemberAgreement(request, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
         return SaveProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public List<MemberLifePattern> saveMemberLifeStyle(SaveProfileLifeStyleDto.Request request, Member member) {
+        List<MemberLifePattern> memberLifePatternList = new ArrayList<>();
+
+        metaService.findByLifeStyle(request.getLifestyles()).forEach(item -> {
+            memberLifePatternList.add(MemberLifePattern.builder().member(member).lifePatternInformation(item).build());
+        });
+
+        return memberLifePatternRepository.saveAll(memberLifePatternList);
+    }
+
+    @Transactional
+    public SaveProfileLifeStyleDto.Response saveLifeStyleLogic(SaveProfileLifeStyleDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        if(saveMemberLifeStyle(request, member).isEmpty()) throw new BusinessException(OnBoardErrorCode.ONBOARD_TERM_SAVE_ERROR);
+        return SaveProfileLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }

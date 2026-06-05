@@ -1,5 +1,6 @@
 package org.example.knockin.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ public class SaveProfileLifeStyleDto {
     }
 
     @Data
+    @Builder
     public static class Response {
         private LocalDateTime updatedAt;
     }

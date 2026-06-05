@@ -37,8 +37,8 @@ public class UserController {
 
     @PostMapping("/profile/lifestyle")
     @Operation(summary = "라이프스타일 저장")
-    public CommonResponse<SaveProfileLifeStyleDto.Response> saveLifeStyle(@RequestBody SaveProfileLifeStyleDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileLifeStyleDto.Response());
+    public CommonResponse<SaveProfileLifeStyleDto.Response> saveLifeStyle(@RequestBody SaveProfileLifeStyleDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.saveLifeStyleLogic(request, principalDetails.getMember().getId()));
     }
 
     @PostMapping("/profile/roominfo")
