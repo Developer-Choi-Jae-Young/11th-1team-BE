@@ -11,6 +11,7 @@ import java.util.List;
 @Data
 public class SaveProfileBasicDto {
     @Data
+    @Builder
     public static class Request {
         private String name;
         private LocalDate birth;

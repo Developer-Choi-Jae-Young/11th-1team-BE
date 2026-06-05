@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class SaveProfileLifeStyleDto {
     @Data
+    @Builder
     public static class Request {
         private List<Long> lifestyles;
     }

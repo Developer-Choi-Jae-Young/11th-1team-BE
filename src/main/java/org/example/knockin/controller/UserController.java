@@ -43,14 +43,14 @@ public class UserController {
 
     @PostMapping("/profile/roominfo")
     @Operation(summary = "방 정보 저장")
-    public CommonResponse<SaveProfileRoomInfoDto.Response> saveRoomInfo(@RequestBody SaveProfileRoomInfoDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileRoomInfoDto.Response());
+    public CommonResponse<SaveProfileRoomInfoDto.Response> saveRoomInfo(@RequestBody SaveProfileRoomInfoDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.saveRoomInfoLogic(request, principalDetails.getMember().getId()));
     }
 
     @PostMapping("/profile/all")
     @Operation(summary = "전체 정보 저장")
-    public CommonResponse<SaveProfileAllDto.Response> saveAll(@RequestBody SaveProfileAllDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new SaveProfileAllDto.Response());
+    public CommonResponse<SaveProfileAllDto.Response> saveAll(@RequestBody SaveProfileAllDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.saveAll(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/profile/basic")
