@@ -11,6 +11,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.entity.member.Member;
@@ -22,6 +24,8 @@ import org.hibernate.annotations.ColumnDefault;
 
 @Getter
 @Entity
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "roommate_board")
 public class RoommateBoard extends BaseEntity {
@@ -62,9 +66,11 @@ public class RoommateBoard extends BaseEntity {
 
     @ColumnDefault("false")
     @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted;
+    @Builder.Default
+    private Boolean isDeleted = false;
 
     @ColumnDefault("0")
     @Column(name = "hits", nullable = false)
-    private Long hits;
+    @Builder.Default
+    private Long hits = 0L;
 }

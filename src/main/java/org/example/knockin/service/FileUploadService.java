@@ -6,4 +6,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface FileUploadService {
     String uploadImage(MultipartFile file) throws IOException;
+
+    void deleteImage(String savedFileName) throws IOException;
 }

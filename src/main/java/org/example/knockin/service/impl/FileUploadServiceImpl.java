@@ -3,12 +3,15 @@ package org.example.knockin.service.impl;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.service.FileUploadService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -27,7 +30,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     public String uploadImage(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+            throw new BusinessException(FileErrorCode.FILE_EMPTY);
         }
         String type = file.getContentType();
 
@@ -40,6 +43,22 @@ public class FileUploadServiceImpl implements FileUploadService {
         s3Client.putObject(req, RequestBody.fromBytes(file.getBytes()));
 
         return publicUrl+"/"+key;
+    }
+
+    @Override
+    public void deleteImage(String savedFileName) {
+        if (savedFileName == null || savedFileName.isBlank()) {
+            return;
+        }
+
+        String key = savedFileName;
+        String prefix = publicUrl + "/";
+        if (savedFileName.startsWith(prefix)) {
+            key = savedFileName.substring(prefix.length());
+        }
+
+        DeleteObjectRequest req = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
+        s3Client.deleteObject(req);
     }
 
     private String extractExtension(String originalFileName,String type){

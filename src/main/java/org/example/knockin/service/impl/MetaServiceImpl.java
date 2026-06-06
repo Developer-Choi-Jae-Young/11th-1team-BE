@@ -38,6 +38,10 @@ public class MetaServiceImpl {
         return regionRepository.findByRegions(regions);
     }
 
+    public Optional<RoomType> findByRoomTypeId(Long roomTypeId) {
+        return roomTypeRepository.findById(roomTypeId);
+    }
+
     public List<RoomType> findByRoomTypes(List<Long> roomTypes) {
         return roomTypeRepository.findByRoomTypes(roomTypes);
     }
