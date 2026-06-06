@@ -2,10 +2,13 @@ package org.example.knockin.service.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.service.FileUploadService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -20,7 +23,7 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
 
     public String uploadImage(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+            throw new BusinessException(FileErrorCode.FILE_EMPTY);
         }
 
         File dir = new File(uploadDir);
@@ -39,5 +42,20 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
         file.transferTo(filePath.toFile());
 
         return fileName;
+    }
+
+    @Override
+    public void deleteImage(String savedFileName) throws IOException {
+        if (savedFileName == null || savedFileName.isBlank()) {
+            return;
+        }
+
+        Path filePath = Paths.get(uploadDir, savedFileName).normalize();
+        Path uploadPath = Paths.get(uploadDir).normalize();
+        if (!filePath.startsWith(uploadPath)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
+
+        Files.deleteIfExists(filePath);
     }
 }
