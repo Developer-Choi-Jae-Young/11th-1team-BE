@@ -53,13 +53,14 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 new QRegion("boardRegion"),
                 new QRegion("parentRegion"),
                 new QRegion("grandParentRegion"),
-                new QBasicInformation("latestBasicInformation")
+                new QBasicInformation("latestBasicInformation"),
+                new QBasicInformation("maxBasicInformation")
         );
 
         Predicate[] searchCondition = {
                 regionIn(condition.regionIds(), aliases.boardRegion(), aliases.parentRegion(), aliases.grandParentRegion()),
                 roomTypeIn(condition.roomTypeIds()),
-                genderEq(condition.gender()),
+                genderEq(condition.gender(), aliases),
                 depositBetween(condition.minDeposit(), condition.maxDeposit()),
                 mounthRentBetween(condition.minMounthRent(), condition.maxMounthRent()),
                 isNotDeleted(),
@@ -97,8 +98,6 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(aliases.boardRegion().parent, aliases.parentRegion())
                 .leftJoin(aliases.parentRegion().parent, aliases.grandParentRegion())
                 .join(roommateBoard.member, member)
-                .leftJoin(member.basicInformations, basicInformation)
-                .on(latestBasicInformationIdEq(aliases))
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
@@ -114,8 +113,6 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(aliases.boardRegion().parent, aliases.parentRegion())
                 .leftJoin(aliases.parentRegion().parent, aliases.grandParentRegion())
                 .join(roommateBoard.member, member)
-                .leftJoin(member.basicInformations, basicInformation)
-                .on(latestBasicInformationIdEq(aliases))
                 .where(searchCondition)
                 .fetchOne();
     }
@@ -290,9 +287,22 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         return roommateBoard.roomType.id.in(roomTypeIds);
     }
 
-    private BooleanExpression genderEq(Gender gender) {
+    private BooleanExpression genderEq(Gender gender, SearchAliases aliases) {
         if (gender == null) return null;
-        return basicInformation.gender.eq(gender);
+        return JPAExpressions
+                .selectOne()
+                .from(aliases.latestBasicInformation())
+                .where(
+                        aliases.latestBasicInformation().member.id.eq(member.id),
+                        aliases.latestBasicInformation().gender.eq(gender),
+                        aliases.latestBasicInformation().id.eq(
+                                JPAExpressions
+                                        .select(aliases.maxBasicInformation().id.max())
+                                        .from(aliases.maxBasicInformation())
+                                        .where(aliases.maxBasicInformation().member.id.eq(member.id))
+                        )
+                )
+                .exists();
     }
 
     private BooleanExpression depositBetween(Integer minDeposit, Integer maxDeposit) {
@@ -352,7 +362,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             QRegion boardRegion,
             QRegion parentRegion,
             QRegion grandParentRegion,
-            QBasicInformation latestBasicInformation
+            QBasicInformation latestBasicInformation,
+            QBasicInformation maxBasicInformation
     ) {
     }
 }
