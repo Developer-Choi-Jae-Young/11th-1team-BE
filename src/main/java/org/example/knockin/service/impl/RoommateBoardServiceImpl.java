@@ -21,6 +21,7 @@ import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
 import org.example.knockin.repository.board.RoommateBoardRepository;
+import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
 import org.jspecify.annotations.NullMarked;
@@ -127,7 +128,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     @Override
     public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
-        return roommateBoardRepository.search(
+        RoommateBoardSearchCondition condition = new RoommateBoardSearchCondition(
                 request.getRegionIds(),
                 request.getRoomTypeIds(),
                 request.getGender(),
@@ -137,6 +138,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 request.getMaxMounthRent(),
                 pageable
         );
+
+        return roommateBoardRepository.search(condition);
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }

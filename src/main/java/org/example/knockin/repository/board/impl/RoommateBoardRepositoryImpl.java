@@ -33,6 +33,7 @@ import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.global.jpa.QueryDslUtils;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
+import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -46,16 +47,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardListDto.Response> search(
-            List<Long> regionIds,
-            List<Long> roomTypeIds,
-            Gender gender,
-            Integer minDeposit,
-            Integer maxDeposit,
-            Integer minMounthRent,
-            Integer maxMounthRent,
-            @NonNull Pageable pageable
-    ) {
+    public Page<BoardListDto.Response> search(@NonNull RoommateBoardSearchCondition condition) {
 
         SearchAliases aliases = new SearchAliases(
                 new QRegion("boardRegion"),
@@ -65,15 +57,16 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         );
 
         Predicate[] searchCondition = {
-                regionIn(regionIds, aliases.boardRegion(), aliases.parentRegion(), aliases.grandParentRegion()),
-                roomTypeIn(roomTypeIds),
-                genderEq(gender),
-                depositBetween(minDeposit, maxDeposit),
-                mounthRentBetween(minMounthRent, maxMounthRent),
+                regionIn(condition.regionIds(), aliases.boardRegion(), aliases.parentRegion(), aliases.grandParentRegion()),
+                roomTypeIn(condition.roomTypeIds()),
+                genderEq(condition.gender()),
+                depositBetween(condition.minDeposit(), condition.maxDeposit()),
+                mounthRentBetween(condition.minMounthRent(), condition.maxMounthRent()),
                 isNotDeleted(),
                 comeableDateNotExpired()
         };
 
+        Pageable pageable = condition.pageable();
         List<Long> boardIds = fetchBoardIds(searchCondition, pageable, aliases);
         Long total = countBoards(searchCondition, aliases);
 
