@@ -57,13 +57,15 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             @NonNull Pageable pageable
     ) {
 
-        QRegion boardRegion = new QRegion("boardRegion");
-        QRegion parentRegion = new QRegion("parentRegion");
-        QRegion grandParentRegion = new QRegion("grandParentRegion");
-        QBasicInformation latestBasicInformation = new QBasicInformation("latestBasicInformation");
+        SearchAliases aliases = new SearchAliases(
+                new QRegion("boardRegion"),
+                new QRegion("parentRegion"),
+                new QRegion("grandParentRegion"),
+                new QBasicInformation("latestBasicInformation")
+        );
 
         Predicate[] searchCondition = {
-                regionIn(regionIds, boardRegion, parentRegion, grandParentRegion),
+                regionIn(regionIds, aliases.boardRegion(), aliases.parentRegion(), aliases.grandParentRegion()),
                 roomTypeIn(roomTypeIds),
                 genderEq(gender),
                 depositBetween(minDeposit, maxDeposit),
@@ -72,49 +74,71 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 comeableDateNotExpired()
         };
 
-        List<Long> boardIds = jpaQueryFactory
+        List<Long> boardIds = fetchBoardIds(searchCondition, pageable, aliases);
+        Long total = countBoards(searchCondition, aliases);
+
+        if (boardIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total == null ? 0 : total);
+        }
+
+        List<BoardBaseRow> baseRows = fetchBaseRows(boardIds, aliases);
+        Map<Long, BoardBaseRow> baseRowByBoardId = mapBaseRowsByBoardId(baseRows);
+        Map<Long, String> thumbnailByBoardId = fetchThumbnailByBoardId(boardIds);
+        Map<Long, List<AuthenticationType>> authByMemberId = fetchAuthenticationsByMemberId(baseRows);
+        List<BoardListDto.Response> responses = toResponses(
+                boardIds,
+                baseRowByBoardId,
+                thumbnailByBoardId,
+                authByMemberId
+        );
+
+        return new PageImpl<>(responses, pageable, total == null ? 0 : total);
+    }
+
+    private List<Long> fetchBoardIds(Predicate[] searchCondition, Pageable pageable, SearchAliases aliases) {
+        return jpaQueryFactory
                 .select(roommateBoard.id)
                 .distinct()
                 .from(roommateBoard)
-                .join(roommateBoard.region, boardRegion)
-                .leftJoin(boardRegion.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.region, aliases.boardRegion())
+                .leftJoin(aliases.boardRegion().parent, aliases.parentRegion())
+                .leftJoin(aliases.parentRegion().parent, aliases.grandParentRegion())
                 .join(roommateBoard.member, member)
                 .leftJoin(member.basicInformations, basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
-                                .select(latestBasicInformation.id.max())
-                                .from(latestBasicInformation)
-                                .where(latestBasicInformation.member.id.eq(member.id))
+                                .select(aliases.latestBasicInformation().id.max())
+                                .from(aliases.latestBasicInformation())
+                                .where(aliases.latestBasicInformation().member.id.eq(member.id))
                 ))
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
 
-        Long total = jpaQueryFactory
+    private Long countBoards(Predicate[] searchCondition, SearchAliases aliases) {
+        return jpaQueryFactory
                 .select(roommateBoard.countDistinct())
                 .from(roommateBoard)
-                .join(roommateBoard.region, boardRegion)
-                .leftJoin(boardRegion.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.region, aliases.boardRegion())
+                .leftJoin(aliases.boardRegion().parent, aliases.parentRegion())
+                .leftJoin(aliases.parentRegion().parent, aliases.grandParentRegion())
                 .join(roommateBoard.member, member)
                 .leftJoin(member.basicInformations, basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
-                                .select(latestBasicInformation.id.max())
-                                .from(latestBasicInformation)
-                                .where(latestBasicInformation.member.id.eq(member.id))
+                                .select(aliases.latestBasicInformation().id.max())
+                                .from(aliases.latestBasicInformation())
+                                .where(aliases.latestBasicInformation().member.id.eq(member.id))
                 ))
                 .where(searchCondition)
                 .fetchOne();
+    }
 
-        if (boardIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, total == null ? 0 : total);
-        }
-
-        List<BoardBaseRow> baseRows = jpaQueryFactory
+    private List<BoardBaseRow> fetchBaseRows(List<Long> boardIds, SearchAliases aliases) {
+        return jpaQueryFactory
                 .select(Projections.constructor(
                         BoardBaseRow.class,
                         roommateBoard.id,
@@ -126,34 +150,38 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.hits,
                         roomType.name,
                         region.name,
-                        parentRegion.name,
-                        grandParentRegion.name,
+                        aliases.parentRegion().name,
+                        aliases.grandParentRegion().name,
                         member.id,
                         basicInformation.name
                 ))
                 .from(roommateBoard)
                 .join(roommateBoard.roomType, roomType)
                 .join(roommateBoard.region, region)
-                .leftJoin(region.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
+                .leftJoin(region.parent, aliases.parentRegion())
+                .leftJoin(aliases.parentRegion().parent, aliases.grandParentRegion())
                 .join(roommateBoard.member, member)
                 .leftJoin(member.basicInformations, basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
-                                .select(latestBasicInformation.id.max())
-                                .from(latestBasicInformation)
-                                .where(latestBasicInformation.member.id.eq(member.id))
+                                .select(aliases.latestBasicInformation().id.max())
+                                .from(aliases.latestBasicInformation())
+                                .where(aliases.latestBasicInformation().member.id.eq(member.id))
                 ))
                 .where(roommateBoard.id.in(boardIds))
                 .fetch();
+    }
 
-        Map<Long, BoardBaseRow> baseRowByBoardId = baseRows.stream()
+    private Map<Long, BoardBaseRow> mapBaseRowsByBoardId(List<BoardBaseRow> baseRows) {
+        return baseRows.stream()
                 .collect(Collectors.toMap(
                         BoardBaseRow::boardId,
                         Function.identity(),
                         (first, second) -> first
                 ));
+    }
 
+    private Map<Long, String> fetchThumbnailByBoardId(List<Long> boardIds) {
         QFile file = new QFile("file");
 
         List<BoardThumbnailRow> thumbnailRows = jpaQueryFactory
@@ -170,13 +198,15 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 )
                 .fetch();
 
-        Map<Long, String> thumbnailByBoardId = thumbnailRows.stream()
+        return thumbnailRows.stream()
                 .collect(Collectors.toMap(
                         BoardThumbnailRow::boardId,
                         BoardThumbnailRow::imageUrl,
                         (first, second) -> first
                 ));
+    }
 
+    private Map<Long, List<AuthenticationType>> fetchAuthenticationsByMemberId(List<BoardBaseRow> baseRows) {
         List<Long> memberIds = baseRows.stream()
                 .map(BoardBaseRow::memberId)
                 .distinct()
@@ -192,13 +222,20 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .where(authentication.member.id.in(memberIds))
                 .fetch();
 
-        Map<Long, List<AuthenticationType>> authByMemberId = authRows.stream()
+        return authRows.stream()
                 .collect(Collectors.groupingBy(
                         MemberAuthRow::memberId,
                         Collectors.mapping(MemberAuthRow::type, Collectors.toList())
                 ));
+    }
 
-        List<BoardListDto.Response> responses = boardIds.stream()
+    private List<BoardListDto.Response> toResponses(
+            List<Long> boardIds,
+            Map<Long, BoardBaseRow> baseRowByBoardId,
+            Map<Long, String> thumbnailByBoardId,
+            Map<Long, List<AuthenticationType>> authByMemberId
+    ) {
+        return boardIds.stream()
                 .map(boardId -> {
                     BoardBaseRow row = baseRowByBoardId.get(boardId);
 
@@ -219,8 +256,6 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                             .build();
                 })
                 .toList();
-
-        return new PageImpl<>(responses, pageable, total == null ? 0 : total);
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {
@@ -323,6 +358,14 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     public record MemberAuthRow(
             Long memberId,
             AuthenticationType type
+    ) {
+    }
+
+    private record SearchAliases(
+            QRegion boardRegion,
+            QRegion parentRegion,
+            QRegion grandParentRegion,
+            QBasicInformation latestBasicInformation
     ) {
     }
 }
