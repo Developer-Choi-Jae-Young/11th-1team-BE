@@ -1,16 +1,34 @@
 package org.example.knockin.repository.board.impl;
 
+import static org.example.knockin.entity.board.QRoommateBoard.roommateBoard;
+import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
+import static org.example.knockin.entity.member.QMember.member;
+import static org.example.knockin.entity.board.QRoommateBoardFile.roommateBoardFile;
+import static org.example.knockin.entity.room.QRoomType.roomType;
+import static org.example.knockin.entity.room.QRegion.region;
+import static org.example.knockin.entity.auth.QAuthentication.authentication;
+
+
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.entity.board.RoommateBoard;
+import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.member.Gender;
+import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.global.jpa.QueryDslUtils;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
 import org.jspecify.annotations.NonNull;
@@ -20,25 +38,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import static org.example.knockin.entity.board.QRoommateBoard.roommateBoard;
-import static org.example.knockin.entity.member.QMember.member;
-import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
-
 @Repository
 @RequiredArgsConstructor
 public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
-    /*
-    정렬은 최신순과 조회순을 지원한다.
-    기본 정렬은 최신순이다.
-    필터링을 지원한다.
-    region에 대한 검색은 아래 계층까지 지원한다.
-     */
     @Override
-    public Page<@NonNull RoommateBoard> search(
-            Long regionId,
-            Long roomTypeId,
+    public Page<BoardListDto.Response> search(
+            List<Long> regionIds,
+            List<Long> roomTypeIds,
             Gender gender,
             Integer minDeposit,
             Integer maxDeposit,
@@ -47,31 +55,155 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             @NonNull Pageable pageable
     ) {
 
+        QRegion boardRegion = new QRegion("boardRegion");
+        QRegion parentRegion = new QRegion("parentRegion");
+        QRegion grandParentRegion = new QRegion("grandParentRegion");
+
         Predicate[] searchCondition = {
-                regionEq(regionId),
-                roomTypeEq(roomTypeId),
+                regionIn(regionIds, boardRegion, parentRegion, grandParentRegion),
+                roomTypeIn(roomTypeIds),
                 genderEq(gender),
-                depositBetween(minDeposit, maxMounthRent),
-                mounthRentBetween(minMounthRent, maxMounthRent)
+                depositBetween(minDeposit, maxDeposit),
+                mounthRentBetween(minMounthRent, maxMounthRent),
+                isNotDeleted(),
+                comeableDateNotExpired()
         };
 
-        List<RoommateBoard> contents = jpaQueryFactory
-                .selectFrom(roommateBoard)
-                .where(searchCondition)
+        List<Long> boardIds = jpaQueryFactory
+                .select(roommateBoard.id)
+                .distinct()
+                .from(roommateBoard)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .join(roommateBoard.member.basicInformations, basicInformation)
+                .join(member.basicInformations, basicInformation)
+                .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
+        if (boardIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
         Long total = jpaQueryFactory
-                .select(roommateBoard.count())
+                .select(roommateBoard.countDistinct())
                 .from(roommateBoard)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.member, member)
+                .join(member.basicInformations, basicInformation)
                 .where(searchCondition)
                 .fetchOne();
 
-        return new PageImpl<>(contents, pageable, total == null ? 0 : total);
+        if (boardIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, total == null ? 0 : total);
+        }
+
+        List<BoardBaseRow> baseRows = jpaQueryFactory
+                .select(Projections.constructor(
+                        BoardBaseRow.class,
+                        roommateBoard.id,
+                        roommateBoard.title,
+                        roommateBoard.deposit,
+                        roommateBoard.monthlyRent,
+                        roommateBoard.managementCost,
+                        roommateBoard.comeableDate,
+                        roommateBoard.hits,
+                        roomType.name,
+                        region.name,
+                        parentRegion.name,
+                        grandParentRegion.name,
+                        member.id,
+                        basicInformation.name
+                ))
+                .from(roommateBoard)
+                .join(roommateBoard.roomType, roomType)
+                .join(roommateBoard.region, region)
+                .leftJoin(region.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.member, member)
+                .join(member.basicInformations, basicInformation)
+                .where(roommateBoard.id.in(boardIds))
+                .fetch();
+
+        Map<Long, BoardBaseRow> baseRowByBoardId = baseRows.stream()
+                .collect(Collectors.toMap(
+                        BoardBaseRow::boardId,
+                        Function.identity(),
+                        (first, second) -> first
+                ));
+
+        QFile file = new QFile("file");
+
+        List<BoardThumbnailRow> thumbnailRows = jpaQueryFactory
+                .select(Projections.constructor(
+                        BoardThumbnailRow.class,
+                        roommateBoardFile.roommateBoard.id,
+                        file.savedFileName
+                ))
+                .from(roommateBoardFile)
+                .join(roommateBoardFile.file, file)
+                .where(
+                        roommateBoardFile.roommateBoard.id.in(boardIds),
+                        roommateBoardFile.isThumbnail.isTrue()
+                )
+                .fetch();
+
+        Map<Long, String> thumbnailByBoardId = thumbnailRows.stream()
+                .collect(Collectors.toMap(
+                        BoardThumbnailRow::boardId,
+                        BoardThumbnailRow::imageUrl,
+                        (first, second) -> first
+                ));
+
+        List<Long> memberIds = baseRows.stream()
+                .map(BoardBaseRow::memberId)
+                .distinct()
+                .toList();
+
+        List<MemberAuthRow> authRows = jpaQueryFactory
+                .select(Projections.constructor(
+                        MemberAuthRow.class,
+                        authentication.member.id,
+                        authentication.type
+                ))
+                .from(authentication)
+                .where(authentication.member.id.in(memberIds))
+                .fetch();
+
+        Map<Long, List<AuthenticationType>> authByMemberId = authRows.stream()
+                .collect(Collectors.groupingBy(
+                        MemberAuthRow::memberId,
+                        Collectors.mapping(MemberAuthRow::type, Collectors.toList())
+                ));
+
+        List<BoardListDto.Response> responses = boardIds.stream()
+                .map(boardId -> {
+                    BoardBaseRow row = baseRowByBoardId.get(boardId);
+
+                    return BoardListDto.Response.builder()
+                            .id(row.boardId())
+                            .imageUrl(thumbnailByBoardId.get(row.boardId()))
+                            .title(row.title())
+                            .deposit(row.deposit())
+                            .monthlyRent(row.monthlyRent())
+                            .managementCost(row.managementCost())
+                            .roomTypes(List.of(row.roomTypeName()))
+                            .comeableDate(row.comeableDate())
+                            .regionFullName(row.regionFullName())
+                            .memberName(row.memberName())
+                            .authentications(authByMemberId.getOrDefault(row.memberId(), List.of()))
+                            .hits(row.hits())
+                            .badges(List.of())
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(responses, pageable, total == null ? 0 : total);
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {
@@ -81,29 +213,42 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             Order direction = order.getDirection().isAscending() ? Order.ASC : Order.DESC;
 
             switch (order.getProperty()) {
-                case "createdAt":
-                    orders.add(new OrderSpecifier<>(direction, roommateBoard.createdAt));
-                    break;
-                case "hits":
-                    orders.add(new OrderSpecifier<>(direction, roommateBoard.hits));
-                    break;
-                default:
-                    throw new IllegalArgumentException();
+                case "createdAt" -> orders.add(new OrderSpecifier<>(direction, roommateBoard.createdAt));
+                case "hits" -> orders.add(new OrderSpecifier<>(direction, roommateBoard.hits));
+                default -> throw new IllegalArgumentException();
             }
         }
 
+        if (orders.isEmpty()) orders.add(roommateBoard.createdAt.desc());
+        orders.add(roommateBoard.id.desc());
         return orders.toArray(new OrderSpecifier[0]);
     }
 
-    // TODO: 하위 계층 추적
     private BooleanExpression regionEq(Long regionId) {
         if (regionId == null) return null;
         return roommateBoard.region.id.eq(regionId);
     }
 
+    private BooleanExpression regionIn(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) return null;
+        return roommateBoard.region.id.in(regionIds);
+    }
+
+    private BooleanExpression regionIn(List<Long> regionIds, QRegion boardRegion, QRegion parentRegion, QRegion grandParentRegion) {
+        if (regionIds == null || regionIds.isEmpty()) return null;
+        List<Long> uniqueIds = regionIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (uniqueIds.isEmpty()) return null;
+        return boardRegion.id.in(uniqueIds).or(parentRegion.id.in(uniqueIds)).or(grandParentRegion.id.in(uniqueIds));
+    }
+
     private BooleanExpression roomTypeEq(Long roomTypeId) {
         if (roomTypeId == null) return null;
         return roommateBoard.roomType.id.eq(roomTypeId);
+    }
+
+    private BooleanExpression roomTypeIn(List<Long> roomTypeIds) {
+        if (roomTypeIds == null || roomTypeIds.isEmpty()) return null;
+        return roommateBoard.roomType.id.in(roomTypeIds);
     }
 
     private BooleanExpression genderEq(Gender gender) {
@@ -117,5 +262,50 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
 
     private BooleanExpression mounthRentBetween(Integer minMounthRent, Integer maxMounthRent) {
         return QueryDslUtils.numberBetween(roommateBoard.monthlyRent, minMounthRent, maxMounthRent);
+    }
+
+    private BooleanExpression isNotDeleted() {
+        return roommateBoard.isDeleted.isFalse();
+    }
+
+    private BooleanExpression comeableDateNotExpired() {
+        return roommateBoard.comeableDate.goe(LocalDateTime.now());
+    }
+
+    public record BoardBaseRow(
+            Long boardId,
+            String title,
+            Integer deposit,
+            Integer monthlyRent,
+            Integer managementCost,
+            LocalDateTime comeableDate,
+            Long hits,
+            String roomTypeName,
+
+            String regionName,
+            String parentRegionName,
+            String grandParentRegionName,
+
+            Long memberId,
+            String memberName
+    ) {
+        public String regionFullName() {
+            return Stream.of(grandParentRegionName, parentRegionName, regionName)
+                    .filter(Objects::nonNull)
+                    .filter(name -> !name.isBlank())
+                    .collect(Collectors.joining(" "));
+        }
+    }
+
+    public record BoardThumbnailRow(
+            Long boardId,
+            String imageUrl
+    ) {
+    }
+
+    public record MemberAuthRow(
+            Long memberId,
+            AuthenticationType type
+    ) {
     }
 }

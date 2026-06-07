@@ -23,11 +23,15 @@ import org.example.knockin.repository.board.RoommateBoardFileRepository;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
+import org.jspecify.annotations.NullMarked;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+@NullMarked
 @Service
 @RequiredArgsConstructor
 public class RoommateBoardServiceImpl implements RoommateBoardService {
@@ -122,14 +126,18 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         return new BoardDto.Response(updatedAt);
     }
 
-    public void findList(BoardListDto.Request request, Pageable pageable) {
-        // 필터링 및 페이징
-        // 입주 시기 out, 삭제된 컨텐츠 내부 필터
-
-
-
-
-
+    @Override
+    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
+        return roommateBoardRepository.search(
+                request.getRegionIds(),
+                request.getRoomTypeIds(),
+                request.getGender(),
+                request.getMinDeposit(),
+                request.getMaxDeposit(),
+                request.getMinMounthRent(),
+                request.getMaxMounthRent(),
+                pageable
+        );
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }
