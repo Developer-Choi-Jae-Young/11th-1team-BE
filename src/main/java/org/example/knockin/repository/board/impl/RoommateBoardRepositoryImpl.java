@@ -25,13 +25,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoardListDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.global.jpa.QueryDslUtils;
+import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.jspecify.annotations.NonNull;
@@ -47,7 +47,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardListDto.Response> search(@NonNull RoommateBoardSearchCondition condition) {
+    public Page<RoommateBoardListRow> search(@NonNull RoommateBoardSearchCondition condition) {
 
         SearchAliases aliases = new SearchAliases(
                 new QRegion("boardRegion"),
@@ -78,14 +78,14 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         Map<Long, BoardBaseRow> baseRowByBoardId = mapBaseRowsByBoardId(baseRows);
         Map<Long, String> thumbnailByBoardId = fetchThumbnailByBoardId(boardIds);
         Map<Long, List<AuthenticationType>> authByMemberId = fetchAuthenticationsByMemberId(baseRows);
-        List<BoardListDto.Response> responses = toResponses(
+        List<RoommateBoardListRow> rows = toRows(
                 boardIds,
                 baseRowByBoardId,
                 thumbnailByBoardId,
                 authByMemberId
         );
 
-        return new PageImpl<>(responses, pageable, total == null ? 0 : total);
+        return new PageImpl<>(rows, pageable, total == null ? 0 : total);
     }
 
     private List<Long> fetchBoardIds(Predicate[] searchCondition, Pageable pageable, SearchAliases aliases) {
@@ -207,7 +207,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 ));
     }
 
-    private List<BoardListDto.Response> toResponses(
+    private List<RoommateBoardListRow> toRows(
             List<Long> boardIds,
             Map<Long, BoardBaseRow> baseRowByBoardId,
             Map<Long, String> thumbnailByBoardId,
@@ -217,21 +217,21 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .map(boardId -> {
                     BoardBaseRow row = baseRowByBoardId.get(boardId);
 
-                    return BoardListDto.Response.builder()
-                            .id(row.boardId())
-                            .imageUrl(thumbnailByBoardId.get(row.boardId()))
-                            .title(row.title())
-                            .deposit(row.deposit())
-                            .monthlyRent(row.monthlyRent())
-                            .managementCost(row.managementCost())
-                            .roomTypes(List.of(row.roomTypeName()))
-                            .comeableDate(row.comeableDate())
-                            .regionFullName(row.regionFullName())
-                            .memberName(row.memberName())
-                            .authentications(authByMemberId.getOrDefault(row.memberId(), List.of()))
-                            .hits(row.hits())
-                            .badges(List.of())
-                            .build();
+                    return new RoommateBoardListRow(
+                            row.boardId(),
+                            thumbnailByBoardId.get(row.boardId()),
+                            row.title(),
+                            row.deposit(),
+                            row.monthlyRent(),
+                            row.managementCost(),
+                            List.of(row.roomTypeName()),
+                            row.comeableDate(),
+                            row.regionFullName(),
+                            row.memberName(),
+                            authByMemberId.getOrDefault(row.memberId(), List.of()),
+                            row.hits(),
+                            List.of()
+                    );
                 })
                 .toList();
     }

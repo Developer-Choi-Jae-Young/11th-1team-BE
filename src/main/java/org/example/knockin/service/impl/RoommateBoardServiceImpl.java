@@ -20,6 +20,7 @@ import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
+import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.service.FileService;
@@ -140,7 +141,26 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 pageable
         );
 
-        return roommateBoardRepository.search(condition);
+        return roommateBoardRepository.search(condition)
+                .map(this::toResponse);
+    }
+
+    private BoardListDto.Response toResponse(RoommateBoardListRow row) {
+        return BoardListDto.Response.builder()
+                .id(row.id())
+                .imageUrl(row.imageUrl())
+                .title(row.title())
+                .deposit(row.deposit())
+                .monthlyRent(row.monthlyRent())
+                .managementCost(row.managementCost())
+                .roomTypes(row.roomTypes())
+                .comeableDate(row.comeableDate())
+                .regionFullName(row.regionFullName())
+                .memberName(row.memberName())
+                .authentications(row.authentications())
+                .hits(row.hits())
+                .badges(row.badges())
+                .build();
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }
