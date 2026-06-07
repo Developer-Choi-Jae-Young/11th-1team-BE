@@ -14,6 +14,7 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import org.example.knockin.dto.BoardListDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.member.Gender;
+import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.global.jpa.QueryDslUtils;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
@@ -58,6 +60,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion boardRegion = new QRegion("boardRegion");
         QRegion parentRegion = new QRegion("parentRegion");
         QRegion grandParentRegion = new QRegion("grandParentRegion");
+        QBasicInformation latestBasicInformation = new QBasicInformation("latestBasicInformation");
 
         Predicate[] searchCondition = {
                 regionIn(regionIds, boardRegion, parentRegion, grandParentRegion),
@@ -77,16 +80,18 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .join(member.basicInformations, basicInformation)
+                .leftJoin(member.basicInformations, basicInformation)
+                .on(basicInformation.id.eq(
+                        JPAExpressions
+                                .select(latestBasicInformation.id.max())
+                                .from(latestBasicInformation)
+                                .where(latestBasicInformation.member.id.eq(member.id))
+                ))
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
-
-        if (boardIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
 
         Long total = jpaQueryFactory
                 .select(roommateBoard.countDistinct())
@@ -95,7 +100,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .join(member.basicInformations, basicInformation)
+                .leftJoin(member.basicInformations, basicInformation)
+                .on(basicInformation.id.eq(
+                        JPAExpressions
+                                .select(latestBasicInformation.id.max())
+                                .from(latestBasicInformation)
+                                .where(latestBasicInformation.member.id.eq(member.id))
+                ))
                 .where(searchCondition)
                 .fetchOne();
 
@@ -126,7 +137,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(region.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .join(member.basicInformations, basicInformation)
+                .leftJoin(member.basicInformations, basicInformation)
+                .on(basicInformation.id.eq(
+                        JPAExpressions
+                                .select(latestBasicInformation.id.max())
+                                .from(latestBasicInformation)
+                                .where(latestBasicInformation.member.id.eq(member.id))
+                ))
                 .where(roommateBoard.id.in(boardIds))
                 .fetch();
 
