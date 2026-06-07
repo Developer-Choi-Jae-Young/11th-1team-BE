@@ -33,4 +33,8 @@ public class MemberLifePattern extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "life_pattern_information_id", nullable = false)
     private LifePatternInformation lifePatternInformation;
+
+    public void modifyLifePatternInformation(LifePatternInformation lifePatternInformation) {
+        this.lifePatternInformation = lifePatternInformation;
+    }
 }
