@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.file.QFile;
@@ -241,7 +242,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             switch (order.getProperty()) {
                 case "createdAt" -> orders.add(new OrderSpecifier<>(direction, roommateBoard.createdAt));
                 case "hits" -> orders.add(new OrderSpecifier<>(direction, roommateBoard.hits));
-                default -> throw new IllegalArgumentException();
+                default -> throw new IllegalArgumentException("지원하지 않는 정렬 조건입니다.");
             }
         }
 
