@@ -61,8 +61,8 @@ public class UserController {
 
     @PutMapping("/profile/lifestyle")
     @Operation(summary = "라이프스타일 수정")
-    public CommonResponse<ModifyProfileLifeStyleDto.Response> modifyLifeStyle(@RequestBody ModifyProfileLifeStyleDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileLifeStyleDto.Response());
+    public CommonResponse<ModifyProfileLifeStyleDto.Response> modifyLifeStyle(@RequestBody ModifyProfileLifeStyleDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyLifeStyleLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/profile/roominfo")

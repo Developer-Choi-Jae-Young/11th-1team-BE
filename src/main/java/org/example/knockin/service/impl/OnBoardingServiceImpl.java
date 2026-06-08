@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.AgreementLog;
 import org.example.knockin.entity.agreement.MemberAgreement;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.MemberLifePatternLog;
 import org.example.knockin.entity.member.BasicInformation;
@@ -14,6 +16,7 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.repository.agreement.MemberAgreementRepository;
+import org.example.knockin.repository.life.LifePatternInformationRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
@@ -26,10 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,7 @@ public class OnBoardingServiceImpl {
     private final SeekerRoomTypeRepository seekerRoomTypeRepository;
     private final RoomSeekerProfileRegionRepository roomSeekerProfileRegionRepository;
     private final MetaServiceImpl metaService;
+    private final LifePatternInformationRepository lifePatternInformationRepository;
 
     @Transactional
     public BasicInformation saveBasicInfo(SaveProfileBasicDto.Request request, Member member) {
@@ -231,5 +232,57 @@ public class OnBoardingServiceImpl {
         modifyAgreement(request, member);
 
         return ModifyProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public void modifyLifeStyle(ModifyProfileLifeStyleDto.Request request, Member member) {
+        List<Long> memberLifePatternIds = request.getLifestyles().stream()
+                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getId)
+                .toList();
+
+        List<Long> newLifestyleIds = request.getLifestyles().stream()
+                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getLifestyleId)
+                .toList();
+
+        Map<Long, LifePatternInformation> newInfoMap = lifePatternInformationRepository.findAllById(newLifestyleIds).stream()
+                .collect(Collectors.toMap(LifePatternInformation::getId, info -> info));
+
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternRepository.findByMember(member);
+        List<MemberLifePattern> modifyMemberLifePatternList = memberLifePatternList.stream()
+                .filter(item -> memberLifePatternIds.contains(item.getId()))
+                .toList();
+
+        modifyMemberLifePatternList.forEach(item -> {
+            request.getLifestyles().forEach(data -> {
+                if (Objects.equals(data.getId(), item.getId())) {
+                    LifePatternInformation newInfo = newInfoMap.get(data.getLifestyleId());
+
+                    if(!Objects.equals(newInfo.getLifePattern().getId(), item.getLifePatternInformation().getLifePattern().getId())) {
+                        throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_VAILDATION_FAIL);
+                    }
+
+                    item.modifyLifePatternInformation(newInfo);
+                }
+            });
+        });
+    }
+
+    @Transactional
+    public void modifyLifeStyleLog(Member member) {
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternRepository.findByMember(member);
+        List<MemberLifePatternLog> logList = memberLifePatternList.stream().map(pattern ->
+                MemberLifePatternLog.builder().member(member).lifePatternInformation(pattern.getLifePatternInformation()).build()).toList();
+
+        if (!logList.isEmpty()) {
+            memberLifePatternLogRepository.saveAll(logList);
+        }
+    }
+
+    @Transactional
+    public ModifyProfileLifeStyleDto.Response modifyLifeStyleLogic(ModifyProfileLifeStyleDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        modifyLifeStyle(request, member);
+        modifyLifeStyleLog(member);
+        return ModifyProfileLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }
