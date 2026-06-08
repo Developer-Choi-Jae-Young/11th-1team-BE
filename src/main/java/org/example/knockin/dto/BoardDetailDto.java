@@ -5,6 +5,7 @@ import lombok.Data;
 import org.example.knockin.entity.life.LifePatternType;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.example.knockin.entity.member.Gender;
 
 @Data
 public class BoardDetailDto {
@@ -16,38 +17,70 @@ public class BoardDetailDto {
     public static class Response {
         @Schema(description = "고유 식별 ID")
         private Long boardId;
-        @Schema(description = "이미지 목록")
-        private List<String> images;
+
+        @Schema(description = "썸네일 URL 목록")
+        private String thumbNailImageUrl;
+
+        @Schema(description = "이미지 URL 목록")
+        private List<String> imageUrls;
+
         @Schema(description = "제목")
         private String title;
+
         @Schema(description = "보증금")
         private Integer deposit;
+
+        @Schema(description = "관리비")
+        private Integer managementCost;
+
         @Schema(description = "월세")
-        private Integer mounthRent;
-        @Schema(description = "방 타입 ID")
-        private Long roomType;
-        @Schema(description = "지역 ID")
-        private Long region;
+        private Integer monthlyRent;
+
+        @Schema(description = "방 타입명")
+        private String roomTypeName;
+
+        @Schema(description = "지역명 full name")
+        private String regionFullName;
+
         @Schema(description = "날짜 및 시간")
-        private LocalDateTime createAt;
+        private LocalDateTime createdAt;
+
         @Schema(description = "조회수")
-        private Long viewer;
+        private Long hits;
+
         @Schema(description = "내용")
         private String contents;
+
         @Schema(description = "방 옵션 목록")
-        private List<Long> roomOption;
+        private List<Long> roomOptions;
+
         @Schema(description = "라이프스타일 목록")
         private List<Lifestyle> lifeStyles;
+
         @Schema(description = "선호도 목록")
         private List<Preference> preferences;
-        @Schema(description = "조건 목록")
+
+        @Schema(description = "선호 룸메이트 조건 조건 목록")
         private List<Condition> conditions;
-        @Schema(description = "작성자")
-        private String writer;
+
+        @Schema(description = "등록자 이름")
+        private String memberName;
+
+        @Schema(description = "등록자 프로필 사진 URL")
+        private String memberProfileImageUrl;
+
+        @Schema(description = "등록자 나이")
+        private String memberAge;
+
+        @Schema(description = "등록자 성별")
+        private Gender gender;
+
         @Schema(description = "학생 인증 여부")
         private Boolean isAuthStudent;
+
         @Schema(description = "직장인 인증 여부")
         private Boolean isAuthEmployee;
+
         @Schema(description = "적합도")
         private Compatibility compatibility;
 
