@@ -6,15 +6,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.dto.BoardDto.Response;
-import org.example.knockin.entity.member.Gender;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.service.RoommateBoardService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -29,16 +30,11 @@ public class RoomMateController {
 
     @GetMapping("/boards")
     @Operation(summary = "게시글 목록 조회")
-    public CommonResponse<BoardListDto.Response> findBoardList(
-            @RequestParam(required = false) Long region,
-            @RequestParam(required = false) Gender gender,
-            @RequestParam(required = false) Integer minDeposit,
-            @RequestParam(required = false) Integer maxDeposit,
-            @RequestParam(required = false) Integer minMounthRent,
-            @RequestParam(required = false) Integer maxMounthRent,
-            @RequestParam(required = false) Integer type,
+    public CommonResponse<Page<BoardListDto.Response>> findBoardList(
+            @Validated @ModelAttribute BoardListDto.Request request,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoardListDto.Response());
+        Page<BoardListDto.Response> responses = roommateBoardService.getBoardList(request, pageable);
+        return CommonResponse.status(HttpStatus.OK).body(responses);
     }
 
     @GetMapping("/boards/{boardId}")

@@ -7,6 +7,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDto;
 import org.example.knockin.dto.BoardDto.Request.FileDto;
+import org.example.knockin.dto.BoardListDto;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
 import org.example.knockin.entity.file.File;
@@ -19,13 +20,19 @@ import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
+import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepository;
+import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
+import org.jspecify.annotations.NullMarked;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+@NullMarked
 @Service
 @RequiredArgsConstructor
 public class RoommateBoardServiceImpl implements RoommateBoardService {
@@ -37,7 +44,6 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final TransactionTemplate transactionTemplate;
     private final MetaServiceImpl metaService;
 
-    // TODO: 예외처리 custom ErrorCode로 처리 필요
     @Override
     public BoardDto.Response save(BoardDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId)
@@ -119,6 +125,42 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
         LocalDateTime updatedAt = savedRoommateBoard.getUpdatedAt();
         return new BoardDto.Response(updatedAt);
+    }
+
+    @Override
+    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
+        RoommateBoardSearchCondition condition = new RoommateBoardSearchCondition(
+                request.getRegionIds(),
+                request.getRoomTypeIds(),
+                request.getGender(),
+                request.getMinDeposit(),
+                request.getMaxDeposit(),
+                request.getMinMounthRent(),
+                request.getMaxMounthRent(),
+                LocalDateTime.now().minusDays(RoommateBoard.COMEABLE_DATE_VISIBLE_GRACE_DAYS),
+                pageable
+        );
+
+        return roommateBoardRepository.search(condition)
+                .map(this::toResponse);
+    }
+
+    private BoardListDto.Response toResponse(RoommateBoardListRow row) {
+        return BoardListDto.Response.builder()
+                .id(row.id())
+                .imageUrl(row.imageUrl())
+                .title(row.title())
+                .deposit(row.deposit())
+                .monthlyRent(row.monthlyRent())
+                .managementCost(row.managementCost())
+                .roomTypes(row.roomTypes())
+                .comeableDate(row.comeableDate())
+                .regionFullName(row.regionFullName())
+                .memberName(row.memberName())
+                .authentications(row.authentications())
+                .hits(row.hits())
+                .badges(row.badges())
+                .build();
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }
