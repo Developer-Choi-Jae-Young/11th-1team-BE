@@ -67,14 +67,14 @@ public class UserController {
 
     @PutMapping("/profile/roominfo")
     @Operation(summary = "방 정보 수정")
-    public CommonResponse<ModifyProfileRoomInfoDto.Response> modifyRoomInfo(@RequestBody ModifyProfileRoomInfoDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileRoomInfoDto.Response());
+    public CommonResponse<ModifyProfileRoomInfoDto.Response> modifyRoomInfo(@RequestBody ModifyProfileRoomInfoDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyRoomInfoLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/profile/all")
     @Operation(summary = "전체 정보 수정")
-    public CommonResponse<ModifyProfileAllDto.Response> modifyAll(@RequestBody ModifyProfileAllDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyProfileAllDto.Response());
+    public CommonResponse<ModifyProfileAllDto.Response> modifyAll(@RequestBody ModifyProfileAllDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyAll(request, principalDetails.getMember().getId()));
     }
 
     @PostMapping("/preferences/lifestyle")
