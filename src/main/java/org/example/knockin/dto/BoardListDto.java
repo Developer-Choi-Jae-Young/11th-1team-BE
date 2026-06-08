@@ -43,18 +43,43 @@ public class BoardListDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
+        @Schema(description = "게시물 ID")
         Long id;
+
+        @Schema(description = "대표 이미지 URL")
         String imageUrl;
+
+        @Schema(description = "게시물 제목")
         String title;
+
+        @Schema(description = "보증금")
         Integer deposit;
+
+        @Schema(description = "월세")
         Integer monthlyRent;
+
+        @Schema(description = "관리비")
         Integer managementCost;
+
+        @Schema(description = "룸 형태")
         List<String> roomTypes;
+
+        @Schema(description = "입주가능시기")
         LocalDateTime comeableDate;
+
+        @Schema(description = "위치")
         String regionFullName;
+
+        @Schema(description = "작성자 이름")
         String memberName;
+
+        @Schema(description = "신원 인증")
         List<AuthenticationType> authentications;
+
+        @Schema(description = "조회수")
         Long hits;
+
+        @Schema(description = "인증배지")
         List<RoommateBoardBadgeType> badges;
     }
 }
