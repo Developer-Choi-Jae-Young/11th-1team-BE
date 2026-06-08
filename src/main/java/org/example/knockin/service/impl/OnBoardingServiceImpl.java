@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.AgreementLog;
 import org.example.knockin.entity.agreement.MemberAgreement;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.MemberLifePatternLog;
 import org.example.knockin.entity.member.BasicInformation;
@@ -14,6 +16,7 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.repository.agreement.MemberAgreementRepository;
+import org.example.knockin.repository.life.LifePatternInformationRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
@@ -26,10 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,7 @@ public class OnBoardingServiceImpl {
     private final SeekerRoomTypeRepository seekerRoomTypeRepository;
     private final RoomSeekerProfileRegionRepository roomSeekerProfileRegionRepository;
     private final MetaServiceImpl metaService;
+    private final LifePatternInformationRepository lifePatternInformationRepository;
 
     @Transactional
     public BasicInformation saveBasicInfo(SaveProfileBasicDto.Request request, Member member) {
@@ -231,5 +232,189 @@ public class OnBoardingServiceImpl {
         modifyAgreement(request, member);
 
         return ModifyProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public void modifyLifeStyle(ModifyProfileLifeStyleDto.Request request, Member member) {
+        List<Long> memberLifePatternIds = request.getLifestyles().stream()
+                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getId)
+                .toList();
+
+        List<Long> newLifestyleIds = request.getLifestyles().stream()
+                .map(ModifyProfileLifeStyleDto.Request.LifeStyleInfo::getLifestyleId)
+                .toList();
+
+        Map<Long, LifePatternInformation> newInfoMap = lifePatternInformationRepository.findAllById(newLifestyleIds).stream()
+                .collect(Collectors.toMap(LifePatternInformation::getId, info -> info));
+
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternRepository.findByMember(member);
+        List<MemberLifePattern> modifyMemberLifePatternList = memberLifePatternList.stream()
+                .filter(item -> memberLifePatternIds.contains(item.getId()))
+                .toList();
+
+        modifyMemberLifePatternList.forEach(item -> {
+            request.getLifestyles().forEach(data -> {
+                if (Objects.equals(data.getId(), item.getId())) {
+                    LifePatternInformation newInfo = newInfoMap.get(data.getLifestyleId());
+
+                    if(!Objects.equals(newInfo.getLifePattern().getId(), item.getLifePatternInformation().getLifePattern().getId())) {
+                        throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_VAILDATION_FAIL);
+                    }
+
+                    item.modifyLifePatternInformation(newInfo);
+                }
+            });
+        });
+    }
+
+    @Transactional
+    public void modifyLifeStyleLog(Member member) {
+        List<MemberLifePattern> memberLifePatternList = memberLifePatternRepository.findByMember(member);
+        List<MemberLifePatternLog> logList = memberLifePatternList.stream().map(pattern ->
+                MemberLifePatternLog.builder().member(member).lifePatternInformation(pattern.getLifePatternInformation()).build()).toList();
+
+        if (!logList.isEmpty()) {
+            memberLifePatternLogRepository.saveAll(logList);
+        }
+    }
+
+    @Transactional
+    public ModifyProfileLifeStyleDto.Response modifyLifeStyleLogic(ModifyProfileLifeStyleDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        modifyLifeStyle(request, member);
+        modifyLifeStyleLog(member);
+        return ModifyProfileLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public void modifyRoomInfo(ModifyProfileRoomInfoDto.Request request, Member member) {
+        RoomProfile roomProfile = roomProfileRepository.findByMember(member).getFirst();
+        RoomProfileType targetType = request.getType();
+
+        if (roomProfile.getType() != targetType) {
+            if (roomProfile instanceof RoomOfferProfile roomOfferProfile) {
+                offerRoomTypeRepository.deleteByRoomOfferProfile(roomOfferProfile);
+            } else if (roomProfile instanceof RoomSeekerProfile seekerProfile) {
+                seekerRoomTypeRepository.deleteByRoomSeekerProfile(seekerProfile);
+                roomSeekerProfileRegionRepository.deleteByRoomSeekerProfile(seekerProfile);
+            }
+
+            roomProfileRepository.delete(roomProfile);
+            roomProfileRepository.flush();
+
+            if (targetType == RoomProfileType.SEEKER) {
+                RoomSeekerProfile newSeekerProfile = roomProfileRepository.save(RoomSeekerProfile.builder()
+                        .member(member)
+                        .minDeposit(request.getMinDeposit())
+                        .maxDeposit(request.getMaxDeposit())
+                        .minMonthlyRent(request.getMinMounthRent())
+                        .maxMonthlyRent(request.getMaxMounthRent())
+                        .isComeableAtNegotiable(request.isComeableAtNegotiable())
+                        .comeableAt(request.getComeEnableAt())
+                        .build());
+
+                List<RoomSeekerProfileRegion> seekerRegions = metaService.findByRegions(request.getRegion()).stream().map(region -> RoomSeekerProfileRegion.builder().roomSeekerProfile(newSeekerProfile).region(region).build()).toList();
+                roomSeekerProfileRegionRepository.saveAll(seekerRegions);
+
+                List<SeekerRoomType> seekerRoomTypes = metaService.findByRoomTypes(request.getRoomProfile()).stream().map(roomType -> SeekerRoomType.builder().roomSeekerProfile(newSeekerProfile).roomType(roomType).build()).toList();
+                seekerRoomTypeRepository.saveAll(seekerRoomTypes);
+            } else if (targetType == RoomProfileType.OFFER) {
+                Region region = metaService.findByRegionId(request.getRegion().getFirst())
+                        .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+
+                RoomOfferProfile newOfferProfile = roomProfileRepository.save(RoomOfferProfile.builder()
+                        .member(member)
+                        .region(region)
+                        .deposit(request.getDeposit())
+                        .monthlyRent(request.getMounthRent())
+                        .isComeableAtNegotiable(request.isComeableAtNegotiable())
+                        .comeableAt(request.getComeEnableAt())
+                        .build());
+
+                List<OfferRoomType> offerRoomTypes = metaService.findByRoomTypes(request.getRoomProfile()).stream().map(roomType -> OfferRoomType.builder().roomOfferProfile(newOfferProfile).roomType(roomType).build()).toList();
+                offerRoomTypeRepository.saveAll(offerRoomTypes);
+            }
+        } else {
+            List<RoomType> roomTypeList = metaService.findByRoomTypes(request.getRoomProfile());
+
+            if (roomProfile instanceof RoomOfferProfile roomOfferProfile) {
+                Region region = metaService.findByRegionId(request.getRegion().getFirst()).orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+
+                roomOfferProfile.updateOffer(request, region);
+                offerRoomTypeRepository.deleteByRoomOfferProfile(roomOfferProfile);
+
+                List<OfferRoomType> offerRoomTypeList = roomTypeList.stream().map(item -> OfferRoomType.builder().roomType(item).roomOfferProfile(roomOfferProfile).build()).toList();
+                offerRoomTypeRepository.saveAll(offerRoomTypeList);
+            } else if (roomProfile instanceof RoomSeekerProfile seekerProfile) {
+                List<Region> regionList = metaService.findByRegions(request.getRegion());
+
+                seekerProfile.updateSeeker(request);
+                seekerRoomTypeRepository.deleteByRoomSeekerProfile(seekerProfile);
+
+                List<SeekerRoomType> seekerRoomTypes = roomTypeList.stream().map(item -> SeekerRoomType.builder().roomType(item).roomSeekerProfile(seekerProfile).build()).toList();
+                seekerRoomTypeRepository.saveAll(seekerRoomTypes);
+
+                roomSeekerProfileRegionRepository.deleteByRoomSeekerProfile(seekerProfile);
+
+                List<RoomSeekerProfileRegion> roomSeekerProfileRegionList = regionList.stream().map(item -> RoomSeekerProfileRegion.builder().roomSeekerProfile(seekerProfile).region(item).build()).toList();
+                roomSeekerProfileRegionRepository.saveAll(roomSeekerProfileRegionList);
+            } else {
+                throw new BusinessException(OnBoardErrorCode.ONBOARD_ROOM_INFO_VAILDATION_FAIL);
+            }
+        }
+    }
+
+    @Transactional
+    public ModifyProfileRoomInfoDto.Response modifyRoomInfoLogic(ModifyProfileRoomInfoDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        modifyRoomInfo(request, member);
+        return ModifyProfileRoomInfoDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public ModifyProfileAllDto.Response modifyAll(ModifyProfileAllDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+
+        ModifyProfileBasicDto.Request basicRequest = ModifyProfileBasicDto.Request.builder()
+                .name(request.getName())
+                .birth(request.getBirth())
+                .gender(request.getGender())
+                .email(request.getEmail())
+                .terms(request.getTerms())
+                .build();
+
+        List<ModifyProfileLifeStyleDto.Request.LifeStyleInfo> mappedLifestyles = request.getLifestyles().stream()
+                .map(info -> {
+                    ModifyProfileLifeStyleDto.Request.LifeStyleInfo targetInfo = new ModifyProfileLifeStyleDto.Request.LifeStyleInfo();
+                    targetInfo.setId(info.getId());
+                    targetInfo.setLifestyleId(info.getLifestyleId());
+                    return targetInfo;
+                }).toList();
+
+        ModifyProfileLifeStyleDto.Request lifeStyleRequest = ModifyProfileLifeStyleDto.Request.builder()
+                .lifestyles(mappedLifestyles)
+                .build();
+
+        ModifyProfileRoomInfoDto.Request roomInfoRequest = ModifyProfileRoomInfoDto.Request.builder()
+                .type(request.getType())
+                .minDeposit(request.getMinDeposit())
+                .maxDeposit(request.getMaxDeposit())
+                .minMounthRent(request.getMinMounthRent())
+                .maxMounthRent(request.getMaxMounthRent())
+                .comeEnableAt(request.getComeEnableAt())
+                .isComeableAtNegotiable(request.isComeableAtNegotiable())
+                .region(request.getRegion())
+                .roomProfile(request.getRoomProfile())
+                .deposit(request.getDeposit())
+                .mounthRent(request.getMounthRent())
+                .build();
+
+        modifyBasicInfo(basicRequest, member);
+        modifyAgreement(basicRequest, member);
+        modifyLifeStyle(lifeStyleRequest, member);
+        modifyLifeStyleLog(member);
+        modifyRoomInfo(roomInfoRequest, member);
+
+        return ModifyProfileAllDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }
