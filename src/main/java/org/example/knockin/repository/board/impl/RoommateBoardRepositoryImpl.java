@@ -193,8 +193,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         authentication.member.id,
                         authentication.type
                 ))
+                .distinct()
                 .from(authentication)
-                .where(authentication.member.id.in(memberIds))
+                .where(
+                        authentication.member.id.in(memberIds),
+                        authentication.isAccepted.isTrue(),
+                        authentication.isDeleted.isFalse()
+                )
                 .fetch();
 
         return authRows.stream()
