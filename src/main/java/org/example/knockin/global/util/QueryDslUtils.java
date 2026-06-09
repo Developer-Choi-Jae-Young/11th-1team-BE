@@ -1,4 +1,4 @@
-package org.example.knockin.global.jpa;
+package org.example.knockin.global.util;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberPath;
