@@ -13,7 +13,6 @@ import org.example.knockin.entity.member.Gender;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class BoardDetailDto {
 
     @Data

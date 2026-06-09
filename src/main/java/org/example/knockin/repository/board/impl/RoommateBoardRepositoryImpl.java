@@ -37,12 +37,13 @@ import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.dto.BoardDetailDto.Response.ImageInfo;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.file.QBasicInformationFile;
 import org.example.knockin.entity.file.QFile;
-import org.example.knockin.entity.life.QLifePattern;
-import org.example.knockin.entity.life.QLifePatternInformation;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.QueryDslUtils;
 import org.example.knockin.repository.board.RoommateBoardListRow;
@@ -284,18 +285,21 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion boardRegion = new QRegion("boardRegion");
         QRegion parentRegion = new QRegion("parentRegion");
         QRegion grandParentRegion = new QRegion("grandParentRegion");
+        QFile profileFile = new QFile("profileFile");
         SearchAliases searchAliases = new SearchAliases(boardRegion, parentRegion, grandParentRegion, null, null);
 
         increaseHitsByBoardId(boardId);
 
-        Tuple tuple = getBoardBasicInfoTuple(boardId, searchAliases);
+        Tuple tuple = getBoardBasicInfoTuple(boardId, searchAliases, profileFile);
+        if (tuple == null) {
+            throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND);
+        }
 
         List<ImageInfo> images = findImagesById(boardId);
 
         List<String> roomExtraOptionNames = findExtraOptionNamesById(boardId);
 
-        assert tuple != null;
-        Long memberId = tuple.get(basicInformation.member.id);
+        Long memberId = tuple.get(member.id);
         BooleanExpression isPrimaryExpression = lifePattern.name.in("취침", "청결", "소음", "흡연");
         Map<Boolean, List<Lifestyle>> memberLifePatternMap = findLifeStylePrimaryKeyMapByMemberId(memberId,
                 isPrimaryExpression);
@@ -306,7 +310,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
 
         List<AuthenticationType> authenticationTypes = findAcceptedAuthenticationTypeByMemberId(memberId);
 
-        String regionFullName = parseToRegionFullName(tuple.get(boardRegion.name), tuple.get(parentRegion.name), tuple.get(grandParentRegion.name));
+        String regionFullName = parseToRegionFullName(tuple.get(grandParentRegion.name), tuple.get(parentRegion.name), tuple.get(boardRegion.name));
         int memberAge = DateUtils.calculateAge(tuple.get(basicInformation.birth));
 
         return BoardDetailDto.Response.builder()
@@ -320,11 +324,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .regionFullName(regionFullName)
                 .createdAt(tuple.get(roommateBoard.createdAt))
                 .hits(tuple.get(roommateBoard.hits))
+                .contents(tuple.get(roommateBoard.contents))
                 .roomExtraOptionNames(roomExtraOptionNames)
                 .primaryLifeStyles(primaryLifeStyles)
                 .additionalLifeStyles(additionalLifeStyles)
                 .conditions(conditions)
                 .memberName(tuple.get(basicInformation.name))
+                .memberProfileImageUrl(tuple.get(profileFile.savedFileName))
                 .memberAge(memberAge)
                 .gender(tuple.get(basicInformation.gender))
                 .authentications(authenticationTypes)
@@ -333,10 +339,11 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .build();
     }
 
-    private Tuple getBoardBasicInfoTuple(Long boardId, SearchAliases searchAliases) {
+    private Tuple getBoardBasicInfoTuple(Long boardId, SearchAliases searchAliases, QFile profileFile) {
         QRegion boardRegion = searchAliases.boardRegion();
         QRegion parentRegion = searchAliases.parentRegion();
         QRegion grandParentRegion = searchAliases.grandParentRegion();
+        QBasicInformationFile latestBasicInformationFile = new QBasicInformationFile("latestBasicInformationFile");
 
         return jpaQueryFactory
                 .select(
@@ -352,8 +359,9 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.createdAt,
                         roommateBoard.hits,
                         roommateBoard.contents,
+                        member.id,
                         basicInformation.name,
-                        basicInformationFile.file.savedFileName,
+                        profileFile.savedFileName,
                         basicInformation.birth,
                         basicInformation.gender
                 )
@@ -378,10 +386,13 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 // 1:N 관계이지만 서비스적으로 1:1 유지 가정
                 .leftJoin(basicInformationFile)
                 .on(basicInformationFile.id.eq(
-                        JPAExpressions.select(file.id.max())
-                                .from(file)
-                                .where(file.id.eq(basicInformationFile.id))
+                        JPAExpressions
+                                .select(latestBasicInformationFile.id.max())
+                                .from(latestBasicInformationFile)
+                                .where(latestBasicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
+                .leftJoin(basicInformationFile.file, profileFile)
+                .on(profileFile.isDeleted.isFalse())
                 .fetchOne();
     }
 
@@ -398,13 +409,15 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoardFile.roommateBoard.id.eq(boardId),
                         file.isDeleted.isFalse()
                 )
+                .orderBy(roommateBoardFile.isThumbnail.desc(), roommateBoardFile.id.asc())
+                .limit(10)
                 .fetch();
     }
 
     private List<String> findExtraOptionNamesById(Long boardId) {
         return jpaQueryFactory
                 .select(roomExtraOption.name)
-                .from(roomExtraOption)
+                .from(roommateBoardOption)
                 .join(roommateBoardOption.roomExtraOption, roomExtraOption)
                 .where(
                         roommateBoardOption.roommateBoard.id.eq(boardId),
