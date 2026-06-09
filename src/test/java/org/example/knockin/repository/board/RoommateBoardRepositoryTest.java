@@ -1,22 +1,40 @@
 package org.example.knockin.repository.board;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.List;
 import jakarta.persistence.EntityManager;
 import org.example.knockin.config.QueryDslConfig;
+import org.example.knockin.dto.BoardDetailDto;
+import org.example.knockin.entity.auth.Authentication;
+import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.board.RoommateBoard;
+import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardOption;
+import org.example.knockin.entity.file.BasicInformationFile;
+import org.example.knockin.entity.file.File;
+import org.example.knockin.entity.file.FileType;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
+import org.example.knockin.entity.life.LifePatternType;
+import org.example.knockin.entity.life.MemberLifePattern;
+import org.example.knockin.entity.life.PreferenceCondition;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
-import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.room.Region;
+import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
+import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,6 +158,79 @@ class RoommateBoardRepositoryTest {
         assertThat(maleResult.getContent()).isEmpty();
     }
 
+    @Test
+    @DisplayName("상세 조회는 게시글 상세 화면에 필요한 정보를 조립하고 조회수를 증가시킨다")
+    void viewDetailReturnsBoardDetailAndIncrementsHits() {
+        // Given
+        Member member = persistMember("provider-detail");
+        LocalDate birth = LocalDate.of(1998, 1, 1);
+        BasicInformation basicInformation = persistBasicInformation(member, "상세작성자", Gender.FEMALE, "detail@example.com", birth);
+        File profileFile = persistFile("profile.png");
+        persistBasicInformationFile(basicInformation, profileFile);
+
+        Region city = persistRegion("서울", 1, null);
+        Region district = persistRegion("강남구", 2, city);
+        Region dong = persistRegion("역삼동", 3, district);
+        RoomType roomType = persistRoomType("원룸");
+        RoommateBoard board = persistBoard("상세 게시글", member, roomType, dong, LocalDateTime.of(2026, 7, 1, 9, 0));
+
+        for (int i = 1; i <= 11; i++) {
+            persistBoardFile(board, persistFile("room-" + i + ".jpg"), false);
+        }
+        persistBoardFile(board, persistFile("thumbnail.jpg"), true);
+
+        RoomExtraOption fullOption = persistRoomExtraOption("풀옵션");
+        persistRoommateBoardOption(board, fullOption);
+
+        LifePattern sleepPattern = persistLifePattern("취침", LifePatternType.SCALE);
+        persistMemberLifePattern(member, persistLifePatternInformation(sleepPattern, "23:00", "일찍 자요"));
+        LifePattern visitorPattern = persistLifePattern("방문객", LifePatternType.SINGLE_CHOICE);
+        persistMemberLifePattern(member, persistLifePatternInformation(visitorPattern, "가끔", "가끔 방문해요"));
+        LifePattern smokingPattern = persistLifePattern("흡연", LifePatternType.BOOLEAN);
+        persistPreferenceCondition(member, persistLifePatternInformation(smokingPattern, "비흡연", "비흡연 선호"));
+
+        persistAuthentication(member, AuthenticationType.STUDENT);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        BoardDetailDto.Response response = roommateBoardRepository.viewDetail(board.getId());
+
+        // Then
+        assertThat(response.getBoardId()).isEqualTo(board.getId());
+        assertThat(response.getTitle()).isEqualTo("상세 게시글");
+        assertThat(response.getContents()).isEqualTo("테스트 게시글 내용");
+        assertThat(response.getHits()).isEqualTo(1L);
+        assertThat(response.getRoomTypeName()).isEqualTo("원룸");
+        assertThat(response.getRegionFullName()).isEqualTo("서울 강남구 역삼동");
+        assertThat(response.getMemberName()).isEqualTo("상세작성자");
+        assertThat(response.getMemberProfileImageUrl()).isEqualTo("profile.png");
+        assertThat(response.getMemberAge()).isEqualTo(Period.between(birth, LocalDate.now()).getYears());
+        assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
+        assertThat(response.getAuthentications()).containsExactly(AuthenticationType.STUDENT);
+        assertThat(response.getRoomExtraOptionNames()).containsExactly("풀옵션");
+        assertThat(response.getImages()).hasSize(10);
+        assertThat(response.getImages().getFirst().getUrl()).isEqualTo("thumbnail.jpg");
+        assertThat(response.getImages().getFirst().isThumbnail()).isTrue();
+        assertThat(response.getPrimaryLifeStyles())
+                .extracting(BoardDetailDto.Response.Lifestyle::getName)
+                .containsExactly("취침");
+        assertThat(response.getAdditionalLifeStyles())
+                .extracting(BoardDetailDto.Response.Lifestyle::getName)
+                .containsExactly("방문객");
+        assertThat(response.getConditions())
+                .extracting(BoardDetailDto.Response.Condition::getName)
+                .containsExactly("흡연");
+    }
+
+    @Test
+    @DisplayName("상세 조회 대상 게시글이 없으면 조회 실패 예외를 던진다")
+    void viewDetailThrowsWhenBoardDoesNotExist() {
+        assertThatThrownBy(() -> roommateBoardRepository.viewDetail(999L))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+    }
+
     private RoommateBoardSearchCondition defaultCondition(LocalDateTime endDate, PageRequest pageRequest) {
         return condition(null, null, null, null, null, null, null, endDate, pageRequest);
     }
@@ -180,10 +271,14 @@ class RoommateBoardRepositoryTest {
     }
 
     private BasicInformation persistBasicInformation(Member member, String name, Gender gender, String email) {
+        return persistBasicInformation(member, name, gender, email, LocalDate.of(1998, 1, 1));
+    }
+
+    private BasicInformation persistBasicInformation(Member member, String name, Gender gender, String email, LocalDate birth) {
         BasicInformation basicInformation = BasicInformation.builder()
                 .member(member)
                 .name(name)
-                .birth(LocalDate.of(1998, 1, 1))
+                .birth(birth)
                 .gender(gender)
                 .email(email)
                 .build();
@@ -228,6 +323,98 @@ class RoommateBoardRepositoryTest {
                 .build();
         entityManager.persist(board);
         return board;
+    }
+
+    private File persistFile(String savedFileName) {
+        File file = File.builder()
+                .type(FileType.ROOMMATE_BOARD_IMAGE)
+                .originalFileName(savedFileName)
+                .savedFileName(savedFileName)
+                .fileExt("jpg")
+                .build();
+        entityManager.persist(file);
+        return file;
+    }
+
+    private BasicInformationFile persistBasicInformationFile(BasicInformation basicInformation, File file) {
+        BasicInformationFile basicInformationFile = newInstance(BasicInformationFile.class);
+        ReflectionTestUtils.setField(basicInformationFile, "basicInformation", basicInformation);
+        ReflectionTestUtils.setField(basicInformationFile, "file", file);
+        entityManager.persist(basicInformationFile);
+        return basicInformationFile;
+    }
+
+    private RoommateBoardFile persistBoardFile(RoommateBoard board, File file, boolean isThumbnail) {
+        RoommateBoardFile roommateBoardFile = RoommateBoardFile.builder()
+                .roommateBoard(board)
+                .file(file)
+                .isThumbnail(isThumbnail)
+                .build();
+        entityManager.persist(roommateBoardFile);
+        return roommateBoardFile;
+    }
+
+    private RoomExtraOption persistRoomExtraOption(String name) {
+        RoomExtraOption option = newInstance(RoomExtraOption.class);
+        ReflectionTestUtils.setField(option, "name", name);
+        ReflectionTestUtils.setField(option, "isDeleted", false);
+        entityManager.persist(option);
+        return option;
+    }
+
+    private RoommateBoardOption persistRoommateBoardOption(RoommateBoard board, RoomExtraOption option) {
+        RoommateBoardOption roommateBoardOption = newInstance(RoommateBoardOption.class);
+        ReflectionTestUtils.setField(roommateBoardOption, "roommateBoard", board);
+        ReflectionTestUtils.setField(roommateBoardOption, "roomExtraOption", option);
+        entityManager.persist(roommateBoardOption);
+        return roommateBoardOption;
+    }
+
+    private LifePattern persistLifePattern(String name, LifePatternType type) {
+        LifePattern pattern = newInstance(LifePattern.class);
+        ReflectionTestUtils.setField(pattern, "name", name);
+        ReflectionTestUtils.setField(pattern, "dtype", type);
+        ReflectionTestUtils.setField(pattern, "isDeleted", false);
+        entityManager.persist(pattern);
+        return pattern;
+    }
+
+    private LifePatternInformation persistLifePatternInformation(LifePattern pattern, String value, String description) {
+        LifePatternInformation information = newInstance(LifePatternInformation.class);
+        ReflectionTestUtils.setField(information, "lifePattern", pattern);
+        ReflectionTestUtils.setField(information, "dvalue", value);
+        ReflectionTestUtils.setField(information, "description", description);
+        entityManager.persist(information);
+        return information;
+    }
+
+    private MemberLifePattern persistMemberLifePattern(Member member, LifePatternInformation information) {
+        MemberLifePattern memberLifePattern = MemberLifePattern.builder()
+                .member(member)
+                .lifePatternInformation(information)
+                .build();
+        entityManager.persist(memberLifePattern);
+        return memberLifePattern;
+    }
+
+    private PreferenceCondition persistPreferenceCondition(Member member, LifePatternInformation information) {
+        PreferenceCondition preferenceCondition = newInstance(PreferenceCondition.class);
+        ReflectionTestUtils.setField(preferenceCondition, "member", member);
+        ReflectionTestUtils.setField(preferenceCondition, "lifePatternInformation", information);
+        entityManager.persist(preferenceCondition);
+        return preferenceCondition;
+    }
+
+    private Authentication persistAuthentication(Member member, AuthenticationType type) {
+        Authentication authentication = newInstance(Authentication.class);
+        ReflectionTestUtils.setField(authentication, "member", member);
+        ReflectionTestUtils.setField(authentication, "type", type);
+        ReflectionTestUtils.setField(authentication, "email", "auth@example.com");
+        ReflectionTestUtils.setField(authentication, "code", "123456");
+        ReflectionTestUtils.setField(authentication, "isAccepted", true);
+        ReflectionTestUtils.setField(authentication, "isDeleted", false);
+        entityManager.persist(authentication);
+        return authentication;
     }
 
     private <T> T newInstance(Class<T> type) {
