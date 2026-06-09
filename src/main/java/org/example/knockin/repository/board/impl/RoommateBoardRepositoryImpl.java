@@ -414,7 +414,23 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     }
 
     private Map<Boolean, List<Lifestyle>> findLifeStylePrimaryKeyMapByMemberId(Long memberId, BooleanExpression isPrimaryExpression) {
-        List<Tuple> tuples = jpaQueryFactory
+        List<Tuple> tuples = getMemberLifeStyleTupleByMemberId(memberId, isPrimaryExpression);
+
+        return tuples.stream()
+                .collect(Collectors.partitioningBy(
+                        tuple -> Boolean.TRUE.equals(tuple.get(isPrimaryExpression)),
+                        Collectors.mapping(tuple -> new Lifestyle(
+                                tuple.get(lifePattern.id),
+                                tuple.get(lifePattern.name),
+                                tuple.get(lifePatternInformation.dvalue),
+                                tuple.get(lifePatternInformation.description),
+                                tuple.get(lifePattern.dtype)
+                        ), Collectors.toList())
+                ));
+    }
+
+    private List<Tuple> getMemberLifeStyleTupleByMemberId(Long memberId, BooleanExpression isPrimaryExpression) {
+        return jpaQueryFactory
                 .select(
                         lifePattern.id,
                         lifePattern.name,
@@ -428,18 +444,6 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .join(memberLifePattern.lifePatternInformation, lifePatternInformation)
                 .leftJoin(lifePatternInformation.lifePattern, lifePattern)
                 .fetch();
-
-        return tuples.stream()
-                .collect(Collectors.partitioningBy(
-                        tuple -> Boolean.TRUE.equals(tuple.get(isPrimaryExpression)),
-                        Collectors.mapping(tuple -> new Lifestyle(
-                                tuple.get(lifePattern.id),
-                                tuple.get(lifePattern.name),
-                                tuple.get(lifePatternInformation.dvalue),
-                                tuple.get(lifePatternInformation.description),
-                                tuple.get(lifePattern.dtype)
-                        ), Collectors.toList())
-                ));
     }
 
     private List<BoardDetailDto.Response.Condition> findPreferenceConditionsByMemberId(Long memberId) {
