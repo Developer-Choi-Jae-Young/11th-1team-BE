@@ -103,8 +103,8 @@ public class UserController {
 
     @PutMapping("/preferences/conditions")
     @Operation(summary = "선호 조건 수정")
-    public CommonResponse<ModifyPreferencesConditionsDto.Response> modifyPreConditions(@RequestBody ModifyPreferencesConditionsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesConditionsDto.Response());
+    public CommonResponse<ModifyPreferencesConditionsDto.Response> modifyPreConditions(@RequestBody ModifyPreferencesConditionsDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreConditionLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/preferences/all")

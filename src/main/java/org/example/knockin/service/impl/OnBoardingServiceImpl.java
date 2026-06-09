@@ -45,6 +45,7 @@ public class OnBoardingServiceImpl {
     private final PreferenceConditionLogRepository preferenceConditionLogRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+    private final LifePatternRepository lifePatternRepository;
 
     @Transactional
     public BasicInformation saveBasicInfo(SaveProfileBasicDto.Request request, Member member) {
@@ -496,7 +497,7 @@ public class OnBoardingServiceImpl {
                         throw new BusinessException(OnBoardErrorCode.ONBOARD_LIFE_STYLE_VAILDATION_FAIL);
                     }
 
-                    item.modifyPreferenceCondition(newInfoMap.get(item.getId()));
+                    item.modifyLifePatternInformation(newInfoMap.get(item.getId()));
                 }
             });
         });
@@ -521,5 +522,36 @@ public class OnBoardingServiceImpl {
         modifyPreferenceLifeStyleLog(member);
 
         return ModifyPreferencesLifeStyleDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public void modifyPreCondition(ModifyPreferencesConditionsDto.Request request, Member member) {
+        preferenceConditionWeightRepository.deleteByMember(member);
+        preferenceConditionWeightRepository.flush();
+
+        List<PreferenceConditionWeight> preferenceConditionWeightList = new ArrayList<>();
+        lifePatternRepository.findAllById(request.getConditions()).forEach(item -> preferenceConditionWeightList.add(PreferenceConditionWeight.builder().member(member).lifePattern(item).build()));
+        preferenceConditionWeightRepository.saveAll(preferenceConditionWeightList);
+    }
+
+    @Transactional
+    public void modifyPreConditionLog(Member member) {
+        List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionWeightRepository.findByMember(member);
+        List<PreferenceConditionWeightLog> logList = preferenceConditionWeightList.stream().map(patternWeight ->
+                PreferenceConditionWeightLog.builder().member(member).lifePattern(patternWeight.getLifePattern()).build()).toList();
+
+        if (!logList.isEmpty()) {
+            preferenceConditionWeightLogRepository.saveAll(logList);
+        }
+    }
+
+    @Transactional
+    public ModifyPreferencesConditionsDto.Response modifyPreConditionLogic(ModifyPreferencesConditionsDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+
+        modifyPreCondition(request, member);
+        modifyPreConditionLog(member);
+
+        return ModifyPreferencesConditionsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }
