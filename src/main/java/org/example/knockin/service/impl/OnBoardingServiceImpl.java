@@ -514,7 +514,7 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public ModifyPreferencesLifeStyleDto.Response modifyPreferenceConditionLogic(ModifyPreferencesLifeStyleDto.Request request, Long memberId) {
+    public ModifyPreferencesLifeStyleDto.Response modifyPreLifeStyleLogic(ModifyPreferencesLifeStyleDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
         modifyPreferenceLifeStyle(request,member);

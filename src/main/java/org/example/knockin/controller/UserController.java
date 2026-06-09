@@ -98,7 +98,7 @@ public class UserController {
     @PutMapping("/preferences/lifestyle")
     @Operation(summary = "선호 라이프스타일 수정")
     public CommonResponse<ModifyPreferencesLifeStyleDto.Response> modifyPreLifeStyle(@RequestBody ModifyPreferencesLifeStyleDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreferenceConditionLogic(request, principalDetails.getMember().getId()));
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreLifeStyleLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/preferences/conditions")
