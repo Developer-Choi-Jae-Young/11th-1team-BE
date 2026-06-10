@@ -22,4 +22,8 @@ public class PreferenceConditionWeight {
     @ManyToOne
     @JoinColumn(name = "life_pattern_id")
     private LifePattern lifePattern;
+
+    public void modifyLifePattern(LifePattern lifePattern) {
+        this.lifePattern = lifePattern;
+    }
 }

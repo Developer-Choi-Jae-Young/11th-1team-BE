@@ -97,20 +97,20 @@ public class UserController {
 
     @PutMapping("/preferences/lifestyle")
     @Operation(summary = "선호 라이프스타일 수정")
-    public CommonResponse<ModifyPreferencesLifeStyleDto.Response> modifyPreLifeStyle(@RequestBody ModifyPreferencesLifeStyleDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesLifeStyleDto.Response());
+    public CommonResponse<ModifyPreferencesLifeStyleDto.Response> modifyPreLifeStyle(@RequestBody ModifyPreferencesLifeStyleDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreLifeStyleLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/preferences/conditions")
     @Operation(summary = "선호 조건 수정")
-    public CommonResponse<ModifyPreferencesConditionsDto.Response> modifyPreConditions(@RequestBody ModifyPreferencesConditionsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesConditionsDto.Response());
+    public CommonResponse<ModifyPreferencesConditionsDto.Response> modifyPreConditions(@RequestBody ModifyPreferencesConditionsDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreConditionLogic(request, principalDetails.getMember().getId()));
     }
 
     @PutMapping("/preferences/all")
     @Operation(summary = "선호 전체 수정")
-    public CommonResponse<ModifyPreferencesAllDto.Response> modifyPreAll(@RequestBody ModifyPreferencesAllDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ModifyPreferencesAllDto.Response());
+    public CommonResponse<ModifyPreferencesAllDto.Response> modifyPreAll(@RequestBody ModifyPreferencesAllDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyPreAll(request, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/preferences/all")
