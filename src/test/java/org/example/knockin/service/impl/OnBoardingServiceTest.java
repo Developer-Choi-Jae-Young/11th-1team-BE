@@ -15,6 +15,7 @@ import org.example.knockin.entity.room.*;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.repository.agreement.MemberAgreementRepository;
+import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.room.OfferRoomTypeRepository;
@@ -51,6 +52,8 @@ class OnBoardingServiceTest {
     private MemberAgreementRepository memberAgreementRepository;
     @Mock
     private MemberLifePatternRepository memberLifePatternRepository;
+    @Mock
+    private MemberLifePatternLogRepository memberLifePatternLogRepository;
     @Mock
     private RoomProfileRepository roomProfileRepository;
     @Mock

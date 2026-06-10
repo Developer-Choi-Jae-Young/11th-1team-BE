@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.dto.BoardDto;
 import org.example.knockin.dto.BoardDto.Request.FileDto;
 import org.example.knockin.dto.BoardListDto;
@@ -19,6 +20,7 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
 import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepository;
@@ -29,6 +31,7 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -161,6 +164,18 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .hits(row.hits())
                 .badges(row.badges())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public BoardDetailDto.Response getBoardDetail(Long boardId) {
+        increaseHits(boardId);
+        return roommateBoardRepository.viewDetail(boardId);
+    }
+
+    private void increaseHits(Long boardId) {
+        int counts = roommateBoardRepository.increaseHitsById(boardId);
+        if (counts == 0) throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND);
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }
