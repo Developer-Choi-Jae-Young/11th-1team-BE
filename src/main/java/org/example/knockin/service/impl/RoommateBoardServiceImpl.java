@@ -254,7 +254,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     // TODO: 정책 확정 후 갱신
     private Map<Boolean, List<BoardDetailDto.Response.Lifestyle>> divideByIsPrimary(List<BoardDetailDto.Response.Lifestyle> lifeStyles) {
-        if (lifeStyles.isEmpty()) return Map.of();
+        if (lifeStyles.isEmpty()) return Map.of(true, List.of(), false, List.of());
 
         return lifeStyles.stream()
                 .collect(Collectors.partitioningBy(
