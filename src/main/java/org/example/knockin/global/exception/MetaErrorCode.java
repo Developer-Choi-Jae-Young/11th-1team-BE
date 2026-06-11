@@ -8,7 +8,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum MetaErrorCode implements ErrorCode {
     REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "지역 조회에 실패하였습니다."),
-    ROOM_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND, "방 형태 조회에 실패하였습니다.");
+    ROOM_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND, "방 형태 조회에 실패하였습니다."),
+    EXTRA_OPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "방 추가 옵션 조회에 실패하였습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

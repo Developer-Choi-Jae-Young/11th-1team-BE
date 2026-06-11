@@ -10,6 +10,7 @@ import org.example.knockin.dto.BoardDto;
 import org.example.knockin.dto.BoardDto.Response;
 import org.example.knockin.dto.BoardEditDto;
 import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.dto.BoardModifyDto;
 import org.example.knockin.dto.MatchDetailDto;
 import org.example.knockin.dto.MatchListDto;
 import org.example.knockin.dto.MatchScoreDto;
@@ -65,7 +66,7 @@ public class RoomMateController {
     }
 
     @GetMapping("/boards/{boardId}/edit")
-    @Operation(summary = "게시글 상세 조회")
+    @Operation(summary = "게시글 편집 form")
     public CommonResponse<BoardEditDto.Response> findEditForm(
             @AuthenticationPrincipal PrincipalDetails principalDetails, @PathVariable Long boardId) {
         Long memberId = principalDetails.getMember().getId();
@@ -85,8 +86,9 @@ public class RoomMateController {
 
     @PutMapping("/boards/{boardId}")
     @Operation(summary = "게시글 수정")
-    public CommonResponse<BoardDto.Response> modifyBoard(@PathVariable Long boardId, @RequestBody BoardDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoardDto.Response());
+    public CommonResponse<BoardModifyDto.Response> modifyBoard(@PathVariable Long boardId, @RequestBody BoardModifyDto.Request request) {
+        BoardModifyDto.Response response = roommateBoardService.modify(boardId, request);
+        return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping("/boards/{boardId}/reports")

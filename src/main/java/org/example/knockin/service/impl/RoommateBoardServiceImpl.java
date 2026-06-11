@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.dto.BoardDetailDto.Response.Compatibility;
@@ -18,13 +22,17 @@ import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RegionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RoomTypeInfo;
 import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.dto.BoardModifyDto;
+import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.room.Region;
+import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.FileErrorCode;
@@ -41,9 +49,11 @@ import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.EditFormRow;
+import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
 import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.room.RoomExtraOptionRepository;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
 import org.jspecify.annotations.NullMarked;
@@ -69,6 +79,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final AuthenticationRepository authenticationRepository;
     private final RoommateBoardOptionRepository roommateBoardOptionRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
+    private final RoomExtraOptionRepository roomExtraOptionRepository;
+    private final FileRepository fileRepository;
 
     @Override
     public BoardDto.Response save(BoardDto.Request request, Long memberId) {
@@ -132,7 +144,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
         RoommateBoard savedRoommateBoard = roommateBoardRepository.save(roommateBoard);
 
-        fileService.saveAll(
+        fileRepository.saveAll(
                 fileWithThumbnails.stream()
                         .map(FileWithThumbnail::file)
                         .toList()
@@ -288,6 +300,137 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .conditions(conditions)
                 .conditionWeights(conditionWeights)
                 .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = IOException.class)
+    public BoardModifyDto.Response modify(Long boardId, BoardModifyDto.Request request) {
+        RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
+                .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId())
+                .orElseThrow(() -> new BusinessException(MetaErrorCode.ROOM_TYPE_NOT_FOUND));
+        Region region = metaService.findByRegionId(request.getRegionId())
+                .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
+
+        roommateBoard.modifyBasicInfo(request);
+        roommateBoard.modifyRoomType(roomType);
+        roommateBoard.modifyRegion(region);
+
+        removeOptions(boardId, request.getDeleteExtraOptionId());
+        saveOptions(roommateBoard, request.getNewExtraOptionId());
+
+        List<RoommateBoardFile> existingBoardFiles = roommateBoardFileRepository.findByRoommateBoard(roommateBoard);
+        Map<Long, ExistingFileDto> existingFileDtoMap = toExistingImageMap(request.getExistingImages());
+        syncExistingImages(existingBoardFiles, existingFileDtoMap);
+
+        List<FileDto> newFileDtos = request.getNewImages();
+        saveNewBoardFiles(roommateBoard, newFileDtos);
+        validateBoardFileResult(roommateBoard);
+
+        return new BoardModifyDto.Response(LocalDateTime.now());
+    }
+
+    private void removeOptions(Long boardId, List<Long> extraOptionIds) {
+        List<RoommateBoardOption> roommateBoardOptions = roommateBoardOptionRepository.findWithRoomExtraOptionByBoardId(
+                boardId);
+
+        Map<Long, RoommateBoardOption> extraOptionIdMap = roommateBoardOptions.stream()
+                .collect(Collectors.toMap(
+                        option -> option.getRoomExtraOption().getId(),
+                        Function.identity(),
+                        (first, second) -> first)
+                );
+
+        List<RoommateBoardOption> deleteTargets = extraOptionIds.stream()
+                .map(extraOptionIdMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        roommateBoardOptionRepository.deleteAll(deleteTargets);
+    }
+
+    private void saveOptions(RoommateBoard roommateBoard, List<Long> newExtraOptionIds) {
+        List<RoomExtraOption> extraOptions = roomExtraOptionRepository.findAllById(newExtraOptionIds);
+
+        List<RoommateBoardOption> newBoardOptions = extraOptions.stream()
+                .map(extraOption ->
+                        RoommateBoardOption.builder()
+                                .roommateBoard(roommateBoard)
+                                .roomExtraOption(extraOption)
+                                .build())
+                .toList();
+
+        roommateBoardOptionRepository.saveAll(newBoardOptions);
+    }
+
+    private Map<Long, ExistingFileDto> toExistingImageMap(List<ExistingFileDto> existingImages) {
+        if (existingImages.isEmpty()) {
+            return Map.of();
+        }
+
+        return existingImages.stream()
+                .collect(Collectors.toMap(
+                        ExistingFileDto::getBoardFileId,
+                        Function.identity(),
+                        (first, second) -> first)
+                );
+    }
+
+    private void syncExistingImages(List<RoommateBoardFile> existingBoardFiles,
+                                    Map<Long, ExistingFileDto> existingFileDtoMap) {
+        for (RoommateBoardFile boardFile : existingBoardFiles) {
+            ExistingFileDto dto = existingFileDtoMap.get(boardFile.getId());
+
+            if (dto == null) {
+                softDeleteBoardFile(boardFile);
+            } else {
+                boardFile.modifyIsThumbnail(dto.isThumbnail());
+            }
+        }
+    }
+
+    private void softDeleteBoardFile(RoommateBoardFile boardFile) {
+        File file = boardFile.getFile();
+        file.softDelete();
+        roommateBoardFileRepository.delete(boardFile);
+    }
+
+    private void saveNewBoardFiles(RoommateBoard roommateBoard, List<FileDto> fileDtos) {
+        List<File> savedFiles = new ArrayList<>();
+        try {
+            for (FileDto fileDto : fileDtos) {
+                File file = fileService.upload(fileDto.getFile(), FileType.ROOMMATE_BOARD_IMAGE);
+                File savedFile = fileRepository.save(file);
+
+                RoommateBoardFile roommateBoardFile = RoommateBoardFile.builder()
+                        .roommateBoard(roommateBoard)
+                        .file(file)
+                        .isThumbnail(fileDto.isThumbnail())
+                        .build();
+                roommateBoardFileRepository.save(roommateBoardFile);
+
+                savedFiles.add(savedFile);
+
+            }
+        } catch (IOException e) {
+            fileService.deleteAll(savedFiles);
+        }
+    }
+
+    private void validateBoardFileResult(RoommateBoard roommateBoard) {
+        List<RoommateBoardFile> roommateBoardFiles = roommateBoardFileRepository.findByRoommateBoard(roommateBoard);
+
+        if (roommateBoardFiles.size() > RoommateBoard.IMAGE_MAXIMUM) {
+            throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_FILE_COUNT_EXCEEDED);
+        }
+
+        long thumbnailCount = roommateBoardFiles.stream()
+                .filter(RoommateBoardFile::getIsThumbnail)
+                .count();
+
+        if (thumbnailCount != RoommateBoard.THUMBNAIL_MAXIMUM) {
+            throw new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_FILE_COUNT_THUMBNAIL_EXCEEDED);
+        }
     }
 
     private record FileWithThumbnail(File file, boolean thumbNail) { }
