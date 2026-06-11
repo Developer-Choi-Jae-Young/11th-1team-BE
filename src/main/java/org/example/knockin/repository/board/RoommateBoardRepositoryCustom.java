@@ -1,9 +1,10 @@
 package org.example.knockin.repository.board;
 
-import org.example.knockin.dto.BoardDetailDto;
+import java.util.Optional;
+import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.springframework.data.domain.Page;
 
 public interface RoommateBoardRepositoryCustom {
     Page<RoommateBoardListRow> search(RoommateBoardSearchCondition condition);
-    BoardDetailDto.Response viewDetail(Long boardId);
+    Optional<BasicInfoRow> getBasicInfo(Long boardId);
 }
