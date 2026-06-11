@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
-import org.example.knockin.dto.BoardDetailDto.Response.BasicInfo;
+import org.example.knockin.dto.BoardDetailDto.Response.Compatibility;
 import org.example.knockin.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.dto.BoardDto;
@@ -27,11 +27,14 @@ import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.RoommateBoardErrorCode;
+import org.example.knockin.global.util.DateUtils;
+import org.example.knockin.global.util.StringUtils;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
 import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
+import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
 import org.example.knockin.repository.room.RoomExtraOptionRepository;
@@ -187,26 +190,65 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     public BoardDetailDto.Response getBoardDetail(Long boardId) {
         increaseHits(boardId);
 
-        BasicInfo basicInfo = roommateBoardRepository.getBasicInfo(boardId)
+        BasicInfoRow basicInfoRow = roommateBoardRepository.getBasicInfo(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
-        Long memberId = basicInfo.getMemberId();
+        Long memberId = basicInfoRow.memberId();
 
         List<BoardDetailDto.Response.FileDetailDto> images = roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId);
+
         List<String> roomExtraOptionNames = roomExtraOptionRepository.getExtraOptionsNameByBoardId(boardId);
+
         Map<Boolean, List<Lifestyle>> lifeStyleMap = divideByIsPrimary(memberLifePatternRepository.getLifeStyleDto(memberId));
+        List<Lifestyle> primaryLifeStyle = lifeStyleMap.get(true);
+        List<Lifestyle> additionalLifeStyle = lifeStyleMap.get(false);
+
         List<Condition> conditions = preferenceConditionRepository.getConditionDtoByMemberId(memberId);
+
         List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(memberId);
 
+        return toResponse(basicInfoRow, images, roomExtraOptionNames, primaryLifeStyle, additionalLifeStyle, conditions, authenticationTypes, new Compatibility());
+    }
+
+    private BoardDetailDto.Response toResponse(
+            BasicInfoRow basicInfoRow,
+            List<BoardDetailDto.Response.FileDetailDto> images,
+            List<String> roomExtraOptionNames,
+            List<Lifestyle> primaryLifeStyles,
+            List<Lifestyle> additionalLifeStyles,
+            List<Condition> conditions,
+            List<AuthenticationType> authentications,
+            Compatibility compatibility) {
+
+        String regionFullName = StringUtils.parseToRegionFullName(
+                basicInfoRow.grandParentRegionName(),
+                basicInfoRow.parentRegionName(),
+                basicInfoRow.regionName());
+
+        int memberAge = DateUtils.calculateAge(basicInfoRow.birth());
+
         return BoardDetailDto.Response.builder()
-                .basicInfo(basicInfo)
+                .boardId(basicInfoRow.boardId())
                 .images(images)
+                .title(basicInfoRow.title())
+                .deposit(basicInfoRow.deposit())
+                .managementCost(basicInfoRow.managementCost())
+                .monthlyRent(basicInfoRow.monthlyRent())
+                .roomTypeName(basicInfoRow.roomTypeName())
+                .regionFullName(regionFullName)
+                .createdAt(basicInfoRow.createdAt())
+                .hits(basicInfoRow.hits())
+                .contents(basicInfoRow.contents())
                 .roomExtraOptionNames(roomExtraOptionNames)
-                .primaryLifeStyles(lifeStyleMap.get(true))
-                .additionalLifeStyles(lifeStyleMap.get(false))
+                .primaryLifeStyles(primaryLifeStyles)
+                .additionalLifeStyles(additionalLifeStyles)
                 .conditions(conditions)
-                .authentications(authenticationTypes)
-                .compatibility(null)
+                .memberName(basicInfoRow.memberName())
+                .memberProfileImageUrl(basicInfoRow.memberProfileImageUrl())
+                .memberAge(memberAge)
+                .gender(basicInfoRow.gender())
+                .authentications(authentications)
+                .compatibility(compatibility)
                 .build();
     }
 

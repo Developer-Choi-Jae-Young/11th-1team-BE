@@ -15,11 +15,8 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,13 +27,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoardDetailDto.Response.BasicInfo;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.global.util.QueryDslUtils;
+import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
@@ -272,14 +269,14 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     }
 
     @Override
-    public Optional<BasicInfo> getBasicInfo(Long boardId) {
+    public Optional<BasicInfoRow> getBasicInfo(Long boardId) {
         QRegion boardRegion = new QRegion("boardRegion");
         QRegion parentRegion = new QRegion("parentRegion");
         QRegion grandParentRegion = new QRegion("grandParentRegion");
 
-        BasicInfo basicInfo = jpaQueryFactory
+        BasicInfoRow basicInfo = jpaQueryFactory
                 .select(Projections.constructor(
-                        BasicInfo.class,
+                        BasicInfoRow.class,
                         roommateBoard.id,
                         roommateBoard.title,
                         roommateBoard.deposit,
@@ -425,28 +422,6 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
             QRegion grandParentRegion,
             QBasicInformation latestBasicInformation,
             QBasicInformation maxBasicInformation
-    ) {
-    }
-
-    // 쿼리 DSL 전용 row
-    public record BasicInfoRow(
-            Long boardId,
-            String title,
-            Integer deposit,
-            Integer managementCost,
-            Integer monthlyRent,
-            String roomTypeName,
-            String region,
-            String parentRegion,
-            String grandParentRegion,
-            LocalDateTime createdAt,
-            Long hits,
-            String contents,
-            Long memberId,
-            String memberName,
-            String memberProfileImageUrl,
-            LocalDate birth,
-            Gender gender
     ) {
     }
 }
