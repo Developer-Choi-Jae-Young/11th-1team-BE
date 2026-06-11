@@ -15,6 +15,8 @@ import org.example.knockin.global.exception.OnBoardErrorCode;
 import org.example.knockin.repository.agreement.MemberAgreementRepository;
 import org.example.knockin.repository.life.*;
 import org.example.knockin.repository.member.BasicInformationRepository;
+import org.example.knockin.repository.member.MemberPrivacyRepository;
+import org.example.knockin.repository.member.StateRepository;
 import org.example.knockin.repository.room.OfferRoomTypeRepository;
 import org.example.knockin.repository.room.RoomProfileRepository;
 import org.example.knockin.repository.room.RoomSeekerProfileRegionRepository;
@@ -46,6 +48,8 @@ public class OnBoardingServiceImpl {
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
     private final LifePatternRepository lifePatternRepository;
+    private final MemberPrivacyRepository memberPrivacyRepository;
+    private final MyRoomMateServiceImpl myRoomMateService;
 
     @Transactional
     public BasicInformation saveBasicInfo(SaveProfileBasicDto.Request request, Member member) {
@@ -578,5 +582,15 @@ public class OnBoardingServiceImpl {
     public MyPreferencesAllDto.Response findPreAll(Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         return memberService.findPreAll(member);
+    }
+
+    @Transactional
+    public ProfileVisibilityDto.Response changeProfileStatus(ProfileVisibilityDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+
+        if(myRoomMateService.isExistRoomMate(member)) throw new BusinessException(OnBoardErrorCode.ONBOARD_PROFILE_STATE_CHANGE_ERROR);
+        memberPrivacyRepository.findByMember(member).getFirst().changeState(request.getStatus());
+
+        return ProfileVisibilityDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }
