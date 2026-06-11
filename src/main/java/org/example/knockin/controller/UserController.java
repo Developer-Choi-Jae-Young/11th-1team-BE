@@ -127,8 +127,8 @@ public class UserController {
 
     @PatchMapping("/visibility")
     @Operation(summary = "프로필 공개 여부 변경")
-    public CommonResponse<ProfileVisibilityDto.Response> changeProfileStatus(@RequestBody ProfileVisibilityDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new ProfileVisibilityDto.Response());
+    public CommonResponse<ProfileVisibilityDto.Response> changeProfileStatus(@RequestBody ProfileVisibilityDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.changeProfileStatus(request, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/boards")
