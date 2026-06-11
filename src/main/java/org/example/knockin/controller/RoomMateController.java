@@ -86,7 +86,9 @@ public class RoomMateController {
 
     @PutMapping("/boards/{boardId}")
     @Operation(summary = "게시글 수정")
-    public CommonResponse<BoardModifyDto.Response> modifyBoard(@PathVariable Long boardId, @RequestBody BoardModifyDto.Request request) {
+    public CommonResponse<BoardModifyDto.Response> modifyBoard(
+            @PathVariable Long boardId,
+            @Valid @ModelAttribute BoardModifyDto.Request request) {
         BoardModifyDto.Response response = roommateBoardService.modify(boardId, request);
         return CommonResponse.status(HttpStatus.OK).body(response);
     }

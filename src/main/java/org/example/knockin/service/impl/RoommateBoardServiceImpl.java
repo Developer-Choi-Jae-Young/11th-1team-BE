@@ -331,6 +331,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private void removeOptions(Long boardId, List<Long> extraOptionIds) {
+        if (extraOptionIds == null || extraOptionIds.isEmpty()) {
+            return;
+        }
+
         List<RoommateBoardOption> roommateBoardOptions = roommateBoardOptionRepository.findWithRoomExtraOptionByBoardId(
                 boardId);
 
@@ -350,6 +354,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private void saveOptions(RoommateBoard roommateBoard, List<Long> newExtraOptionIds) {
+        if (newExtraOptionIds == null || newExtraOptionIds.isEmpty()) {
+            return;
+        }
+
         List<RoomExtraOption> extraOptions = roomExtraOptionRepository.findAllById(newExtraOptionIds);
 
         List<RoommateBoardOption> newBoardOptions = extraOptions.stream()
@@ -364,7 +372,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private Map<Long, ExistingFileDto> toExistingImageMap(List<ExistingFileDto> existingImages) {
-        if (existingImages.isEmpty()) {
+        if (existingImages == null || existingImages.isEmpty()) {
             return Map.of();
         }
 
@@ -396,11 +404,16 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private void saveNewBoardFiles(RoommateBoard roommateBoard, List<FileDto> fileDtos) {
+        if (fileDtos == null || fileDtos.isEmpty()) {
+            return;
+        }
+
         List<File> savedFiles = new ArrayList<>();
         try {
             for (FileDto fileDto : fileDtos) {
                 File file = fileService.upload(fileDto.getFile(), FileType.ROOMMATE_BOARD_IMAGE);
-                File savedFile = fileRepository.save(file);
+                savedFiles.add(file);
+                fileRepository.save(file);
 
                 RoommateBoardFile roommateBoardFile = RoommateBoardFile.builder()
                         .roommateBoard(roommateBoard)
@@ -408,12 +421,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         .isThumbnail(fileDto.isThumbnail())
                         .build();
                 roommateBoardFileRepository.save(roommateBoardFile);
-
-                savedFiles.add(savedFile);
-
             }
         } catch (IOException e) {
             fileService.deleteAll(savedFiles);
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        } catch (RuntimeException e) {
+            fileService.deleteAll(savedFiles);
+            throw e;
         }
     }
 

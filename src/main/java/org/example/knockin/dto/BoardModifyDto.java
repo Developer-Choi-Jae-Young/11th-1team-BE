@@ -60,11 +60,13 @@ public class BoardModifyDto {
         private List<FileDto> newImages;
 
         @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class ExistingFileDto {
             @Schema(description = "게시물 파일 식별 ID")
             private Long boardFileId;
 
-            @Schema(description = "이미지 URL")
+            @Schema(description = "썸네일 여부")
             private boolean thumbnail;
         }
 
@@ -74,6 +76,22 @@ public class BoardModifyDto {
             int existingCount = existingImages == null ? 0 : existingImages.size();
             int newCount = newImages == null ? 0 : newImages.size();
             return existingCount + newCount <= RoommateBoard.IMAGE_MAXIMUM;
+        }
+
+        @AssertTrue(message = "썸네일 이미지는 최대 1개만 지정할 수 있습니다.")
+        @Schema(hidden = true)
+        public boolean validateThumbnailCount() {
+            long existingThumbnailCount = existingImages == null ? 0 :
+                    existingImages.stream()
+                            .filter(ExistingFileDto::isThumbnail)
+                            .count();
+
+            long newThumbnailCount = newImages == null ? 0 :
+                    newImages.stream()
+                            .filter(FileDto::isThumbnail)
+                            .count();
+
+            return existingThumbnailCount + newThumbnailCount <= 1;
         }
     }
 
