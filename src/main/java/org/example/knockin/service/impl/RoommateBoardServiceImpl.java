@@ -3,9 +3,11 @@ package org.example.knockin.service.impl;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.example.knockin.dto.BoardEditDto.Response.RoomTypeInfo;
 import org.example.knockin.dto.BoardListDto;
 import org.example.knockin.dto.BoardModifyDto;
 import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
+import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
@@ -35,6 +38,7 @@ import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.exception.CommonErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
@@ -57,6 +61,7 @@ import org.example.knockin.repository.room.RoomExtraOptionRepository;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -304,7 +309,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     @Override
     @Transactional(rollbackFor = IOException.class)
-    public BoardModifyDto.Response modify(Long boardId, BoardModifyDto.Request request) {
+    public BoardModifyDto.Response modify(Long boardId, BoardModifyDto.Request request,
+                                          @Nullable List<MultipartFile> files) {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId())
@@ -323,8 +329,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Map<Long, ExistingFileDto> existingFileDtoMap = toExistingImageMap(request.getExistingImages());
         syncExistingImages(existingBoardFiles, existingFileDtoMap);
 
-        List<FileDto> newFileDtos = request.getNewImages();
-        saveNewBoardFiles(roommateBoard, newFileDtos);
+        List<NewFileDto> newFileDtos = request.getNewImages();
+        saveNewBoardFiles(roommateBoard, newFileDtos, files);
         validateBoardFileResult(roommateBoard);
 
         return new BoardModifyDto.Response(LocalDateTime.now());
@@ -403,15 +409,20 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         roommateBoardFileRepository.delete(boardFile);
     }
 
-    private void saveNewBoardFiles(RoommateBoard roommateBoard, List<FileDto> fileDtos) {
+    private void saveNewBoardFiles(
+            RoommateBoard roommateBoard,
+            List<NewFileDto> fileDtos,
+            @Nullable List<MultipartFile> files) {
         if (fileDtos == null || fileDtos.isEmpty()) {
             return;
         }
 
         List<File> savedFiles = new ArrayList<>();
+        Set<Integer> usedFileIndexes = new HashSet<>();
         try {
-            for (FileDto fileDto : fileDtos) {
-                File file = fileService.upload(fileDto.getFile(), FileType.ROOMMATE_BOARD_IMAGE);
+            for (NewFileDto fileDto : fileDtos) {
+                MultipartFile multipartFile = getNewImageFile(fileDto, files, usedFileIndexes);
+                File file = fileService.upload(multipartFile, FileType.ROOMMATE_BOARD_IMAGE);
                 savedFiles.add(file);
                 fileRepository.save(file);
 
@@ -429,6 +440,23 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             fileService.deleteAll(savedFiles);
             throw e;
         }
+    }
+
+    private MultipartFile getNewImageFile(
+            NewFileDto fileDto,
+            @Nullable List<MultipartFile> files,
+            Set<Integer> usedFileIndexes) {
+        Integer fileIndex = fileDto.getFileIndex();
+
+        if (fileIndex == null || fileIndex < 0 || files == null || fileIndex >= files.size()) {
+            throw new BusinessException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        if (!usedFileIndexes.add(fileIndex)) {
+            throw new BusinessException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        return files.get(fileIndex);
     }
 
     private void validateBoardFileResult(RoommateBoard roommateBoard) {

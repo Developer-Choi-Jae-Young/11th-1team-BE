@@ -3,6 +3,7 @@ package org.example.knockin.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +36,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -84,12 +88,13 @@ public class RoomMateController {
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
-    @PutMapping("/boards/{boardId}")
+    @PutMapping(value = "/boards/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "게시글 수정")
     public CommonResponse<BoardModifyDto.Response> modifyBoard(
             @PathVariable Long boardId,
-            @Valid @ModelAttribute BoardModifyDto.Request request) {
-        BoardModifyDto.Response response = roommateBoardService.modify(boardId, request);
+            @Valid @RequestPart("request") BoardModifyDto.Request request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        BoardModifyDto.Response response = roommateBoardService.modify(boardId, request, files);
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
