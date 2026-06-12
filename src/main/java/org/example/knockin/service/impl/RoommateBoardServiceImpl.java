@@ -532,7 +532,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     @Override
     @Transactional
     public BoardDto.Response likeBoard(Long boardId, Long memberId) {
-        RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
+        RoommateBoard roommateBoard = roommateBoardRepository.findByIdForUpdate(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
         Member member = memberService.findById(memberId)

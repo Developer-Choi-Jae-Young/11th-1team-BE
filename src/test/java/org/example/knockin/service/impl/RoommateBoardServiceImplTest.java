@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
 import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.dto.BoardDto;
@@ -162,7 +163,7 @@ class RoommateBoardServiceImplTest {
         RoommateBoard board = createRoommateBoard(10L);
         Member member = Member.builder().id(memberId).build();
 
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
         when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.empty());
 
@@ -189,7 +190,7 @@ class RoommateBoardServiceImplTest {
                 .isDeleted(false)
                 .build();
 
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
         when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.of(interest));
 
@@ -212,7 +213,7 @@ class RoommateBoardServiceImplTest {
                 .isDeleted(true)
                 .build();
 
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
         when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.of(interest));
 
@@ -223,11 +224,38 @@ class RoommateBoardServiceImplTest {
     }
 
     @Test
+    @DisplayName("같은 좋아요 요청이 두 번 들어오면 토글 구현은 좋아요를 취소한다")
+    void likeBoardCancelsLikeWhenSameRequestIsRetried() {
+        Long boardId = 1L;
+        Long memberId = 2L;
+        RoommateBoard board = createRoommateBoard(10L);
+        Member member = Member.builder().id(memberId).build();
+        AtomicReference<RoommateBoardInterest> savedInterest = new AtomicReference<>();
+
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.of(board));
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member))
+                .thenAnswer(invocation -> Optional.ofNullable(savedInterest.get()));
+        when(roommateBoardInterestRepository.save(any(RoommateBoardInterest.class))).thenAnswer(invocation -> {
+            RoommateBoardInterest interest = invocation.getArgument(0);
+            savedInterest.set(interest);
+            return interest;
+        });
+
+        roommateBoardService.likeBoard(boardId, memberId);
+        assertThat(savedInterest.get().getIsDeleted()).isFalse();
+
+        roommateBoardService.likeBoard(boardId, memberId);
+
+        assertThat(savedInterest.get().getIsDeleted()).isTrue();
+    }
+
+    @Test
     @DisplayName("좋아요할 게시글이 없으면 예외를 던진다")
     void likeBoardThrowsWhenBoardNotFound() {
         Long boardId = 1L;
 
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.empty());
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roommateBoardService.likeBoard(boardId, 2L))
                 .isInstanceOfSatisfying(BusinessException.class,
@@ -242,7 +270,7 @@ class RoommateBoardServiceImplTest {
         Long memberId = 2L;
         RoommateBoard board = createRoommateBoard(10L);
 
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(roommateBoardRepository.findByIdForUpdate(boardId)).thenReturn(Optional.of(board));
         when(memberService.findById(memberId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roommateBoardService.likeBoard(boardId, memberId))

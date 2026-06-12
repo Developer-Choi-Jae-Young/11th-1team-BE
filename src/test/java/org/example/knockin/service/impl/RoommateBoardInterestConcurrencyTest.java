@@ -2,9 +2,13 @@ package org.example.knockin.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -25,6 +29,7 @@ import org.example.knockin.repository.room.RegionRepository;
 import org.example.knockin.repository.room.RoomTypeRepository;
 import org.example.knockin.service.RoommateBoardService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +39,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @ActiveProfiles("test")
+//@Tag("concurrency")
 @DisplayName("룸메이트 게시글 좋아요 동시성")
 class RoommateBoardInterestConcurrencyTest {
     @Autowired
@@ -83,36 +89,102 @@ class RoommateBoardInterestConcurrencyTest {
             return new TestData(board.getId(), member.getId());
         });
 
-        int threadCount = 20;
+        int threadCount = 21;
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch readyLatch = new CountDownLatch(threadCount);
         CountDownLatch startLatch = new CountDownLatch(1);
 
-        List<Callable<Void>> tasks = java.util.stream.IntStream.range(0, threadCount)
-                .mapToObj(i -> (Callable<Void>) () -> {
+        List<Callable<ToggleResult>> tasks = java.util.stream.IntStream.range(0, threadCount)
+                .mapToObj(i -> (Callable<ToggleResult>) () -> {
                     readyLatch.countDown();
                     startLatch.await();
-                    roommateBoardService.likeBoard(testData.boardId(), testData.memberId());
-                    return null;
+                    long startedAt = System.nanoTime();
+                    try {
+                        roommateBoardService.likeBoard(testData.boardId(), testData.memberId());
+                        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+                        return ToggleResult.success(i, (int) elapsedMs);
+                    } catch (Exception e) {
+                        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
+                        return ToggleResult.failure(i, (int) elapsedMs, e);
+                    }
                 })
                 .toList();
 
-        List<Future<Void>> futures = tasks.stream()
+        List<Future<ToggleResult>> futures = tasks.stream()
                 .map(executorService::submit)
                 .toList();
 
+        long totalStartedAt = System.nanoTime();
         readyLatch.await();
         startLatch.countDown();
-        for (Future<Void> future : futures) {
-            future.get();
+
+        List<ToggleResult> results = new ArrayList<>();
+        for (Future<ToggleResult> future : futures) {
+            results.add(future.get());
         }
+        long totalElapsedMs = (System.nanoTime() - totalStartedAt) / 1_000_000;
         executorService.shutdown();
 
         List<RoommateBoardInterest> interests = roommateBoardInterestRepository.findAllByRoommateBoardIdAndMemberId(
                 testData.boardId(), testData.memberId());
+        ConcurrencyReport report = new ConcurrencyReport(
+                threadCount,
+                totalElapsedMs,
+                results.stream().filter(ToggleResult::success).count(),
+                results.stream().filter(result -> !result.success()).count(),
+                interests.size(),
+                interests.isEmpty() ? null : interests.getFirst().getIsDeleted(),
+                false,
+                results);
+        writeReport(report);
 
+        assertThat(report.failureCount()).isZero();
         assertThat(interests).hasSize(1);
         assertThat(interests.getFirst().getIsDeleted()).isFalse();
+    }
+
+    private void writeReport(ConcurrencyReport report) throws IOException {
+        Path reportPath = Path.of("build", "reports", "concurrency", "roommate-board-interest-toggle.md");
+        Files.createDirectories(reportPath.getParent());
+
+        StringBuilder markdown = new StringBuilder();
+        markdown.append("# Roommate Board Interest Toggle Concurrency\n\n");
+        markdown.append("## Summary\n\n");
+        markdown.append("| threads | total ms | success | failure | final row count | expected isDeleted | actual isDeleted |\n");
+        markdown.append("|---:|---:|---:|---:|---:|---:|---:|\n");
+        markdown.append("| ")
+                .append(report.threadCount())
+                .append(" | ")
+                .append(report.totalElapsedMs())
+                .append(" | ")
+                .append(report.successCount())
+                .append(" | ")
+                .append(report.failureCount())
+                .append(" | ")
+                .append(report.finalRowCount())
+                .append(" | ")
+                .append(report.expectedDeleted())
+                .append(" | ")
+                .append(report.actualDeleted())
+                .append(" |\n\n");
+
+        markdown.append("## Thread Results\n\n");
+        markdown.append("| request | success | elapsed ms | exception |\n");
+        markdown.append("|---:|:---:|---:|---|\n");
+        report.results().stream()
+                .sorted(java.util.Comparator.comparingInt(ToggleResult::requestIndex))
+                .forEach(result -> markdown.append("| ")
+                        .append(result.requestIndex())
+                        .append(" | ")
+                        .append(result.success())
+                        .append(" | ")
+                        .append(result.elapsedMs())
+                        .append(" | ")
+                        .append(result.exceptionName())
+                        .append(" |\n"));
+
+        Files.writeString(reportPath, markdown.toString());
+        System.out.println("concurrencyReport=" + reportPath.toAbsolutePath());
     }
 
     private RoomType createRoomType(String name) {
@@ -142,5 +214,31 @@ class RoommateBoardInterestConcurrencyTest {
     }
 
     private record TestData(Long boardId, Long memberId) {
+    }
+
+    private record ToggleResult(int requestIndex, boolean success, int elapsedMs, Exception exception) {
+        private static ToggleResult success(int requestIndex, int elapsedMs) {
+            return new ToggleResult(requestIndex, true, elapsedMs, null);
+        }
+
+        private static ToggleResult failure(int requestIndex, int elapsedMs, Exception exception) {
+            return new ToggleResult(requestIndex, false, elapsedMs, exception);
+        }
+
+        private String exceptionName() {
+            return exception == null ? "" : exception.getClass().getSimpleName();
+        }
+    }
+
+    private record ConcurrencyReport(
+            int threadCount,
+            long totalElapsedMs,
+            long successCount,
+            long failureCount,
+            int finalRowCount,
+            Boolean actualDeleted,
+            boolean expectedDeleted,
+            List<ToggleResult> results
+    ) {
     }
 }
