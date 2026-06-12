@@ -62,7 +62,7 @@ public class RoomMateController {
             @PathVariable Long boardId,
             @AuthenticationPrincipal PrincipalDetails details
     ) {
-        Long memberId = details == null ? null : details.getMember().getId();
+        Long memberId = details.getMember().getId();
         return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.getBoardDetail(boardId, memberId));
     }
 

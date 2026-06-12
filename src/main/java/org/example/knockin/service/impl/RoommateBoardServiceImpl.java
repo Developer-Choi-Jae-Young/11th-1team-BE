@@ -216,7 +216,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     @Override
     @Transactional
-    public BoardDetailDto.Response getBoardDetail(Long boardId, @Nullable Long memberId) {
+    public BoardDetailDto.Response getBoardDetail(Long boardId, Long memberId) {
         increaseHits(boardId);
 
         BasicInfoRow basicInfoRow = roommateBoardRepository.getBasicInfo(boardId)
@@ -232,18 +232,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 ownerId);
         List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(
                 ownerId);
-        boolean interested = checkIsInterested(boardId, memberId);
+        boolean interested = roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(
+                boardId, memberId);
 
         return toResponse(basicInfoRow, images, roomExtraOptionNames, lifestyles, conditions, conditionWeights, authenticationTypes, new Compatibility(), interested);
-    }
-
-    private boolean checkIsInterested(Long boardId, Long memberId) {
-        if (memberId == null) {
-            return false;
-        } else {
-            return roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId,
-                    memberId);
-        }
     }
 
     private BoardDetailDto.Response toResponse(

@@ -611,25 +611,28 @@ class RoommateBoardServiceImplTest {
     void getBoardDetailReturnsEmptyListsWhenMemberHasNoLifeStylesAndConditionWeights() {
         // Given
         Long boardId = 1L;
-        Long memberId = 7L;
-        BasicInfoRow basicInfoRow = createBasicInfoRow(boardId, memberId, LocalDate.of(1998, 1, 1));
+        Long ownerId = 7L;
+        Long viewerId = 42L;
+        BasicInfoRow basicInfoRow = createBasicInfoRow(boardId, ownerId, LocalDate.of(1998, 1, 1));
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(List.of());
         when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(List.of());
-        when(memberLifePatternRepository.getLifeStyleDto(memberId)).thenReturn(List.of());
-        when(preferenceConditionRepository.getConditionDtoByMemberId(memberId)).thenReturn(List.of());
-        when(preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(memberId)).thenReturn(List.of());
-        when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(memberId)).thenReturn(List.of());
+        when(memberLifePatternRepository.getLifeStyleDto(ownerId)).thenReturn(List.of());
+        when(preferenceConditionRepository.getConditionDtoByMemberId(ownerId)).thenReturn(List.of());
+        when(preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(ownerId)).thenReturn(List.of());
+        when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(ownerId)).thenReturn(List.of());
+        when(roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId))
+                .thenReturn(false);
 
         // When
-        BoardDetailDto.Response response = roommateBoardService.getBoardDetail(boardId, null);
+        BoardDetailDto.Response response = roommateBoardService.getBoardDetail(boardId, viewerId);
 
         // Then
         assertThat(response.getLifeStyles()).isEmpty();
         assertThat(response.getConditionWeights()).isEmpty();
         assertThat(response.isInterested()).isFalse();
-        verify(roommateBoardInterestRepository, never()).existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(any(), any());
+        verify(roommateBoardInterestRepository).existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId);
     }
 
     @Test
@@ -664,10 +667,11 @@ class RoommateBoardServiceImplTest {
     void getBoardDetailThrowsWhenHitUpdateDoesNotAffectBoard() {
         // Given
         Long boardId = 999L;
+        Long viewerId = 42L;
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(0);
 
         // When & Then
-        assertThatThrownBy(() -> roommateBoardService.getBoardDetail(boardId, null))
+        assertThatThrownBy(() -> roommateBoardService.getBoardDetail(boardId, viewerId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         e -> assertThat(e.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         verify(roommateBoardRepository).increaseHitsById(boardId);
@@ -682,11 +686,12 @@ class RoommateBoardServiceImplTest {
     void getBoardDetailThrowsWhenBasicInfoDoesNotExistAfterHitUpdate() {
         // Given
         Long boardId = 999L;
+        Long viewerId = 42L;
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> roommateBoardService.getBoardDetail(boardId, null))
+        assertThatThrownBy(() -> roommateBoardService.getBoardDetail(boardId, viewerId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         e -> assertThat(e.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         verify(roommateBoardRepository).increaseHitsById(boardId);
