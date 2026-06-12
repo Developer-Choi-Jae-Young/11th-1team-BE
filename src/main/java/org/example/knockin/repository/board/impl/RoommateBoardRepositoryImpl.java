@@ -40,6 +40,7 @@ import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.repository.board.row.MyRoommateBoardRow;
+import org.example.knockin.repository.board.row.EditFormRow;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -358,6 +359,39 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .where(roommateBoard.member.eq(memberEntity), roommateBoard.isDeleted.isFalse()).fetchOne();
 
         return new PageImpl<>(content, page, total != null ? total : 0L);
+    }
+
+    public Optional<EditFormRow> getEditRow(Long boardId) {
+        QRegion boardRegion = new QRegion("boardRegion");
+        QRegion parentRegion = new QRegion("parentRegion");
+        QRegion grandParentRegion = new QRegion("grandParentRegion");
+
+        return Optional.ofNullable(jpaQueryFactory
+                .select(Projections.constructor(
+                        EditFormRow.class,
+                        roommateBoard.title,
+                        roommateBoard.deposit,
+                        roommateBoard.monthlyRent,
+                        roommateBoard.managementCost,
+                        roommateBoard.roomType.id,
+                        roommateBoard.roomType.name,
+                        boardRegion.id,
+                        boardRegion.name,
+                        parentRegion.name,
+                        grandParentRegion.name,
+                        roommateBoard.comeableDate,
+                        roommateBoard.contents
+                ))
+                .from(roommateBoard)
+                .where(
+                        roommateBoard.id.eq(boardId),
+                        roommateBoard.isDeleted.isFalse()
+                )
+                .join(roommateBoard.roomType, roomType)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .fetchOne());
     }
 
     private BooleanExpression regionIn(List<Long> regionIds, QRegion boardRegion, QRegion parentRegion, QRegion grandParentRegion) {
