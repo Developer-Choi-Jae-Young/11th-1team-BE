@@ -39,7 +39,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @ActiveProfiles("test")
-//@Tag("concurrency")
+@Tag("concurrency")
 @DisplayName("룸메이트 게시글 좋아요 동시성")
 class RoommateBoardInterestConcurrencyTest {
     @Autowired
