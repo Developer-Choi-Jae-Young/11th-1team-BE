@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,13 +25,14 @@ import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RegionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RoomTypeInfo;
 import org.example.knockin.dto.BoardListDto;
-import org.example.knockin.dto.MyBoardListDto;
 import org.example.knockin.dto.BoardModifyDto;
 import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
 import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
+import org.example.knockin.dto.MyBoardListDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
@@ -48,13 +50,14 @@ import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.StringUtils;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
+import org.example.knockin.repository.board.RoommateBoardInterestRepository;
 import org.example.knockin.repository.board.RoommateBoardListRow;
 import org.example.knockin.repository.board.RoommateBoardOptionRepository;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.repository.board.row.BasicInfoRow;
-import org.example.knockin.repository.board.row.MyRoommateBoardRow;
 import org.example.knockin.repository.board.row.EditFormRow;
+import org.example.knockin.repository.board.row.MyRoommateBoardRow;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
@@ -87,6 +90,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardOptionRepository roommateBoardOptionRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final FileRepository fileRepository;
+    private final RoommateBoardInterestRepository roommateBoardInterestRepository;
 
     @Override
     public BoardDto.Response save(BoardDto.Request request, Long memberId, @Nullable List<MultipartFile> files) {
@@ -523,6 +527,38 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         }).toList();
 
         return new PageImpl<>(boardItems, pageable, rawPage.getTotalElements());
+    }
+
+    @Override
+    @Transactional
+    public BoardDto.Response likeBoard(Long boardId, Long memberId) {
+        RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
+                .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+
+        Member member = memberService.findById(memberId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Optional<RoommateBoardInterest> interestOptional = roommateBoardInterestRepository.findByRoommateBoardAndMember(
+                roommateBoard, member);
+
+        saveOrToggleLike(member, roommateBoard, interestOptional);
+        return new BoardDto.Response(LocalDateTime.now());
+    }
+
+    private void saveOrToggleLike(Member member, RoommateBoard roommateBoard,
+            Optional<RoommateBoardInterest> interestOptional) {
+        if (interestOptional.isPresent()) {
+            RoommateBoardInterest roommateBoardInterest = interestOptional.get();
+            roommateBoardInterest.likeToggle();
+            return;
+        }
+
+        RoommateBoardInterest roommateBoardInterest = RoommateBoardInterest.builder()
+                .member(member)
+                .roommateBoard(roommateBoard)
+                .isDeleted(false)
+                .build();
+        roommateBoardInterestRepository.save(roommateBoardInterest);
     }
 
     private String getFullRegionName(Region regionEntity) {

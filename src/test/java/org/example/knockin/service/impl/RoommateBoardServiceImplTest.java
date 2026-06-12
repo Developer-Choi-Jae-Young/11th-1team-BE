@@ -30,6 +30,7 @@ import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
@@ -47,6 +48,7 @@ import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
+import org.example.knockin.repository.board.RoommateBoardInterestRepository;
 import org.example.knockin.repository.board.RoommateBoardOptionRepository;
 import org.example.knockin.repository.board.RoommateBoardSearchCondition;
 import org.example.knockin.repository.board.RoommateBoardRepository;
@@ -86,6 +88,9 @@ class RoommateBoardServiceImplTest {
 
     @Mock
     private RoommateBoardOptionRepository roommateBoardOptionRepository;
+
+    @Mock
+    private RoommateBoardInterestRepository roommateBoardInterestRepository;
 
     @Mock
     private FileRepository fileRepository;
@@ -138,12 +143,112 @@ class RoommateBoardServiceImplTest {
     @Captor
     private ArgumentCaptor<RoommateBoardSearchCondition> searchConditionCaptor;
 
+    @Captor
+    private ArgumentCaptor<RoommateBoardInterest> roommateBoardInterestCaptor;
+
     @BeforeEach
     void setUpTransactionTemplate() {
         lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(null);
         });
+    }
+
+    @Test
+    @DisplayName("좋아요 이력이 없으면 관심 게시글을 새로 저장한다")
+    void likeBoardCreatesInterestWhenNotExists() {
+        Long boardId = 1L;
+        Long memberId = 2L;
+        RoommateBoard board = createRoommateBoard(10L);
+        Member member = Member.builder().id(memberId).build();
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.empty());
+
+        BoardDto.Response response = roommateBoardService.likeBoard(boardId, memberId);
+
+        verify(roommateBoardInterestRepository).save(roommateBoardInterestCaptor.capture());
+        RoommateBoardInterest interest = roommateBoardInterestCaptor.getValue();
+        assertThat(interest.getRoommateBoard()).isSameAs(board);
+        assertThat(interest.getMember()).isSameAs(member);
+        assertThat(interest.getIsDeleted()).isFalse();
+        assertThat(response.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 좋아요한 게시글이면 기존 관심 게시글을 삭제 상태로 토글한다")
+    void likeBoardTogglesExistingActiveInterestToDeleted() {
+        Long boardId = 1L;
+        Long memberId = 2L;
+        RoommateBoard board = createRoommateBoard(10L);
+        Member member = Member.builder().id(memberId).build();
+        RoommateBoardInterest interest = RoommateBoardInterest.builder()
+                .roommateBoard(board)
+                .member(member)
+                .isDeleted(false)
+                .build();
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.of(interest));
+
+        roommateBoardService.likeBoard(boardId, memberId);
+
+        assertThat(interest.getIsDeleted()).isTrue();
+        verify(roommateBoardInterestRepository, never()).save(any(RoommateBoardInterest.class));
+    }
+
+    @Test
+    @DisplayName("삭제 상태의 관심 게시글이면 다시 좋아요 상태로 토글한다")
+    void likeBoardTogglesExistingDeletedInterestToActive() {
+        Long boardId = 1L;
+        Long memberId = 2L;
+        RoommateBoard board = createRoommateBoard(10L);
+        Member member = Member.builder().id(memberId).build();
+        RoommateBoardInterest interest = RoommateBoardInterest.builder()
+                .roommateBoard(board)
+                .member(member)
+                .isDeleted(true)
+                .build();
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(roommateBoardInterestRepository.findByRoommateBoardAndMember(board, member)).thenReturn(Optional.of(interest));
+
+        roommateBoardService.likeBoard(boardId, memberId);
+
+        assertThat(interest.getIsDeleted()).isFalse();
+        verify(roommateBoardInterestRepository, never()).save(any(RoommateBoardInterest.class));
+    }
+
+    @Test
+    @DisplayName("좋아요할 게시글이 없으면 예외를 던진다")
+    void likeBoardThrowsWhenBoardNotFound() {
+        Long boardId = 1L;
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> roommateBoardService.likeBoard(boardId, 2L))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        verifyNoInteractions(roommateBoardInterestRepository);
+    }
+
+    @Test
+    @DisplayName("좋아요할 회원이 없으면 예외를 던진다")
+    void likeBoardThrowsWhenMemberNotFound() {
+        Long boardId = 1L;
+        Long memberId = 2L;
+        RoommateBoard board = createRoommateBoard(10L);
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(board));
+        when(memberService.findById(memberId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> roommateBoardService.likeBoard(boardId, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(MemberErrorCode.MEMBER_NOT_FOUND));
+        verifyNoInteractions(roommateBoardInterestRepository);
     }
 
     @Test
@@ -977,6 +1082,7 @@ class RoommateBoardServiceImplTest {
         verify(fileService).deleteAll(List.of());
         verifyNoInteractions(fileRepository);
     }
+
 
     private BoardDto.Request createRequest(FileDto... images) {
         BoardDto.Request request = new BoardDto.Request();

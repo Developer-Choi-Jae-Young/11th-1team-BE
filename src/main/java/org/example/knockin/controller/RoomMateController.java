@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.dto.BoardDto;
@@ -63,10 +62,15 @@ public class RoomMateController {
         return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.getBoardDetail(boardId));
     }
 
-    @PostMapping("/boards/likes")
+    @PostMapping("/boards/{boardId}/likes")
     @Operation(summary = "게시글 찜하기")
-    public CommonResponse<BoardDto.Response> likeBoard(@RequestBody Map<String, Long> request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoardDto.Response());
+    public CommonResponse<BoardDto.Response> likeBoard(
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal PrincipalDetails details
+    ) {
+        Long memberId = details.getMember().getId();
+        Response response = roommateBoardService.likeBoard(boardId, memberId);
+        return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/boards/{boardId}/edit")

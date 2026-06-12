@@ -25,4 +25,6 @@ public interface RoommateBoardService {
 
     @Transactional(rollbackFor = IOException.class)
     BoardModifyDto.Response modify(Long memberId, Long boardId, BoardModifyDto.Request request, @Nullable List<MultipartFile> files);
+
+    BoardDto.Response likeBoard(Long boardId, Long memberId);
 }
