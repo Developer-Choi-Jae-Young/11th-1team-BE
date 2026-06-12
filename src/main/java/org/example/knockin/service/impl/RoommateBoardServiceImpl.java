@@ -216,23 +216,34 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
     @Override
     @Transactional
-    public BoardDetailDto.Response getBoardDetail(Long boardId) {
+    public BoardDetailDto.Response getBoardDetail(Long boardId, @Nullable Long memberId) {
         increaseHits(boardId);
 
         BasicInfoRow basicInfoRow = roommateBoardRepository.getBasicInfo(boardId)
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
-        Long memberId = basicInfoRow.memberId();
+        Long ownerId = basicInfoRow.memberId();
 
         List<BoardDetailDto.Response.FileDetailDto> images = roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId);
         List<String> roomExtraOptionNames = roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId);
-        List<Lifestyle> lifestyles = memberLifePatternRepository.getLifeStyleDto(memberId);
-        List<Condition> conditions = preferenceConditionRepository.getConditionDtoByMemberId(memberId);
+        List<Lifestyle> lifestyles = memberLifePatternRepository.getLifeStyleDto(ownerId);
+        List<Condition> conditions = preferenceConditionRepository.getConditionDtoByMemberId(ownerId);
         List<ConditionWeight> conditionWeights = preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(
-                memberId);
-        List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(memberId);
+                ownerId);
+        List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(
+                ownerId);
+        boolean interested = checkIsInterested(boardId, memberId);
 
-        return toResponse(basicInfoRow, images, roomExtraOptionNames, lifestyles, conditions, conditionWeights, authenticationTypes, new Compatibility());
+        return toResponse(basicInfoRow, images, roomExtraOptionNames, lifestyles, conditions, conditionWeights, authenticationTypes, new Compatibility(), interested);
+    }
+
+    private boolean checkIsInterested(Long boardId, Long memberId) {
+        if (memberId == null) {
+            return false;
+        } else {
+            return roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId,
+                    memberId);
+        }
     }
 
     private BoardDetailDto.Response toResponse(
@@ -243,7 +254,9 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             List<Condition> conditions,
             List<ConditionWeight> conditionWeights,
             List<AuthenticationType> authentications,
-            Compatibility compatibility) {
+            Compatibility compatibility,
+            boolean interested
+    ) {
 
         String regionFullName = StringUtils.parseToRegionFullName(
                 basicInfoRow.grandParentRegionName(),
@@ -274,6 +287,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .gender(basicInfoRow.gender())
                 .authentications(authentications)
                 .compatibility(compatibility)
+                .interested(interested)
                 .build();
     }
 

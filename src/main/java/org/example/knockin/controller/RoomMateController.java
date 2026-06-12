@@ -58,8 +58,12 @@ public class RoomMateController {
 
     @GetMapping("/boards/{boardId}")
     @Operation(summary = "게시글 상세 조회")
-    public CommonResponse<BoardDetailDto.Response> findBoard(@PathVariable Long boardId) {
-        return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.getBoardDetail(boardId));
+    public CommonResponse<BoardDetailDto.Response> findBoard(
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal PrincipalDetails details
+    ) {
+        Long memberId = details == null ? null : details.getMember().getId();
+        return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.getBoardDetail(boardId, memberId));
     }
 
     @PostMapping("/boards/{boardId}/likes")

@@ -11,4 +11,6 @@ public interface RoommateBoardInterestRepository extends JpaRepository<RoommateB
     Optional<RoommateBoardInterest> findByRoommateBoardAndMember(RoommateBoard roommateBoard, Member member);
 
     List<RoommateBoardInterest> findAllByRoommateBoardIdAndMemberId(Long roommateBoardId, Long memberId);
+
+    boolean existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(Long roommateBoardId, Long memberId);
 }
