@@ -157,7 +157,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .managementCost(request.getManagementCost())
                 .roomType(roomType)
                 .region(region)
-                .comeableDate(request.getComeableAt())
+                .comeableDateNegotiable(request.getComeableDateNegotiable())
+                .comeableDate(request.getComeableDate())
                 .build();
 
         RoommateBoard savedRoommateBoard = roommateBoardRepository.save(roommateBoard);
@@ -285,6 +286,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .authentications(authentications)
                 .compatibility(compatibility)
                 .interested(interested)
+                .comeableDateNegotiable(basicInfoRow.comeableDateNegotiable())
+                .comeableDate(basicInfoRow.comeableDate())
                 .build();
     }
 
@@ -317,7 +320,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         row.grandParentRegionName(),
                         row.parentRegionName(),
                         row.regionName())))
-                .comeableAt(row.comeableDate())
+                .comeableDateNegotiable(row.comeableDateNegotiable())
+                .comeableDate(row.comeableDate())
                 .roomExtraOptions(roomExtraOptions)
                 .contents(row.contents())
                 .lifeStyles(lifestyles)

@@ -214,6 +214,8 @@ class RoommateBoardRepositoryTest {
         assertThat(row.regionName()).isEqualTo("역삼동");
         assertThat(row.parentRegionName()).isEqualTo("강남구");
         assertThat(row.grandParentRegionName()).isEqualTo("서울");
+        assertThat(row.comeableDateNegotiable()).isTrue();
+        assertThat(row.comeableDate()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
         assertThat(row.hits()).isZero();
         assertThat(row.memberId()).isEqualTo(member.getId());
         assertThat(row.memberName()).isEqualTo("상세작성자");
@@ -257,6 +259,7 @@ class RoommateBoardRepositoryTest {
         assertThat(row.regionName()).isEqualTo("역삼동");
         assertThat(row.parentRegionName()).isEqualTo("강남구");
         assertThat(row.grandParentRegionName()).isEqualTo("서울");
+        assertThat(row.comeableDateNegotiable()).isTrue();
         assertThat(row.comeableDate()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
     }
 
@@ -586,6 +589,7 @@ class RoommateBoardRepositoryTest {
                 .managementCost(10)
                 .roomType(roomType)
                 .region(region)
+                .comeableDateNegotiable(true)
                 .comeableDate(comeableDate)
                 .build();
         entityManager.persist(board);

@@ -66,7 +66,10 @@ public class RoommateBoard extends BaseEntity {
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
 
-    @Column(name = "comeable_date", nullable = false)
+    @Column(name ="comeable_date_negotiable")
+    private Boolean comeableDateNegotiable;
+
+    @Column(name = "comeable_date")
     private LocalDateTime comeableDate;
 
     @ColumnDefault("false")
@@ -88,7 +91,8 @@ public class RoommateBoard extends BaseEntity {
         deposit = request.getDeposit();
         monthlyRent = request.getMonthlyRent();
         managementCost = request.getManagementCost();
-        comeableDate = request.getComeableAt();
+        comeableDateNegotiable = request.getComeableDateNegotiable();
+        comeableDate = request.getComeableDate();
     }
 
     public void modifyRoomType(RoomType roomType) {

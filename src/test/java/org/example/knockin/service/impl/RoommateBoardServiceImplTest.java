@@ -459,7 +459,8 @@ class RoommateBoardServiceImplTest {
         assertThat(boardToSave.getManagementCost()).isEqualTo(50);
         assertThat(boardToSave.getRoomType()).isSameAs(roomType);
         assertThat(boardToSave.getRegion()).isSameAs(region);
-        assertThat(boardToSave.getComeableDate()).isEqualTo(request.getComeableAt());
+        assertThat(boardToSave.getComeableDateNegotiable()).isEqualTo(request.getComeableDateNegotiable());
+        assertThat(boardToSave.getComeableDate()).isEqualTo(request.getComeableDate());
         assertThat(boardToSave.getIsDeleted()).isFalse();
         assertThat(boardToSave.getHits()).isZero();
 
@@ -635,6 +636,37 @@ class RoommateBoardServiceImplTest {
     }
 
     @Test
+    @DisplayName("입주 시기 협의 가능이면 입주 가능일 없이도 게시글을 저장한다")
+    void saveAllowsNegotiableComeableDateWithoutDate() {
+        // Given
+        BoardDto.Request request = createRequest();
+        request.setComeableDateNegotiable(true);
+        request.setComeableDate(null);
+        Long memberId = 42L;
+        Member member = org.mockito.Mockito.mock(Member.class);
+        RoomType roomType = org.mockito.Mockito.mock(RoomType.class);
+        Region region = org.mockito.Mockito.mock(Region.class);
+        RoommateBoard savedRoommateBoard = org.mockito.Mockito.mock(RoommateBoard.class);
+        LocalDateTime updatedAt = LocalDateTime.of(2026, 6, 4, 16, 30);
+
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
+        when(roommateBoardRepository.save(any(RoommateBoard.class))).thenReturn(savedRoommateBoard);
+        when(savedRoommateBoard.getUpdatedAt()).thenReturn(updatedAt);
+
+        // When
+        BoardDto.Response response = roommateBoardService.save(request, memberId, null);
+
+        // Then
+        verify(roommateBoardRepository).save(roommateBoardCaptor.capture());
+        RoommateBoard boardToSave = roommateBoardCaptor.getValue();
+        assertThat(boardToSave.getComeableDateNegotiable()).isTrue();
+        assertThat(boardToSave.getComeableDate()).isNull();
+        assertThat(response.getUpdatedAt()).isEqualTo(updatedAt);
+    }
+
+    @Test
     @DisplayName("게시글 저장 중 이미지 메타데이터가 파일 파트와 매칭되지 않으면 잘못된 요청 예외를 던진다")
     void saveThrowsWhenImageFileIndexDoesNotMatchFilesPart() throws IOException {
         BoardDto.Request request = createRequest(createFileDto(1, true));
@@ -724,6 +756,8 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getMonthlyRent()).isEqualTo(50);
         assertThat(response.getRoomTypeName()).isEqualTo("원룸");
         assertThat(response.getRegionFullName()).isEqualTo("서울 강남구 역삼동");
+        assertThat(response.getComeableDateNegotiable()).isTrue();
+        assertThat(response.getComeableDate()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
         assertThat(response.getHits()).isEqualTo(3L);
         assertThat(response.getContents()).isEqualTo("상세 내용");
         assertThat(response.getRoomExtraOptionNames()).isSameAs(roomExtraOptionNames);
@@ -887,7 +921,8 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getRoomType().getName()).isEqualTo("원룸");
         assertThat(response.getRegion().getRegionId()).isEqualTo(33L);
         assertThat(response.getRegion().getFullName()).isEqualTo("서울 강남구 역삼동");
-        assertThat(response.getComeableAt()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
+        assertThat(response.getComeableDateNegotiable()).isTrue();
+        assertThat(response.getComeableDate()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
         assertThat(response.getRoomExtraOptions()).isSameAs(roomExtraOptions);
         assertThat(response.getContents()).isEqualTo("수정 내용");
         assertThat(response.getLifeStyles()).containsExactly(lifestyle);
@@ -1000,6 +1035,7 @@ class RoommateBoardServiceImplTest {
         assertThat(roommateBoard.getDeposit()).isEqualTo(2_000);
         assertThat(roommateBoard.getMonthlyRent()).isEqualTo(70);
         assertThat(roommateBoard.getManagementCost()).isEqualTo(15);
+        assertThat(roommateBoard.getComeableDateNegotiable()).isEqualTo(request.getComeableDateNegotiable());
         assertThat(roommateBoard.getComeableDate()).isEqualTo(LocalDateTime.of(2026, 8, 1, 10, 0));
         assertThat(roommateBoard.getRoomType()).isSameAs(newRoomType);
         assertThat(roommateBoard.getRegion()).isSameAs(newRegion);
@@ -1022,6 +1058,39 @@ class RoommateBoardServiceImplTest {
         assertThat(newBoardFile.getFile()).isSameAs(newFile);
         assertThat(newBoardFile.getIsThumbnail()).isFalse();
         assertThat(persistedBoardFiles).containsExactly(keptImage, thumbnailImage, newBoardFile);
+    }
+
+    @Test
+    @DisplayName("입주 시기 협의 가능으로 수정하면 입주 가능일을 비울 수 있다")
+    void modifyAllowsNegotiableComeableDateWithoutDate() {
+        // Given
+        Long boardId = 1L;
+        RoommateBoard roommateBoard = createRoommateBoard();
+        RoomType roomType = org.mockito.Mockito.mock(RoomType.class);
+        Region region = org.mockito.Mockito.mock(Region.class);
+        RoommateBoardFile existingThumbnail = RoommateBoardFile.builder()
+                .id(101L)
+                .roommateBoard(roommateBoard)
+                .file(createFile("thumbnail.jpg", "saved-thumbnail.jpg", "jpg"))
+                .isThumbnail(true)
+                .build();
+        BoardModifyDto.Request request = createModifyRequest();
+        request.setComeableDateNegotiable(true);
+        request.setComeableDate(null);
+        request.setExistingImages(List.of(createExistingFileDto(101L, true)));
+
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
+        when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(List.of(existingThumbnail));
+
+        // When
+        BoardModifyDto.Response response = roommateBoardService.modify(7L, boardId, request, null);
+
+        // Then
+        assertThat(response.getUpdatedAt()).isNotNull();
+        assertThat(roommateBoard.getComeableDateNegotiable()).isTrue();
+        assertThat(roommateBoard.getComeableDate()).isNull();
     }
 
     @Test
@@ -1303,7 +1372,8 @@ class RoommateBoardServiceImplTest {
         request.setManagementCost(50);
         request.setRoomTypeId(1L);
         request.setRegionId(2L);
-        request.setComeableAt(LocalDateTime.of(2026, 7, 1, 9, 0));
+        request.setComeableDateNegotiable(false);
+        request.setComeableDate(LocalDateTime.of(2026, 7, 1, 9, 0));
         request.setImages(List.of(images));
         return request;
     }
@@ -1317,7 +1387,8 @@ class RoommateBoardServiceImplTest {
         request.setManagementCost(15);
         request.setRoomTypeId(11L);
         request.setRegionId(22L);
-        request.setComeableAt(LocalDateTime.of(2026, 8, 1, 10, 0));
+        request.setComeableDateNegotiable(false);
+        request.setComeableDate(LocalDateTime.of(2026, 8, 1, 10, 0));
         request.setDeleteExtraOptionIds(List.of());
         request.setNewExtraOptionIds(List.of());
         request.setExistingImages(List.of());
@@ -1366,6 +1437,7 @@ class RoommateBoardServiceImplTest {
                 .managementCost(10)
                 .roomType(org.mockito.Mockito.mock(RoomType.class))
                 .region(org.mockito.Mockito.mock(Region.class))
+                .comeableDateNegotiable(false)
                 .comeableDate(LocalDateTime.of(2026, 7, 1, 9, 0))
                 .build();
     }
@@ -1396,6 +1468,8 @@ class RoommateBoardServiceImplTest {
                 "역삼동",
                 "강남구",
                 "서울",
+                true,
+                LocalDateTime.of(2026, 7, 1, 9, 0),
                 LocalDateTime.of(2026, 6, 1, 12, 0),
                 3L,
                 "상세 내용",
@@ -1419,6 +1493,7 @@ class RoommateBoardServiceImplTest {
                 "역삼동",
                 "강남구",
                 "서울",
+                true,
                 LocalDateTime.of(2026, 7, 1, 9, 0),
                 "수정 내용"
         );

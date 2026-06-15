@@ -48,6 +48,12 @@ public class BoardDetailDto {
         @Schema(description = "지역명 풀네임")
         private String regionFullName;
 
+        @Schema(description = "입주 협의 가능 여부")
+        private Boolean comeableDateNegotiable;
+
+        @Schema(description = "입주 가능일")
+        private LocalDateTime comeableDate;
+
         @Schema(description = "날짜 및 시간")
         private LocalDateTime createdAt;
 

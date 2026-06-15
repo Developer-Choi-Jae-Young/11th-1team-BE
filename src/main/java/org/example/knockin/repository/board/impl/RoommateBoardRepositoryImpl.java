@@ -290,6 +290,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         boardRegion.name,
                         parentRegion.name,
                         grandParentRegion.name,
+                        roommateBoard.comeableDateNegotiable,
+                        roommateBoard.comeableDate,
                         roommateBoard.createdAt,
                         roommateBoard.hits,
                         roommateBoard.contents,
@@ -379,6 +381,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         boardRegion.name,
                         parentRegion.name,
                         grandParentRegion.name,
+                        roommateBoard.comeableDateNegotiable,
                         roommateBoard.comeableDate,
                         roommateBoard.contents
                 ))
