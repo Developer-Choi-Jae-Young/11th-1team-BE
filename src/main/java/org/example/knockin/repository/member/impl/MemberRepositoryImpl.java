@@ -3,14 +3,17 @@ package org.example.knockin.repository.member.impl;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.MyPreferencesAllDto;
 import org.example.knockin.dto.MyProfileAllDto;
 import org.example.knockin.entity.auth.LoginProviderType;
-import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberPrivacyType;
 import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomOfferProfile;
@@ -18,14 +21,15 @@ import org.example.knockin.entity.room.RoomProfile;
 import org.example.knockin.entity.room.RoomSeekerProfile;
 import org.example.knockin.global.auth.dto.AuthResponse;
 import org.example.knockin.repository.member.MemberRepositoryCustom;
+import org.example.knockin.repository.member.row.MatchingListBasicInfoRow;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
 import static org.example.knockin.entity.life.QPreferenceCondition.preferenceCondition;
 import static org.example.knockin.entity.life.QMemberLifePattern.memberLifePattern;
@@ -42,6 +46,7 @@ import static org.example.knockin.entity.room.QRoomType.roomType;
 import static org.example.knockin.entity.room.QRegion.region;
 import static org.example.knockin.entity.room.QRoomSeekerProfileRegion.roomSeekerProfileRegion;
 import static org.example.knockin.entity.member.QState.state;
+import static org.example.knockin.entity.member.QMemberPrivacy.memberPrivacy;
 
 @Repository
 @RequiredArgsConstructor
@@ -206,11 +211,85 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         return jpaQueryFactory.selectFrom(member).where(member.isDelete.eq(true)).fetch();
     }
 
+    @Override
+    public List<MatchingListBasicInfoRow> findMatchingListBasicRow(List<Long> excludeMemberIds, Integer size) {
+        if (size <= 0) return List.of();
+
+        NumberExpression<Double> randomOrder = Expressions.numberTemplate(Double.class, "function('random')");
+
+        return jpaQueryFactory
+                .select(Projections.constructor(
+                        MatchingListBasicInfoRow.class,
+                        member.id,
+                        file.savedFileName,
+                        basicInformation.name,
+                        basicInformation.birth,
+                        basicInformation.gender,
+                        roomProfile.id,
+                        roomProfile.type
+                ))
+                .from(member)
+                .where(
+                        member.isDelete.isFalse(),
+                        memberPrivacy.type.eq(MemberPrivacyType.PUBLIC),
+                        memberIdNotIn(excludeMemberIds),
+                        notBlocked()
+                )
+                .join(member.memberPrivacy, memberPrivacy)
+                .leftJoin(basicInformation)
+                .on(basicInformation.id.eq(
+                        JPAExpressions
+                                .select(basicInformation.id.max())
+                                .from(basicInformation)
+                                .where(basicInformation.member.id.eq(member.id))
+                ))
+                .join(roomProfile)
+                .on(roomProfile.id.eq(
+                        JPAExpressions
+                                .select(roomProfile.id.max())
+                                .from(roomProfile)
+                                .where(roomProfile.member.id.eq(member.id))
+                ))
+                .leftJoin(basicInformationFile)
+                .on(basicInformationFile.id.eq(
+                        JPAExpressions
+                                .select(basicInformationFile.id.max())
+                                .from(basicInformationFile)
+                                .where(basicInformationFile.basicInformation.id.eq(basicInformation.id))
+                ))
+                .leftJoin(basicInformationFile.file, file)
+                .on(file.isDeleted.isFalse())
+                .orderBy(randomOrder.asc())
+                .limit(size)
+                .fetch();
+    }
+
     private BooleanExpression providerIdEq(String providerId) {
         return StringUtils.hasText(providerId) ? member.providerId.eq(providerId) : null;
     }
 
     private BooleanExpression providerTypeEq(LoginProviderType providerType) {
         return providerType != null ? member.providerType.eq(providerType) : null;
+    }
+
+    private BooleanExpression memberIdNotIn(List<Long> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return null;
+        }
+
+        List<Long> filteredIds = memberIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        return filteredIds.isEmpty() ? null : member.id.notIn(filteredIds);
+    }
+
+    private BooleanExpression notBlocked() {
+        return JPAExpressions
+                .selectOne()
+                .from(block)
+                .where(block.member.id.eq(member.id), block.isDeleted.isFalse())
+                .notExists();
     }
 }

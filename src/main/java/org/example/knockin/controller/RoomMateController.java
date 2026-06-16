@@ -18,9 +18,11 @@ import org.example.knockin.dto.ReportDto;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.service.RoommateBoardService;
+import org.example.knockin.service.RoommateMatchingService;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class RoomMateController {
 
     public final RoommateBoardService roommateBoardService;
+    private final RoommateMatchingService roommateMatchingService;
 
     @GetMapping("/boards")
     @Operation(summary = "게시글 목록 조회")
@@ -135,8 +138,13 @@ public class RoomMateController {
 
     @GetMapping("/matches")
     @Operation(summary = "매칭 목록 조회")
-    public CommonResponse<MatchListDto.Response> findMatchList() {
-        return CommonResponse.status(HttpStatus.OK).body(new MatchListDto.Response());
+    public CommonResponse<Slice<MatchListDto.Response>> findMatchList(
+            @AuthenticationPrincipal PrincipalDetails details,
+            @ParameterObject @Validated @ModelAttribute MatchListDto.Request request
+    ) {
+        Long memberId = details == null ? null : details.getMember().getId();
+        Slice<MatchListDto.Response> responses = roommateMatchingService.findMatchingList(memberId, request);
+        return CommonResponse.status(HttpStatus.OK).body(responses);
     }
 
     @GetMapping("/matches/{userId}")

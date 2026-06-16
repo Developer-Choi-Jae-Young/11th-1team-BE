@@ -10,6 +10,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.repository.life.PreferenceConditionRepositoryCustom;
+import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -32,6 +33,30 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                 .where(preferenceCondition.member.id.eq(memberId))
                 .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
                 .leftJoin(lifePatternInformation.lifePattern, lifePattern)
+                .fetch();
+    }
+
+    @Override
+    public List<MatchingPreferenceConditionRow> findAllPreferenceConditionByMemberIdIn(List<Long> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaQueryFactory
+                .select(Projections.constructor(
+                        MatchingPreferenceConditionRow.class,
+                        preferenceCondition.member.id,
+                        preferenceCondition.id,
+                        lifePattern.name,
+                        lifePatternInformation.dvalue,
+                        lifePatternInformation.description,
+                        lifePattern.dtype
+                ))
+                .from(preferenceCondition)
+                .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
+                .join(lifePatternInformation.lifePattern, lifePattern)
+                .where(preferenceCondition.member.id.in(memberIds))
+                .orderBy(lifePattern.sort.asc(), preferenceCondition.id.asc())
                 .fetch();
     }
 }

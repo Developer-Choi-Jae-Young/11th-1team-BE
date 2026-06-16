@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.repository.life.PreferenceConditionWeightRepositoryCustom;
+import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -27,6 +28,26 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
                 .from(preferenceConditionWeight)
                 .where(preferenceConditionWeight.member.id.eq(memberId))
                 .join(preferenceConditionWeight.lifePattern, lifePattern)
+                .fetch();
+    }
+
+    @Override
+    public List<MatchingPreferenceConditionWeightRow> findAllPreferenceConditionWeightByMemberIdIn(List<Long> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            return List.of();
+        }
+
+        return jpaQueryFactory
+                .select(Projections.constructor(
+                        MatchingPreferenceConditionWeightRow.class,
+                        preferenceConditionWeight.member.id,
+                        preferenceConditionWeight.id,
+                        lifePattern.name
+                ))
+                .from(preferenceConditionWeight)
+                .join(preferenceConditionWeight.lifePattern, lifePattern)
+                .where(preferenceConditionWeight.member.id.in(memberIds))
+                .orderBy(lifePattern.sort.asc(), preferenceConditionWeight.id.asc())
                 .fetch();
     }
 }

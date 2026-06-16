@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.life.MemberLifePatternRepositoryCustom;
+import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -41,5 +42,27 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
     public boolean isExsitLifeStyle(Member member) {
         Long result = jpaQueryFactory.select(memberLifePattern.id).from(memberLifePattern).where(memberLifePattern.member.eq(member)).fetchFirst();
         return result != null;
+    }
+
+    @Override
+    public List<MatchingLifestyleRow> findAllLifestyleByMemberIdIn(List<Long> memberIds) {
+        if (memberIds.isEmpty() || memberIds == null) return List.of();
+
+        return jpaQueryFactory
+                .select(Projections.constructor(
+                        MatchingLifestyleRow.class,
+                        memberLifePattern.member.id,
+                        lifePattern.id,
+                        lifePattern.name,
+                        lifePatternInformation.dvalue,
+                        lifePatternInformation.description,
+                        lifePattern.dtype
+                ))
+                .from(memberLifePattern)
+                .join(memberLifePattern.lifePatternInformation, lifePatternInformation)
+                .join(lifePatternInformation.lifePattern, lifePattern)
+                .where(memberLifePattern.member.id.in(memberIds))
+                .orderBy(lifePattern.sort.asc(), memberLifePattern.id.asc())
+                .fetch();
     }
 }
