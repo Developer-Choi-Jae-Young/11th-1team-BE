@@ -3,6 +3,7 @@ package org.example.knockin.config;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.AgreementLog;
+import org.example.knockin.entity.inquiry.InquiryCategory;
 import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
@@ -11,6 +12,8 @@ import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.repository.agreement.AgreementLogRepository;
 import org.example.knockin.repository.agreement.AgreementRepository;
+import org.example.knockin.repository.board.FaqRepository;
+import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
 import org.example.knockin.repository.life.LifePatternInformationRepository;
 import org.example.knockin.repository.life.LifePatternRepository;
 import org.example.knockin.repository.room.RegionRepository;
@@ -35,6 +38,7 @@ public class SeedDataConfig implements CommandLineRunner {
     private final RegionRepository regionRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final RoomExtraOptionRepository roomExtraOptionRepository;
+    private final InquiryCategoryRepository inquiryCategoryRepository;
 
     @Override
     @Transactional
@@ -138,5 +142,12 @@ public class SeedDataConfig implements CommandLineRunner {
         RoomExtraOption securityCctv = RoomExtraOption.builder().name("보안/CCTV").isDeleted(false).build();
 
         roomExtraOptionRepository.saveAll(List.of(fullOption, elevator, parking, veranda, petAvailable, securityCctv));
+
+        InquiryCategory catAccount = InquiryCategory.builder().title("계정/인증").isDeleted(false).build();
+        InquiryCategory catRoom = InquiryCategory.builder().title("방 등록/매칭").isDeleted(false).build();
+        InquiryCategory catAbuse = InquiryCategory.builder().title("불량유저 신고").isDeleted(false).build();
+        InquiryCategory catEtc = InquiryCategory.builder().title("기타 문의").isDeleted(false).build();
+
+        inquiryCategoryRepository.saveAll(List.of(catAccount, catRoom, catAbuse, catEtc));
     }
 }
