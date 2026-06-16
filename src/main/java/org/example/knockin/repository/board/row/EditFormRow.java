@@ -13,6 +13,7 @@ public record EditFormRow(
         String regionName,
         String parentRegionName,
         String grandParentRegionName,
+        Boolean comeableDateNegotiable,
         LocalDateTime comeableDate,
         String contents
 ) {

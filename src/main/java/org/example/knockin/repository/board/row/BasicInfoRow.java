@@ -14,6 +14,8 @@ public record BasicInfoRow(
         String regionName,
         String parentRegionName,
         String grandParentRegionName,
+        Boolean comeableDateNegotiable,
+        LocalDateTime comeableDate,
         LocalDateTime createdAt,
         Long hits,
         String contents,

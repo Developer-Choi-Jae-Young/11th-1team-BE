@@ -53,8 +53,11 @@ public class BoardEditDto {
         @Schema(description = "지역")
         private RegionInfo region;
 
+        @Schema(description = "입주 협의 가능 여부")
+        private Boolean comeableDateNegotiable;
+
         @Schema(description = "입주 가능시기")
-        private LocalDateTime comeableAt;
+        private LocalDateTime comeableDate;
 
         @Schema(description = "방 추가 옵션 목록")
         private List<BoardOptionInfo> roomExtraOptions;
