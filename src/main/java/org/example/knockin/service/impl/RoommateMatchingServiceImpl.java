@@ -11,8 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.MatchDetailDto;
 import org.example.knockin.dto.MatchDto;
 import org.example.knockin.dto.MatchListDto;
+import org.example.knockin.dto.MemberReportDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberDeclaration;
 import org.example.knockin.entity.member.MemberInterest;
 import org.example.knockin.entity.room.RoomProfileType;
 import org.example.knockin.global.exception.BusinessException;
@@ -27,6 +29,7 @@ import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
+import org.example.knockin.repository.member.MemberDeclarationRepository;
 import org.example.knockin.repository.member.MemberInterestRepository;
 import org.example.knockin.repository.member.MemberRepository;
 import org.example.knockin.repository.member.row.MatchingBasicInfoRow;
@@ -53,6 +56,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     private final PreferenceConditionRepository preferenceConditionRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final AuthenticationRepository authenticationRepository;
+    private final MemberDeclarationRepository memberDeclarationRepository;
 
     @Override
     public Slice<MatchListDto.Response> findMatchingList(Long memberId, MatchListDto.Request request) {
@@ -353,6 +357,35 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .receiver(receiver)
                 .build();
         memberInterestRepository.save(memberInterest);
+    }
+
+    @Override
+    public MemberReportDto.Response reportMatching(Long reporterId, Long reportedId, MemberReportDto.Request request) {
+        Member reporter = memberRepository.findById(reporterId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Member reported = memberRepository.findById(reportedId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        boolean exist = memberDeclarationRepository.existsByReporterAndReported(reporter, reported);
+
+        if (exist) {
+            throw new BusinessException(MemberErrorCode.DECLARATION_DUPLICATE);
+        } else {
+            saveMemberDeclaration(reporter, reported, request.getContents());
+        }
+
+        return new MemberReportDto.Response(LocalDateTime.now());
+    }
+
+    private void saveMemberDeclaration(Member reporter, Member reported, String reason) {
+        MemberDeclaration memberDeclaration = MemberDeclaration.builder()
+                .reporter(reporter)
+                .reported(reported)
+                .reason(reason)
+                .build();
+
+        memberDeclarationRepository.save(memberDeclaration);
     }
 
 }
