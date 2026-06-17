@@ -339,11 +339,10 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         Optional<MemberInterest> optionalMemberInterest =
                 memberInterestRepository.findBySenderIdAndReceiverIdForUpdate(senderId, receiverId);
 
-        if (optionalMemberInterest.isPresent()) {
-            optionalMemberInterest.get().toggle();
-        } else {
-            saveMemberInterest(sender, receiver);
-        }
+        optionalMemberInterest.ifPresentOrElse(
+                MemberInterest::toggle,
+                () -> saveMemberInterest(sender, receiver)
+        );
 
         return new MatchDto.Response(LocalDateTime.now());
     }
