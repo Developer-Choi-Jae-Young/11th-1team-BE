@@ -1,79 +1,160 @@
 package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.util.ArrayList;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.example.knockin.entity.life.LifePatternType;
+import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.room.RoomProfileType;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 public class MatchListDto {
     @Data
     public static class Request {
+        @Schema(description = "조회 크기")
+        @Min(1)
+        @Max(50)
+        private Integer size = 20;
+
+        @Schema(description = "이미 조회한 회원 ID 목록")
+        private List<Long> excludeMemberIds = new ArrayList<>();
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
-        @Schema(description = "매칭 목록")
-        private List<Match> matches;
+        @Schema(description = "고유 식별 ID")
+        private Long memberId;
 
-        @Data
-        public static class Match {
-            @Schema(description = "고유 식별 ID")
-            private Long userId;
-            @Schema(description = "이름")
-            private String name;
-            @Schema(description = "좋아요 여부")
-            private Boolean isLike;
-            @Schema(description = "방 프로필 타입")
-            private RoomProfileType roomProfileType;
-            @Schema(description = "보증금")
-            private Integer deposit;
-            @Schema(description = "월세")
-            private Integer mounthRent;
-            @Schema(description = "최소 보증금")
-            private Integer minDeposit;
-            @Schema(description = "최소 월세")
-            private Integer minMounthRent;
-            @Schema(description = "최대 보증금")
-            private Integer maxDeposit;
-            @Schema(description = "최대 월세")
-            private Integer maxMounthRent;
-            @Schema(description = "입주 가능일")
-            private LocalDateTime comeableAt;
-            @Schema(description = "방 타입 목록")
-            private List<Long> roomType;
-            @Schema(description = "지역 ID")
-            private Long region;
-            @Schema(description = "점수")
-            private Integer score;
-            @Schema(description = "라이프스타일 목록")
-            private List<Lifestyle> lifeStyles;
-            @Schema(description = "조건 목록")
-            private List<Condition> conditions;
-        }
+        @Schema(description = "프로필 사진 URL")
+        private String memberProfileImageUrl;
 
-        @Data
-        public static class Lifestyle {
-            @Schema(description = "고유 식별 ID")
-            private Long lifestyleId;
-            @Schema(description = "이름")
-            private String name;
-            @Schema(description = "값")
-            private String value;
-            @Schema(description = "설명")
-            private String description;
-            @Schema(description = "타입/유형")
-            private LifePatternType type;
-        }
+        @Schema(description = "이름")
+        private String memberName;
 
-        @Data
-        public static class Condition {
-            @Schema(description = "고유 식별 ID")
-            private Long conditionsId;
-            @Schema(description = "이름")
-            private String name;
-        }
+        @Schema(description = "나이")
+        private Integer memberAge;
+
+        @Schema(description = "성별")
+        private Gender gender;
+
+        @Schema(description = "좋아요 여부")
+        private Boolean isLike;
+
+        @Schema(description = "방 프로필 타입")
+        private RoomProfileType roomProfileType;
+
+        @Schema(description = "방 없어요 프로필 (SEEKER)")
+        private SeekerProfile seekerProfile;
+
+        @Schema(description = "방 있어요 프로필 (OFFER)")
+        private OfferProfile offerProfile;
+
+        @Schema(description = "점수 (TBD)")
+        private Integer score;
+
+        @Schema(description = "라이프스타일 목록")
+        private List<Lifestyle> lifeStyles;
+
+        @Schema(description = "조건 목록")
+        private List<Condition> conditions;
+
+        @Schema(description = "중요 조건 목록")
+        private List<ConditionWeight> conditionWeights;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SeekerProfile {
+        @Schema(description = "최소 보증금")
+        private Integer minDeposit;
+
+        @Schema(description = "최대 보증금")
+        private Integer maxDeposit;
+
+        @Schema(description = "최소 월세")
+        private Integer minMonthlyRent;
+
+        @Schema(description = "최대 월세")
+        private Integer maxMonthlyRent;
+
+        @Schema(description = "원하는 방 타입명 목록")
+        private List<String> roomTypeNames;
+
+        @Schema(description = "원하는 지역명 목록")
+        private List<String> regionFullNames;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OfferProfile {
+        @Schema(description = "보증금")
+        private Integer deposit;
+
+        @Schema(description = "월세")
+        private Integer monthlyRent;
+
+        @Schema(description = "지역명")
+        private String regionFullName;
+
+        @Schema(description = "방 타입명")
+        private String roomTypeName;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Lifestyle {
+        @Schema(description = "고유 식별 ID")
+        private Long lifestyleId;
+        @Schema(description = "이름")
+        private String name;
+        @Schema(description = "값")
+        private String value;
+        @Schema(description = "설명")
+        private String description;
+        @Schema(description = "타입/유형")
+        private LifePatternType type;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Condition {
+        @Schema(description = "고유 식별 ID")
+        private Long conditionId;
+        @Schema(description = "이름")
+        private String name;
+        @Schema(description = "값")
+        private String value;
+        @Schema(description = "설명")
+        private String description;
+        @Schema(description = "타입/유형")
+        private LifePatternType type;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConditionWeight {
+        @Schema(description = "고유 식별 ID")
+        private Long conditionWeightId;
+        @Schema(description = "이름")
+        private String name;
     }
 }
