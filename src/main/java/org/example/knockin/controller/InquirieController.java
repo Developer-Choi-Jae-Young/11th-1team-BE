@@ -26,14 +26,14 @@ public class InquirieController {
 
     @GetMapping("")
     @Operation(summary = "문의 목록 조회")
-    public CommonResponse<InquiryListDto.Response> findInquirieList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new InquiryListDto.Response());
+    public CommonResponse<InquiryListDto.Response> findInquirieList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquirieList(pageable, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/{inquiryId}")
     @Operation(summary = "문의 상세 조회")
-    public CommonResponse<InquiryDetailDto.Response> findInquirie(@PathVariable Long inquiryId) {
-        return CommonResponse.status(HttpStatus.OK).body(new InquiryDetailDto.Response());
+    public CommonResponse<InquiryDetailDto.Response> findInquirie(@PathVariable Long inquiryId, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(inquirieService.findInquirie(inquiryId, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/categorys")

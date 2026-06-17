@@ -2,7 +2,9 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.InquiryCategoryListDto;
+import org.example.knockin.dto.InquiryDetailDto;
 import org.example.knockin.dto.InquiryDto;
+import org.example.knockin.dto.InquiryListDto;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryCategory;
 import org.example.knockin.entity.member.Member;
@@ -11,6 +13,7 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.InquiryErrorCode;
 import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
 import org.example.knockin.repository.inquiry.InquiryRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,5 +43,16 @@ public class InquirieServiceImpl {
     public InquiryCategoryListDto.Response findInquirieCategoryList() {
         List<InquiryCategoryListDto.Response.Category> categoryList = inquiryCategoryRepository.findAllByIsDeleted(false).stream().map(item -> InquiryCategoryListDto.Response.Category.builder().id(item.getId()).name(item.getTitle()).build()).toList();
         return InquiryCategoryListDto.Response.builder().inquirieCategorys(categoryList).build();
+    }
+
+    public InquiryListDto.Response findInquirieList(Pageable pageable, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<InquiryListDto.Response.InquiryItem> inquiryItemList = inquiryRepository.findMyInquiryList(false, member, pageable);
+        return InquiryListDto.Response.builder().inquiries(inquiryItemList).build();
+    }
+
+    public InquiryDetailDto.Response findInquirie(Long inquiryId, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        return InquiryDetailDto.Response.builder().inquirie(inquiryRepository.findMyInquiry(false, member, inquiryId)).build();
     }
 }
