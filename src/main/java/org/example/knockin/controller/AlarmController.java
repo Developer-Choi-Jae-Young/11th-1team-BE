@@ -42,6 +42,7 @@ public class AlarmController {
     }
 
     @GetMapping("/subscribe")
+    @Operation(summary = "알림 구독 처리")
     public CommonResponse<AlarmSubscribeDto.Response> subscribeAlarm(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         return CommonResponse.status(HttpStatus.OK).body(AlarmSubscribeDto.Response.builder().sseEmitter(alarmService.subscribe(principalDetails.getMember().getId())).build());
     }
