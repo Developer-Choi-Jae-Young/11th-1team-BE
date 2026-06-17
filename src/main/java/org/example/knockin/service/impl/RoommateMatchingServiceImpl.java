@@ -203,9 +203,9 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
 
         if (row.roomProfileType() == RoomProfileType.SEEKER) {
             MatchingSeekerProfileRow matchingSeekerProfileRow = seekerMap.get(candidateId);
-            List<String> regionFullNames = seekerRegionMap.get(candidateId);
-            List<String> roomTypeNames = seekerRoomTypeMap.get(candidateId);
-            seekerProfile = toSeekerProfile(matchingSeekerProfileRow, regionFullNames, roomTypeNames);
+            List<String> regionFullNames = seekerRegionMap.getOrDefault(candidateId, List.of());
+            List<String> roomTypeNames = seekerRoomTypeMap.getOrDefault(candidateId, List.of());
+            seekerProfile = toSeekerProfile(matchingSeekerProfileRow, roomTypeNames, regionFullNames);
         }
 
         return MatchListDto.Response.builder()
@@ -227,6 +227,10 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     }
 
     private MatchListDto.OfferProfile toOfferProfile(MatchingOfferProfileRow row) {
+        if (row == null) {
+            return null;
+        }
+
         String regionFullName = StringUtils.parseToRegionFullName(
                 row.grandParentRegionName(),
                 row.parentRegionName(),
@@ -242,6 +246,10 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     }
 
     private MatchListDto.SeekerProfile toSeekerProfile(MatchingSeekerProfileRow row, List<String> roomTypeNames, List<String> regionFullNames) {
+        if (row == null) {
+            return null;
+        }
+
         return MatchListDto.SeekerProfile.builder()
                 .minDeposit(row.minDeposit())
                 .maxDeposit(row.maxDeposit())
@@ -259,17 +267,33 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
 
         List<AuthenticationType> authenticationTypes = authenticationRepository.getAcceptedAuthenticationTypeByMemberId(targetMemberId);
 
-        MatchingOfferProfileRow offerProfileRow = roomOfferProfileRepository.findAllOfferProfileByMemberIdIn(List.of(targetMemberId)).getFirst();
-        MatchingSeekerProfileRow seekerProfileRow = roomSeekerProfileRepository.findAllSeekerProfileByMemberIdIn(List.of(targetMemberId)).getFirst();
-        List<MatchingSeekerRegionRow> seekerRegionRows = roomSeekerProfileRepository.findAllSeekerRegionByMemberIdIn(List.of(targetMemberId));
-        List<MatchingSeekerRoomTypeRow> seekerRoomTypeRows = roomSeekerProfileRepository.findAllSeekerRoomTypeByMemberIdIn(List.of(targetMemberId));
+        RoomProfileType roomProfileType = basicInfoRow.roomProfileType();
+        MatchingOfferProfileRow offerProfileRow = null;
+        MatchingSeekerProfileRow seekerProfileRow = null;
+        List<MatchingSeekerRegionRow> seekerRegionRows = List.of();
+        List<MatchingSeekerRoomTypeRow> seekerRoomTypeRows = List.of();
+
+        if (roomProfileType == RoomProfileType.OFFER) {
+            offerProfileRow = roomOfferProfileRepository.findAllOfferProfileByMemberIdIn(List.of(targetMemberId))
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (roomProfileType == RoomProfileType.SEEKER) {
+            seekerProfileRow = roomSeekerProfileRepository.findAllSeekerProfileByMemberIdIn(List.of(targetMemberId))
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+            seekerRegionRows = roomSeekerProfileRepository.findAllSeekerRegionByMemberIdIn(List.of(targetMemberId));
+            seekerRoomTypeRows = roomSeekerProfileRepository.findAllSeekerRoomTypeByMemberIdIn(List.of(targetMemberId));
+        }
 
         List<MatchingLifestyleRow> lifestyleRows = memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(targetMemberId));
         List<MatchingPreferenceConditionRow> preferenceConditionRows = preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(targetMemberId));
         List<MatchingPreferenceConditionWeightRow> preferenceConditionWeightRows = preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(targetMemberId));
 
-        boolean isLike = memberInterestRepository.existsBySenderIdAndReceiverId(requesterId, targetMemberId);
-        RoomProfileType roomProfileType = basicInfoRow.roomProfileType();
+        boolean isLike = requesterId != null && memberInterestRepository.existsBySenderIdAndReceiverId(requesterId, targetMemberId);
 
         List<String> roomTypeNames = seekerRoomTypeRows.stream().map(MatchingSeekerRoomTypeRow::roomTypeName).toList();
         List<String> regionFullNames = seekerRegionRows.stream()
