@@ -20,6 +20,7 @@ public class AlarmServiceImpl {
     private final Map<Long, SseEmitter> sseEmitterMap = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long memberId) {
+        memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         long timeout = 1000L * 60 * 60;
         SseEmitter sseEmitter = new SseEmitter(timeout);
         sseEmitterMap.put(memberId, sseEmitter);
