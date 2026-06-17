@@ -556,18 +556,15 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Optional<RoommateBoardInterest> interestOptional = roommateBoardInterestRepository.findByRoommateBoardAndMember(
                 roommateBoard, member);
 
-        saveOrToggleLike(member, roommateBoard, interestOptional);
+        interestOptional.ifPresentOrElse(
+                RoommateBoardInterest::likeToggle,
+                () -> saveBoardLike(member, roommateBoard)
+        );
+
         return new BoardDto.Response(LocalDateTime.now());
     }
 
-    private void saveOrToggleLike(Member member, RoommateBoard roommateBoard,
-            Optional<RoommateBoardInterest> interestOptional) {
-        if (interestOptional.isPresent()) {
-            RoommateBoardInterest roommateBoardInterest = interestOptional.get();
-            roommateBoardInterest.likeToggle();
-            return;
-        }
-
+    private void saveBoardLike(Member member, RoommateBoard roommateBoard) {
         RoommateBoardInterest roommateBoardInterest = RoommateBoardInterest.builder()
                 .member(member)
                 .roommateBoard(roommateBoard)

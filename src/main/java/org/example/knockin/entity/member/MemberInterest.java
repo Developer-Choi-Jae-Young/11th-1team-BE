@@ -37,5 +37,10 @@ public class MemberInterest {
 
     @ColumnDefault("false")
     @Column(name = "is_deleted")
-    private Boolean isDeleted;
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    public void toggle() {
+        this.isDeleted = !Boolean.TRUE.equals(isDeleted);
+    }
 }

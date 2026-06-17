@@ -14,10 +14,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.example.knockin.dto.MatchDetailDto;
+import org.example.knockin.dto.MatchDto;
 import org.example.knockin.dto.MatchListDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.member.Gender;
+import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberInterest;
 import org.example.knockin.entity.room.RoomProfileType;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.MemberErrorCode;
@@ -43,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Slice;
 
@@ -76,6 +80,122 @@ class RoommateMatchingServiceImplTest {
 
     @InjectMocks
     private RoommateMatchingServiceImpl roommateMatchingService;
+
+    @Test
+    @DisplayName("관심 이력이 없으면 매칭 대상 회원을 관심 목록에 활성 상태로 저장한다")
+    void likeMatchingCreatesActiveInterestWhenNotExists() {
+        // Given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        Member sender = Member.builder().id(senderId).build();
+        Member receiver = Member.builder().id(receiverId).build();
+
+        when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
+        when(memberRepository.findById(receiverId)).thenReturn(Optional.of(receiver));
+        when(memberInterestRepository.findBySenderIdAndReceiverIdForUpdate(senderId, receiverId))
+                .thenReturn(Optional.empty());
+
+        // When
+        MatchDto.Response response = roommateMatchingService.likeMatching(senderId, receiverId);
+
+        // Then
+        ArgumentCaptor<MemberInterest> memberInterestCaptor = ArgumentCaptor.forClass(MemberInterest.class);
+        verify(memberInterestRepository).save(memberInterestCaptor.capture());
+        MemberInterest memberInterest = memberInterestCaptor.getValue();
+        assertThat(memberInterest.getSender()).isSameAs(sender);
+        assertThat(memberInterest.getReceiver()).isSameAs(receiver);
+        assertThat(memberInterest.getIsDeleted()).isFalse();
+        assertThat(response.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 관심 등록한 매칭 대상이면 기존 관심을 삭제 상태로 토글한다")
+    void likeMatchingTogglesExistingActiveInterestToDeleted() {
+        // Given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        Member sender = Member.builder().id(senderId).build();
+        Member receiver = Member.builder().id(receiverId).build();
+        MemberInterest memberInterest = MemberInterest.builder()
+                .sender(sender)
+                .receiver(receiver)
+                .isDeleted(false)
+                .build();
+
+        when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
+        when(memberRepository.findById(receiverId)).thenReturn(Optional.of(receiver));
+        when(memberInterestRepository.findBySenderIdAndReceiverIdForUpdate(senderId, receiverId))
+                .thenReturn(Optional.of(memberInterest));
+
+        // When
+        MatchDto.Response response = roommateMatchingService.likeMatching(senderId, receiverId);
+
+        // Then
+        assertThat(memberInterest.getIsDeleted()).isTrue();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(memberInterestRepository, never()).save(any(MemberInterest.class));
+    }
+
+    @Test
+    @DisplayName("삭제 상태의 매칭 관심이면 다시 활성 상태로 토글한다")
+    void likeMatchingTogglesExistingDeletedInterestToActive() {
+        // Given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        Member sender = Member.builder().id(senderId).build();
+        Member receiver = Member.builder().id(receiverId).build();
+        MemberInterest memberInterest = MemberInterest.builder()
+                .sender(sender)
+                .receiver(receiver)
+                .isDeleted(true)
+                .build();
+
+        when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
+        when(memberRepository.findById(receiverId)).thenReturn(Optional.of(receiver));
+        when(memberInterestRepository.findBySenderIdAndReceiverIdForUpdate(senderId, receiverId))
+                .thenReturn(Optional.of(memberInterest));
+
+        // When
+        MatchDto.Response response = roommateMatchingService.likeMatching(senderId, receiverId);
+
+        // Then
+        assertThat(memberInterest.getIsDeleted()).isFalse();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(memberInterestRepository, never()).save(any(MemberInterest.class));
+    }
+
+    @Test
+    @DisplayName("관심을 등록하는 회원이 없으면 회원 없음 예외를 던지고 대상 회원을 조회하지 않는다")
+    void likeMatchingThrowsWhenSenderDoesNotExist() {
+        // Given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        when(memberRepository.findById(senderId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> roommateMatchingService.likeMatching(senderId, receiverId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.MEMBER_NOT_FOUND));
+        verify(memberRepository, never()).findById(receiverId);
+        verifyNoInteractions(memberInterestRepository);
+    }
+
+    @Test
+    @DisplayName("관심 대상 회원이 없으면 회원 없음 예외를 던지고 관심 이력을 조회하지 않는다")
+    void likeMatchingThrowsWhenReceiverDoesNotExist() {
+        // Given
+        Long senderId = 1L;
+        Long receiverId = 2L;
+        Member sender = Member.builder().id(senderId).build();
+        when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
+        when(memberRepository.findById(receiverId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> roommateMatchingService.likeMatching(senderId, receiverId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.MEMBER_NOT_FOUND));
+        verifyNoInteractions(memberInterestRepository);
+    }
 
     @Test
     @DisplayName("조회 크기보다 후보가 많으면 요청 크기만 응답하고 다음 목록이 있음을 반환한다")
