@@ -18,7 +18,7 @@ import org.hibernate.annotations.ColumnDefault;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
-@DiscriminatorValue(AlarmType.Values.DEFUALT)
+@DiscriminatorValue(AlarmType.Values.DEFAULT)
 @Table(name = "alarm")
 public class Alarm extends CreatedAtEntity {
     @Id
