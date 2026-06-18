@@ -88,13 +88,13 @@ class ChattingRoomRepositoryTest {
         assertThat(acceptedResponse.getMemberName()).isEqualTo("상대회원");
         assertThat(acceptedResponse.getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
         assertThat(acceptedResponse.getCreatedAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
-        assertThat(acceptedResponse.getIsAgree()).isTrue();
+        assertThat(acceptedResponse.getStatus()).isEqualTo(ChattingRequiredStatus.ACCEPTED);
 
         ChatRoomListDto.Response pendingResponse = findResponseByChatRoomId(responses, pendingRoom.getId());
         assertThat(pendingResponse.getMemberName()).isEqualTo("대기상대");
         assertThat(pendingResponse.getMemberProfileImageUrl()).isEqualTo("pending-profile.jpg");
         assertThat(pendingResponse.getCreatedAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
-        assertThat(pendingResponse.getIsAgree()).isFalse();
+        assertThat(pendingResponse.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
     }
 
     @Test
