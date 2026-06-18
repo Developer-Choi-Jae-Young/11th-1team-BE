@@ -43,6 +43,7 @@ public class AlarmServiceImpl {
             String eventId = memberId + "_" + System.currentTimeMillis();
             AlarmSendDto.Response response = AlarmSendDto.Response.builder()
                     .id(alarm.getId()).title(alarm.getTitle())
+                    .event(AlarmSendDto.Response.Event.builder().alarmType(alarm.getType()).eventId(alarm.getId()).build())
                     .isRead(alarm.getIsRead()).contents(alarm.getContents())
                     .createdAt(alarm.getCreatedAt()).expiredAt(alarm.getExpiredAt()).build();
 

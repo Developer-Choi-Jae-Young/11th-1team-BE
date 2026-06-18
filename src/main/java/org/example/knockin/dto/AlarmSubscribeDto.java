@@ -11,8 +11,6 @@ import java.time.LocalDateTime;
 @Data
 public class AlarmSubscribeDto {
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class Request {
     }
 

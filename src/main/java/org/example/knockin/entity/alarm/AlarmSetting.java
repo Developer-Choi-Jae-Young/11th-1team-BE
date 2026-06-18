@@ -27,7 +27,7 @@ public class AlarmSetting {
     private Boolean isEnabled;
 
     @Enumerated(EnumType.STRING)
-    private AlarmType alarmType;
+    private AlarmSettingType alarmSettingType;
 
     public void updateEnable(Boolean isEnabled) {
         this.isEnabled = isEnabled;
