@@ -8,7 +8,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Data
 public class AlarmSubscribeDto {
     @Data
-    @NoArgsConstructor
     public static class Request {
     }
 

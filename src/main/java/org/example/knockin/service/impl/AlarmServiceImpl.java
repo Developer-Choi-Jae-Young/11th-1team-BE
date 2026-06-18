@@ -1,15 +1,22 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.AlarmListDto;
+import org.example.knockin.dto.AlarmSendDto;
+import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.exception.AlarmErrorCode;
 import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.repository.alarm.AlarmRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AlarmServiceImpl {
     private final MemberServiceImpl memberService;
     private final Map<Long, SseEmitter> sseEmitterMap = new ConcurrentHashMap<>();
+    private final AlarmRepository alarmRepository;
 
     public SseEmitter subscribe(Long memberId) {
         memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
@@ -30,14 +38,29 @@ public class AlarmServiceImpl {
         return sseEmitter;
     }
 
-    public void sendToClient(Long memberId, String eventName, Object data) {
+    @Transactional
+    public void sendToClient(Long memberId, String eventName, Alarm alarm) {
+        alarmRepository.save(alarm);
         SseEmitter sseEmitter = sseEmitterMap.get(memberId);
         try {
             String eventId = memberId + "_" + System.currentTimeMillis();
-            sseEmitter.send(SseEmitter.event().id(eventId).name(eventName).data(data));
+            AlarmSendDto.Response response = AlarmSendDto.Response.builder()
+                    .id(alarm.getId()).title(alarm.getTitle())
+                    .event(AlarmSendDto.Response.Event.builder().alarmType(alarm.getType()).eventId(alarm.getId()).build())
+                    .isRead(alarm.getIsRead()).contents(alarm.getContents())
+                    .createdAt(alarm.getCreatedAt()).expiredAt(alarm.getExpiredAt()).build();
+
+            sseEmitter.send(SseEmitter.event().id(eventId).name(eventName).data(response));
         } catch (IOException e) {
             sseEmitterMap.remove(memberId);
             throw new BusinessException(AlarmErrorCode.ALARM_SEND_ERROR);
         }
+    }
+
+    public AlarmListDto.Response findAlarmList(Pageable pageable, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<AlarmListDto.Response.Alarm> alarmList = alarmRepository.findByMember(member, pageable).stream().map(item ->
+                AlarmListDto.Response.Alarm.builder().id(item.getId()).title(item.getTitle()).contents(item.getContents()).isRead(item.getIsRead()).expiredAt(item.getExpiredAt()).createAt(item.getCreatedAt()).build()).toList();
+        return AlarmListDto.Response.builder().alarms(alarmList).build();
     }
 }

@@ -22,7 +22,7 @@ public class NotificationSettingServiceImpl {
 
     public MyNotificationSettingsDto.Response findAlaramSettingList(Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<MyNotificationSettingsDto.Response.AlarmSettingItem> alarmSettingList = alarmSettingRepository.findByMember(member).stream().map(item -> MyNotificationSettingsDto.Response.AlarmSettingItem.builder().id(item.getId()).name(item.getAlarmType().getMessage()).isEnable(item.getIsEnabled()).build()).toList();
+        List<MyNotificationSettingsDto.Response.AlarmSettingItem> alarmSettingList = alarmSettingRepository.findByMember(member).stream().map(item -> MyNotificationSettingsDto.Response.AlarmSettingItem.builder().id(item.getId()).name(item.getAlarmSettingType().getMessage()).isEnable(item.getIsEnabled()).build()).toList();
         return MyNotificationSettingsDto.Response.builder().alarmsSettings(alarmSettingList).build();
     }
 

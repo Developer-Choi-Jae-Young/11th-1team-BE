@@ -5,6 +5,7 @@ import org.example.knockin.dto.DeleteUserDto;
 import org.example.knockin.dto.MyPreferencesAllDto;
 import org.example.knockin.dto.MyProfileAllDto;
 import org.example.knockin.entity.alarm.AlarmSetting;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.member.Member;
@@ -56,7 +57,7 @@ public class MemberServiceImpl {
                             .build();
 
                     Member resultMember = memberRepository.save(newMember);
-                    List<AlarmSetting> alarmSettingList = Arrays.stream(AlarmType.values()).map(item -> AlarmSetting.builder().member(resultMember).isEnabled(true).alarmType(item).build()).toList();
+                    List<AlarmSetting> alarmSettingList = Arrays.stream(AlarmSettingType.values()).map(item -> AlarmSetting.builder().member(resultMember).isEnabled(true).alarmSettingType(item).build()).toList();
                     alarmSettingRepository.saveAll(alarmSettingList);
                     stateRepository.save(State.builder().states(MemberState.ACTIVE).member(resultMember).build());
                     return resultMember;

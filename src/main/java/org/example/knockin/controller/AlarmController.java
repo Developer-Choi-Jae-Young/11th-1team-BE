@@ -25,8 +25,8 @@ public class AlarmController {
 
     @GetMapping("")
     @Operation(summary = "알림 목록 조회")
-    public CommonResponse<AlarmListDto.Response> findAlarmList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new AlarmListDto.Response());
+    public CommonResponse<AlarmListDto.Response> findAlarmList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(alarmService.findAlarmList(pageable, principalDetails.getMember().getId()));
     }
 
     @PatchMapping("/{id}/read")
