@@ -1,6 +1,7 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.AlarmListDto;
 import org.example.knockin.dto.AlarmSendDto;
 import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.member.Member;
@@ -8,12 +9,14 @@ import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.exception.AlarmErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.repository.alarm.AlarmRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,5 +55,12 @@ public class AlarmServiceImpl {
             sseEmitterMap.remove(memberId);
             throw new BusinessException(AlarmErrorCode.ALARM_SEND_ERROR);
         }
+    }
+
+    public AlarmListDto.Response findAlarmList(Pageable pageable, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<AlarmListDto.Response.Alarm> alarmList = alarmRepository.findByMember(member, pageable).stream().map(item ->
+                AlarmListDto.Response.Alarm.builder().id(item.getId()).title(item.getTitle()).contents(item.getContents()).isRead(item.getIsRead()).expiredAt(item.getExpiredAt()).createAt(item.getCreatedAt()).build()).toList();
+        return AlarmListDto.Response.builder().alarms(alarmList).build();
     }
 }
