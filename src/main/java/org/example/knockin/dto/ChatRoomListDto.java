@@ -1,8 +1,10 @@
 package org.example.knockin.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.List;
+import lombok.NoArgsConstructor;
 
 @Data
 public class ChatRoomListDto {
@@ -11,15 +13,22 @@ public class ChatRoomListDto {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
-        private List<ChatRoom> chatRooms;
+        @Schema(description = "채팅방 식별 고유 ID")
+        private Long chatRoomId;
 
-        @Data
-        public static class ChatRoom {
-            private String name;
-            private LocalDateTime creatAt;
-            private Long chatRoomId;
-            private Boolean isAgree;
-        }
+        @Schema(description = "상대방 이름")
+        private String memberName;
+
+        @Schema(description = "상대방 프로필 사진 URL")
+        private String memberProfileImageUrl;
+
+        @Schema(description = "채팅방 생성 일자")
+        private LocalDateTime createdAt;
+
+        @Schema(description = "채팅 요청 동의 여부")
+        private Boolean isAgree;
     }
 }
