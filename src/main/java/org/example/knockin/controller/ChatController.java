@@ -11,6 +11,7 @@ import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomListDto.Response;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
+import org.example.knockin.global.auth.util.PrincipalMemberResolver;
 import org.example.knockin.service.impl.ChatServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "6. 채팅 (Chat)")
 public class ChatController {
     private final ChatServiceImpl chatService;
+    private final PrincipalMemberResolver principalMemberResolver;
 
     @GetMapping("")
     @Operation(summary = "채팅방 목록 조회")
@@ -59,7 +61,8 @@ public class ChatController {
             @Payload ChatMessageDto.Request request,
             Principal principal
     ) {
-        chatService.sendMessage(chatId, request, principal);
+        Long memberId = principalMemberResolver.resolveMemberId(principal);
+        chatService.sendMessage(chatId, request, memberId);
     }
 }
 

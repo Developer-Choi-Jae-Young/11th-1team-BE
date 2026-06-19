@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -16,12 +17,8 @@ import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
-import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
-import org.example.knockin.entity.member.Member;
-import org.example.knockin.entity.member.MemberRole;
-import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.repository.chat.ChatRoomMemberRepository;
@@ -35,7 +32,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("채팅 서비스")
@@ -52,6 +48,9 @@ class ChatServiceImplTest {
 
     @Mock
     private ApplicationEventPublisher publisher;
+
+    @Mock
+    private ChatRoomAccessService chatRoomAccessService;
 
     @InjectMocks
     private ChatServiceImpl chatService;
@@ -99,29 +98,28 @@ class ChatServiceImplTest {
     }
 
     @Test
-    @DisplayName("메시지 전송 시 인증 주체에서 발신자 식별자를 추출해 채팅방 구독 채널로 발행한다")
+    @DisplayName("메시지 전송 시 발신자 식별자로 채팅방 구독 채널에 발행한다")
     void sendMessagePublishesChatMessageToRoomDestination() {
         // Given
         Long chatId = 10L;
+        Long senderId = 1L;
         ChatMessageDto.Request request = new ChatMessageDto.Request();
         request.setClientMessageId("client-message-id");
         request.setType(MessageType.TEXT);
         request.setMessage("안녕하세요");
-
-        UsernamePasswordAuthenticationToken authentication = authentication(1L);
-        when(chatRoomMemberRepository.existsActiveMember(chatId, 1L)).thenReturn(true);
-
         // When
-        chatService.sendMessage(chatId, request, authentication);
+        chatService.sendMessage(chatId, request, senderId);
 
         // Then
+        verify(chatRoomAccessService).checkCanSendMessage(chatId, senderId);
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), payloadCaptor.capture());
 
         ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
         assertThat(response.getEventType()).isEqualTo(EventType.CHAT_MESSAGE);
+        assertThat(response.getChatRoomId()).isEqualTo(chatId);
         assertThat(response.getClientMessageId()).isEqualTo("client-message-id");
-        assertThat(response.getSenderId()).isEqualTo(1L);
+        assertThat(response.getSenderId()).isEqualTo(senderId);
         assertThat(response.getType()).isEqualTo(MessageType.TEXT);
         assertThat(response.getMessage()).isEqualTo("안녕하세요");
         assertThat(response.getCreatedAt()).isNotNull();
@@ -132,11 +130,14 @@ class ChatServiceImplTest {
     void sendMessageRejectsMemberWhoIsNotActiveRoomMember() {
         // Given
         Long chatId = 10L;
+        Long senderId = 1L;
         ChatMessageDto.Request request = textMessageRequest();
-        when(chatRoomMemberRepository.existsActiveMember(chatId, 1L)).thenReturn(false);
+        doThrow(new BusinessException(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND))
+                .when(chatRoomAccessService)
+                .checkCanSendMessage(chatId, senderId);
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(chatId, request, authentication(1L)))
+        assertThatThrownBy(() -> chatService.sendMessage(chatId, request, senderId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
         verifyNoInteractions(messagingTemplate);
@@ -151,9 +152,9 @@ class ChatServiceImplTest {
         request.setType(MessageType.TEXT);
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(10L, request, authentication(1L)))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, request, 1L))
                 .isInstanceOf(BusinessException.class);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(chatRoomAccessService, messagingTemplate);
     }
 
     @Test
@@ -165,9 +166,9 @@ class ChatServiceImplTest {
         request.setType(MessageType.IMAGE);
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(10L, request, authentication(1L)))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, request, 1L))
                 .isInstanceOf(BusinessException.class);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(chatRoomAccessService, messagingTemplate);
     }
 
     @Test
@@ -217,6 +218,7 @@ class ChatServiceImplTest {
 
         ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
         assertThat(response.getEventType()).isEqualTo(EventType.USER_LEFT);
+        assertThat(response.getChatRoomId()).isEqualTo(chatRoomId);
         assertThat(response.getSenderId()).isEqualTo(memberId);
         assertThat(response.getCreatedAt()).isEqualTo(leftAt);
     }
@@ -251,17 +253,6 @@ class ChatServiceImplTest {
         response.setCreatedAt(createdAt);
         response.setStatus(status);
         return response;
-    }
-
-    private UsernamePasswordAuthenticationToken authentication(Long memberId) {
-        Member member = Member.builder()
-                .id(memberId)
-                .providerType(LoginProviderType.KAKAO)
-                .providerId("provider-id")
-                .role(MemberRole.USER)
-                .build();
-        PrincipalDetails details = new PrincipalDetails(member);
-        return new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
     }
 
     private ChatMessageDto.Request textMessageRequest() {

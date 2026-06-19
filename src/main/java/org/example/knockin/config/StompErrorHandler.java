@@ -6,6 +6,7 @@ import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.api.ErrorResponse;
 import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.auth.exception.AuthException;
+import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ErrorCode;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -39,6 +40,9 @@ public class StompErrorHandler extends StompSubProtocolErrorHandler {
         while (current != null) {
             if (current instanceof AuthException authException) {
                 return authException.getErrorCode();
+            }
+            if (current instanceof BusinessException businessException) {
+                return businessException.getErrorCode();
             }
             current = current.getCause();
         }
