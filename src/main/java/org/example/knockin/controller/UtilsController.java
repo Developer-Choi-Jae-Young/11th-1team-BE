@@ -3,15 +3,13 @@ package org.example.knockin.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.MetaLifestylePatternsDto;
-import org.example.knockin.dto.MetaRegionsDto;
-import org.example.knockin.dto.MetaRoomAddOptionsDto;
-import org.example.knockin.dto.MetaRoomTypesDto;
-import org.example.knockin.dto.PopularSearchDto;
-import org.example.knockin.dto.TermsDetailDto;
-import org.example.knockin.dto.TermsListDto;
+import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
+import org.example.knockin.service.impl.FaqServiceImpl;
 import org.example.knockin.service.impl.MetaServiceImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "3. 일반/메타데이터")
 public class UtilsController {
     private final MetaServiceImpl metaService;
+    private final FaqServiceImpl faqService;
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
@@ -63,6 +62,24 @@ public class UtilsController {
     @Operation(summary = "방 추가 옵션 메타데이터 조회")
     public CommonResponse<MetaRoomAddOptionsDto.Response> findRoomAddOptions() {
         return CommonResponse.status(HttpStatus.OK).body(metaService.findRoomAddOptions());
+    }
+
+    @GetMapping("/meta/faq")
+    @Operation(summary = "자주묻는 질문 목록 조회")
+    public CommonResponse<FaqListDto.Response> findFaqList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(faqService.findFaqList(pageable));
+    }
+
+    @GetMapping("/meta/faqAll")
+    @Operation(summary = "자주묻는 질문 목록,상세 조회")
+    public CommonResponse<FaqAllListDto.Response> findFaqAllList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(faqService.findFaqAllList(pageable));
+    }
+
+    @GetMapping("/meta/faq/{id}")
+    @Operation(summary = "자주묻는 질문 상세 조회")
+    public CommonResponse<FaqDto.Response> findFaq(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(faqService.findFaq(id));
     }
 
     @GetMapping("/auth/success")

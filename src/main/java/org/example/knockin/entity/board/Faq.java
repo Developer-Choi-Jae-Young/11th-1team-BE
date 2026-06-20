@@ -2,6 +2,7 @@ package org.example.knockin.entity.board;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.knockin.dto.FaqModifyDto;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.jpa.BaseEntity;
 import org.hibernate.annotations.ColumnDefault;
@@ -31,4 +32,16 @@ public class Faq extends BaseEntity {
 
     @Column(name = "sort", nullable = false)
     private Integer sort;
+
+    public void modifyFaq(FaqModifyDto.Request request, Member member) {
+        this.title = request.getTitle();
+        this.contents = request.getContents();
+        this.sort = request.getSort();
+        this.member = member;
+    }
+
+    public void deleteFaq(Member member) {
+        this.isDeleted = true;
+        this.member = member;
+    }
 }

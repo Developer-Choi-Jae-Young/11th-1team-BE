@@ -82,7 +82,10 @@ public class SecurityConfig {
                                 "/meta/regions",
                                 "/meta/room-add-options",
                                 "/roommate/boards",
-                                "/roommate/matches"
+                                "/roommate/matches",
+                                "/meta/faq",
+                                "/meta/faqAll",
+                                "/meta/faq/*"
                 ).permitAll()
                 .requestMatchers("/bo/**").hasAuthority(MemberRole.ADMIN.name()).anyRequest().authenticated())
                 .build();
