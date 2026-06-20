@@ -7,6 +7,7 @@ import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.service.impl.AppVersionServiceImpl;
+import org.example.knockin.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.service.impl.FaqServiceImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class BackOfficeController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
+    private final AuthEmailServiceImpl authEmailService;
 
     @PostMapping("/terms")
     @Operation(summary = "약관 저장")
@@ -225,6 +227,24 @@ public class BackOfficeController {
     @Operation(summary = "앱버전 수정")
     public CommonResponse<AppVersionModifyDto.Response> modifyAppVersion(@RequestBody AppVersionModifyDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(appVersionService.modifyAppVersion(request));
+    }
+
+    @GetMapping("/auth-email")
+    @Operation(summary = "인증 이메일 목록 조회")
+    public CommonResponse<AuthEmailListDto.Response> findAuthEmailList() {
+        return CommonResponse.status(HttpStatus.OK).body(authEmailService.findAuthEmailList());
+    }
+
+    @PostMapping("/auth-email")
+    @Operation(summary = "인증 이메일 정보 삽입")
+    public CommonResponse<AuthEmailSaveDto.Response> saveAuthEmail(AuthEmailSaveDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(authEmailService.saveAuthEmail(request));
+    }
+
+    @PutMapping("/auth-email")
+    @Operation(summary = "인증 이메일 정보 수정")
+    public CommonResponse<AuthEmailModifyDto.Response> modifyAuthEmail(AuthEmailModifyDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(authEmailService.modifyAuthEmail(request));
     }
 }
 

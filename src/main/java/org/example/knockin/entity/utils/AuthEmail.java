@@ -2,6 +2,7 @@ package org.example.knockin.entity.utils;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.knockin.dto.AuthEmailModifyDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.global.jpa.BaseEntity;
 import org.hibernate.annotations.ColumnDefault;
@@ -27,4 +28,10 @@ public class AuthEmail extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private AuthenticationType dtype;
+
+    public void modifyAuthEmail(AuthEmailModifyDto.Request request) {
+        this.domain = request.getDomain();
+        this.name = request.getName();
+        this.dtype = request.getType();
+    }
 }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.service.impl.AppVersionServiceImpl;
+import org.example.knockin.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.service.impl.FaqServiceImpl;
 import org.example.knockin.service.impl.MetaServiceImpl;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ public class UtilsController {
     private final MetaServiceImpl metaService;
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
+    private final AuthEmailServiceImpl authEmailService;
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
@@ -88,6 +90,12 @@ public class UtilsController {
     @Operation(summary = "현재 앱버전 조회")
     public CommonResponse<AppVersionDto.Response> findAppVersion() {
         return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion());
+    }
+
+    @GetMapping("/meta/auth-email")
+    @Operation(summary = "인증 이메일 목록 조회")
+    public CommonResponse<AuthEmailListDto.Response> findAuthEmailList() {
+        return CommonResponse.status(HttpStatus.OK).body(authEmailService.findAuthEmailList());
     }
 
     @GetMapping("/auth/success")
