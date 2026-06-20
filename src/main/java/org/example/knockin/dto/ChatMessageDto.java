@@ -28,6 +28,9 @@ public class ChatMessageDto {
         @Schema(description = "WebSocket 이벤트 유형")
         private EventType eventType;
 
+        @Schema(description = "채팅방 ID")
+        private Long chatRoomId;
+
         @Schema(description = "FE 로컬 메시지 식별 ID")
         private String clientMessageId;
 
@@ -46,9 +49,10 @@ public class ChatMessageDto {
         @Schema(description = "서버 broadcast 시각")
         private LocalDateTime createdAt;
 
-        public static Response chatMessage(Long senderId, Request request, LocalDateTime createdAt) {
+        public static Response chatMessage(Long chatRoomId, Long senderId, Request request, LocalDateTime createdAt) {
             return new Response(
                     EventType.CHAT_MESSAGE,
+                    chatRoomId,
                     request.getClientMessageId(),
                     senderId,
                     request.getType(),
@@ -58,9 +62,10 @@ public class ChatMessageDto {
             );
         }
 
-        public static Response userLeft(Long senderId, LocalDateTime createdAt) {
+        public static Response userLeft(Long chatRoomId, Long senderId, LocalDateTime createdAt) {
             return new Response(
                     EventType.USER_LEFT,
+                    chatRoomId,
                     null,
                     senderId,
                     null,
