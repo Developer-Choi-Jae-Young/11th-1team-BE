@@ -6,9 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
-import org.example.knockin.service.impl.AppVersionServiceImpl;
-import org.example.knockin.service.impl.AuthEmailServiceImpl;
-import org.example.knockin.service.impl.FaqServiceImpl;
+import org.example.knockin.service.impl.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -24,101 +22,102 @@ public class BackOfficeController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
     private final AuthEmailServiceImpl authEmailService;
+    private final BackOfficeServiceImpl backOfficeService;
 
     @PostMapping("/terms")
     @Operation(summary = "약관 저장")
     public CommonResponse<BoTermsDto.Response> saveTerms(@RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveTerms(request));
     }
 
     @PutMapping("/terms/{termsId}/draft")
     @Operation(summary = "약관 수정 (임시저장)")
     public CommonResponse<BoTermsDto.Response> modifyTerms(@PathVariable Long termsId, @RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyTerms(request, termsId));
     }
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
     public CommonResponse<BoTermsListDto.Response> findTermsList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTermsList(pageable));
     }
 
     @GetMapping("/terms/{termsId}")
     @Operation(summary = "약관 상세 조회")
     public CommonResponse<BoTermsDetailDto.Response> findTerms(@PathVariable Long termsId) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTerms(termsId));
     }
 
     @DeleteMapping("/terms/{termsId}")
     @Operation(summary = "약관 삭제")
     public CommonResponse<BoTermsDto.Response> deleteTerms(@PathVariable Long termsId) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteTerms(termsId));
     }
 
     @PutMapping("/terms/{termsId}/publish")
     @Operation(summary = "약관 수정 (게시)")
     public CommonResponse<BoTermsDto.Response> modifyLastTerms(@PathVariable Long termsId, @RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLastTerms(request, termsId));
     }
 
     @PostMapping("/room-types")
     @Operation(summary = "방 유형 저장")
     public CommonResponse<BoRoomTypeDto.Response> saveRoomType(@RequestBody BoRoomTypeDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoRoomTypeDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomType(request));
     }
 
     @GetMapping("/room-types")
     @Operation(summary = "방 유형 목록 조회")
     public CommonResponse<BoRoomTypeListDto.Response> findRoomTypeList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoRoomTypeListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomTypeList(pageable));
     }
 
     @PutMapping("/room-types/{id}")
     @Operation(summary = "방 유형 수정")
     public CommonResponse<BoRoomTypeDto.Response> modifyRoomType(@PathVariable Long id, @RequestBody BoRoomTypeDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoRoomTypeDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomType(request, id));
     }
 
     @DeleteMapping("/room-types/{id}")
     @Operation(summary = "방 유형 삭제")
     public CommonResponse<BoRoomTypeDto.Response> deleteRoomType(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoRoomTypeDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteRoomType(id));
     }
 
     @GetMapping("/room-types/{id}")
     @Operation(summary = "방 유형 상세 조회")
     public CommonResponse<BoRoomTypeDetailDto.Response> findRoomType(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoRoomTypeDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomType(id));
     }
 
     @GetMapping("/lifestyle-patterns")
     @Operation(summary = "라이프스타일 패턴 목록 조회")
     public CommonResponse<BoLifeStylePatternListDto.Response> findLifeStylePatternList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findLifeStylePatternList(pageable));
     }
 
     @GetMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 상세 조회")
     public CommonResponse<BoLifeStylePatternDetailDto.Response> findLifeStylePattern(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findLifeStylePattern(id));
     }
 
     @PostMapping("/lifestyle-patterns")
     @Operation(summary = "라이프스타일 패턴 저장")
     public CommonResponse<BoLifeStylePatternDto.Response> saveLifeStylePattern(@RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveLifeStylePattern(request));
     }
 
     @PutMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 수정")
     public CommonResponse<BoLifeStylePatternDto.Response> modifyLifeStylePattern(@PathVariable Long id, @RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLifeStylePattern(request, id));
     }
 
     @DeleteMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 삭제")
     public CommonResponse<BoLifeStylePatternDto.Response> deleteLifeStylePattern(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteLifeStylePattern(id));
     }
 
     @GetMapping("/verifications/company")

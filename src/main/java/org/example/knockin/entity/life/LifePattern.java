@@ -37,4 +37,14 @@ public class LifePattern extends CreatedAtEntity {
 
     @Column(name = "sort", nullable = false)
     private Integer sort;
+
+    public void modifyLifePattern(String name, LifePatternType type, Integer sort) {
+        this.name = name;
+        this.dtype = type;
+        this.sort = sort;
+    }
+
+    public void deleteLifePattern() {
+        this.isDeleted = true;
+    }
 }

@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface LifePatternInformationRepository extends JpaRepository<LifePatternInformation, Long>, LifePatternInformationRepositoryCustom {
     List<LifePatternInformation> findByLifePattern(LifePattern lifePattern);
+
+    void deleteByLifePattern(LifePattern lifePattern);
 }

@@ -30,4 +30,8 @@ public class AgreementLog extends CreatedAtEntity {
 
     @Column(name = "is_current", nullable = false)
     private Boolean isCurrent;
+
+    public void clearCurrent() {
+        this.isCurrent = false;
+    }
 }
