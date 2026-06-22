@@ -6,9 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
-import org.example.knockin.service.impl.AppVersionServiceImpl;
-import org.example.knockin.service.impl.AuthEmailServiceImpl;
-import org.example.knockin.service.impl.FaqServiceImpl;
+import org.example.knockin.service.impl.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -24,41 +22,42 @@ public class BackOfficeController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
     private final AuthEmailServiceImpl authEmailService;
+    private final BackOfficeServiceImpl backOfficeService;
 
     @PostMapping("/terms")
     @Operation(summary = "약관 저장")
     public CommonResponse<BoTermsDto.Response> saveTerms(@RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveTerms(request));
     }
 
     @PutMapping("/terms/{termsId}/draft")
     @Operation(summary = "약관 수정 (임시저장)")
     public CommonResponse<BoTermsDto.Response> modifyTerms(@PathVariable Long termsId, @RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyTerms(request, termsId));
     }
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
     public CommonResponse<BoTermsListDto.Response> findTermsList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTermsList(pageable));
     }
 
     @GetMapping("/terms/{termsId}")
     @Operation(summary = "약관 상세 조회")
     public CommonResponse<BoTermsDetailDto.Response> findTerms(@PathVariable Long termsId) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTerms(termsId));
     }
 
     @DeleteMapping("/terms/{termsId}")
     @Operation(summary = "약관 삭제")
     public CommonResponse<BoTermsDto.Response> deleteTerms(@PathVariable Long termsId) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteTerms(termsId));
     }
 
     @PutMapping("/terms/{termsId}/publish")
     @Operation(summary = "약관 수정 (게시)")
     public CommonResponse<BoTermsDto.Response> modifyLastTerms(@PathVariable Long termsId, @RequestBody BoTermsDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoTermsDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLastTerms(request, termsId));
     }
 
     @PostMapping("/room-types")

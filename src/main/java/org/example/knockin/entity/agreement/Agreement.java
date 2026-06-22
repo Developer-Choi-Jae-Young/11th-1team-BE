@@ -34,4 +34,15 @@ public class Agreement extends CreatedAtEntity {
 
     @Column(name = "is_required")
     private Boolean isRequired;
+
+    public void modifyAgreement(Agreement agreement) {
+        this.title = agreement.getTitle();
+        this.contents = agreement.getContents();
+        this.isDeleted = agreement.getIsDeleted();
+        this.isRequired = agreement.getIsRequired();
+    }
+
+    public void deleteAgreement() {
+        this.isDeleted = true;
+    }
 }
