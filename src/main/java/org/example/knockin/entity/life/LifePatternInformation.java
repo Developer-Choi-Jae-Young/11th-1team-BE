@@ -32,4 +32,9 @@ public class LifePatternInformation {
 
     @Column(name = "description", nullable = false, length = 500)
     private String description;
+
+    public void modifyLifePatternInformation(String dvalue, String description) {
+        this.dvalue = dvalue;
+        this.description = description;
+    }
 }

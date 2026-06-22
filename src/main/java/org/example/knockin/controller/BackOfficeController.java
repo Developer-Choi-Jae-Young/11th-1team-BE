@@ -93,31 +93,31 @@ public class BackOfficeController {
     @GetMapping("/lifestyle-patterns")
     @Operation(summary = "라이프스타일 패턴 목록 조회")
     public CommonResponse<BoLifeStylePatternListDto.Response> findLifeStylePatternList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findLifeStylePatternList(pageable));
     }
 
     @GetMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 상세 조회")
     public CommonResponse<BoLifeStylePatternDetailDto.Response> findLifeStylePattern(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findLifeStylePattern(id));
     }
 
     @PostMapping("/lifestyle-patterns")
     @Operation(summary = "라이프스타일 패턴 저장")
     public CommonResponse<BoLifeStylePatternDto.Response> saveLifeStylePattern(@RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveLifeStylePattern(request));
     }
 
     @PutMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 수정")
     public CommonResponse<BoLifeStylePatternDto.Response> modifyLifeStylePattern(@PathVariable Long id, @RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLifeStylePattern(request, id));
     }
 
     @DeleteMapping("/lifestyle-patterns/{id}")
     @Operation(summary = "라이프스타일 패턴 삭제")
     public CommonResponse<BoLifeStylePatternDto.Response> deleteLifeStylePattern(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoLifeStylePatternDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteLifeStylePattern(id));
     }
 
     @GetMapping("/verifications/company")

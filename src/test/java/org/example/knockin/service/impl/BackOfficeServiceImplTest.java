@@ -2,6 +2,9 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
+import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.room.RoomType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +21,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.spy;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("관리자 백오피스 서비스 테스트")
@@ -31,6 +36,9 @@ class BackOfficeServiceImplTest {
 
     @Mock
     private RoomTypeServiceImpl roomTypeService;
+
+    @Mock
+    private LifeStyleServiceImpl lifeStyleService;
 
     @InjectMocks
     private BackOfficeServiceImpl backOfficeService;
@@ -239,5 +247,110 @@ class BackOfficeServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(roomTypeId);
         assertThat(response.getName()).isEqualTo("원룸");
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 등록 성공 테스트 (saveLifeStylePattern)")
+    void saveLifeStylePatternSuccessTest() {
+        // given
+        BoLifeStylePatternDto.Request.DetailItem detail = new BoLifeStylePatternDto.Request.DetailItem();
+        detail.setValues("흡연");
+        detail.setDescription("담배 피우는 유형");
+
+        BoLifeStylePatternDto.Request request = new BoLifeStylePatternDto.Request();
+        request.setName("흡연 여부");
+        request.setType(LifePatternType.BOOLEAN);
+        request.setSort(1);
+        request.setDetails(List.of(detail));
+
+        LifePattern lifePattern = LifePattern.builder().id(100L).name("흡연 여부").build();
+
+        given(lifeStyleService.saveLifePattern(any(LifePattern.class))).willReturn(lifePattern);
+
+        // when
+        BoLifeStylePatternDto.Response response = backOfficeService.saveLifeStylePattern(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(lifeStyleService).saveLifePattern(any(LifePattern.class));
+        verify(lifeStyleService).saveLifePatternInformation(anyList());
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 목록 조회 성공 테스트 (findLifeStylePatternList)")
+    void findLifeStylePatternListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoLifeStylePatternListDto.Response expected = BoLifeStylePatternListDto.Response.builder().build();
+
+        given(lifeStyleService.findLifeStylePatternList(pageable)).willReturn(expected);
+
+        // when
+        BoLifeStylePatternListDto.Response response = backOfficeService.findLifeStylePatternList(pageable);
+
+        // then
+        assertThat(response).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 상세 조회 성공 테스트 (findLifeStylePattern)")
+    void findLifeStylePatternSuccessTest() {
+        // given
+        Long id = 100L;
+        BoLifeStylePatternDetailDto.Response expected = BoLifeStylePatternDetailDto.Response.builder().id(id).build();
+
+        given(lifeStyleService.findLifeStylePattern(id)).willReturn(expected);
+
+        // when
+        BoLifeStylePatternDetailDto.Response response = backOfficeService.findLifeStylePattern(id);
+
+        // then
+        assertThat(response).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 수정 성공 테스트 (modifyLifeStylePattern)")
+    void modifyLifeStylePatternSuccessTest() {
+        // given
+        Long id = 100L;
+        BoLifeStylePatternDto.Request.DetailItem detail = new BoLifeStylePatternDto.Request.DetailItem();
+        detail.setValues("비흡연");
+        detail.setDescription("담배 피우지 않는 유형");
+
+        BoLifeStylePatternDto.Request request = new BoLifeStylePatternDto.Request();
+        request.setName("흡연 여부 변경");
+        request.setType(LifePatternType.BOOLEAN);
+        request.setSort(2);
+        request.setDetails(List.of(detail));
+
+        LifePattern pattern = spy(LifePattern.builder().id(id).name("흡연 여부").dtype(LifePatternType.BOOLEAN).sort(1).build());
+
+        given(lifeStyleService.findLifeStyle(id)).willReturn(pattern);
+
+        // when
+        BoLifeStylePatternDto.Response response = backOfficeService.modifyLifeStylePattern(request, id);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(lifeStyleService).deleteLifeInformationByPattern(pattern);
+        verify(lifeStyleService).saveLifeInformation(any(LifePatternInformation.class));
+        verify(pattern).modifyLifePattern("흡연 여부 변경", LifePatternType.BOOLEAN, 2);
+    }
+
+    @Test
+    @DisplayName("라이프스타일 패턴 삭제 성공 테스트 (deleteLifeStylePattern)")
+    void deleteLifeStylePatternSuccessTest() {
+        // given
+        Long id = 100L;
+
+        // when
+        BoLifeStylePatternDto.Response response = backOfficeService.deleteLifeStylePattern(id);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(lifeStyleService).deleteLifePattern(id);
     }
 }
