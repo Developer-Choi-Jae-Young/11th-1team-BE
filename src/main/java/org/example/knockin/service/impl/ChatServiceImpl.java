@@ -1,11 +1,13 @@
 package org.example.knockin.service.impl;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatMessageDto;
 import org.example.knockin.dto.ChatRoomDto;
 import org.example.knockin.dto.ChatRoomDto.Response;
+import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomMessageEvent;
@@ -30,12 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl {
 
-    public static String IMAGE_MESSAGE_CONTENTS = "사진을 보냈습니다.";
+    private static final String IMAGE_MESSAGE_CONTENTS = "사진을 보냈습니다.";
 
     private final ChattingRoomRepository chattingRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
@@ -49,6 +52,20 @@ public class ChatServiceImpl {
 
     public List<ChatRoomListDto.Response> getChatRoomList(Long memberId) {
         return chattingRoomRepository.findByMemberId(memberId);
+    }
+
+    @Transactional
+    public ChatRoomImageDto.Response uploadImage(Long chatRoomId, Long memberId, MultipartFile multipartFile) {
+        validateImageFile(multipartFile);
+        chatRoomAccessService.checkCanSendMessage(chatRoomId, memberId);
+
+        try {
+            File uploadedFile = fileService.upload(multipartFile, FileType.CHAT_ROOM_IMAGE);
+            File savedFile = fileRepository.save(uploadedFile);
+            return new ChatRoomImageDto.Response(savedFile.getSavedFileName());
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
     @Transactional
@@ -153,6 +170,12 @@ public class ChatServiceImpl {
     private void validateImageMessage(ChatMessageDto.Request request) {
         if (!StringUtils.hasText(request.getImageUrl())) {
             throw new BusinessException(ChattingErrorCode.MESSAGE_PAYLOAD_INVALID);
+        }
+    }
+
+    private void validateImageFile(MultipartFile multipartFile) {
+        if (multipartFile == null || multipartFile.isEmpty()) {
+            throw new BusinessException(FileErrorCode.FILE_EMPTY);
         }
     }
 }
