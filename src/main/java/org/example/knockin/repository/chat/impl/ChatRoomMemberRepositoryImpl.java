@@ -1,11 +1,14 @@
 package org.example.knockin.repository.chat.impl;
 
 import static org.example.knockin.entity.chat.QChatRoomMember.chatRoomMember;
+import static org.example.knockin.entity.member.QMember.member;
+
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.chat.ChatRoomMember;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.chat.ChatRoomMemberRepositoryCustom;
 import org.springframework.stereotype.Repository;
 

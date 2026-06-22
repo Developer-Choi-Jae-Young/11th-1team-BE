@@ -26,8 +26,10 @@ import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
+import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
@@ -194,21 +196,26 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
-        ChatRoomMember roomMember = activeRoomMember();
+        Member member = member();
+        ChattingRoom chattingRoom = chattingRoom();
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom);
         ChatMessageDto.Request request = textMessageRequest();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
+        when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        chatService.sendMessage(chatId, request, senderId);
+        chatService.sendUserMessage(chatId, request, senderId);
 
         // Then
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getContents()).isEqualTo("안녕하세요");
-        assertThat(messageCaptor.getValue().getChatRoomMember()).isSameAs(roomMember);
+        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
 
         ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
         verify(publisher).publishEvent(eventCaptor.capture());
@@ -228,15 +235,20 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
-        ChatRoomMember roomMember = activeRoomMember();
+        Member member = member();
+        ChattingRoom chattingRoom = chattingRoom();
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom);
         ChatMessageDto.Request request = imageMessageRequest("chat-image.jpg");
         File file = chatImage("chat-image.jpg");
         ChatRoomMessage savedMessage = ChatRoomMessage.builder()
                 .contents("사진을 보냈습니다.")
-                .chatRoomMember(roomMember)
+                .member(member)
+                .chattingRoom(chattingRoom)
+                .type(MessageType.IMAGE)
                 .build();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
+        when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileRepository.findBySavedFileNameAndType("chat-image.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenReturn(Optional.of(file));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class))).thenReturn(savedMessage);
@@ -244,13 +256,15 @@ class ChatServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        chatService.sendMessage(chatId, request, senderId);
+        chatService.sendUserMessage(chatId, request, senderId);
 
         // Then
         ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
         verify(chatRoomMessageRepository).save(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getContents()).isEqualTo("사진을 보냈습니다.");
-        assertThat(messageCaptor.getValue().getChatRoomMember()).isSameAs(roomMember);
+        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.IMAGE);
 
         ArgumentCaptor<ChatRoomFile> chatRoomFileCaptor = ArgumentCaptor.forClass(ChatRoomFile.class);
         verify(chatRoomFileRepository).save(chatRoomFileCaptor.capture());
@@ -271,22 +285,30 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
+        Member member = member();
+        ChattingRoom chattingRoom = chattingRoom();
         ChatMessageDto.Request request = imageMessageRequest("unknown.jpg");
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
-                .thenReturn(Optional.of(activeRoomMember()));
+                .thenReturn(Optional.of(activeRoomMember(member, chattingRoom)));
+        when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileRepository.findBySavedFileNameAndType("unknown.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(chatId, request, senderId))
+        assertThatThrownBy(() -> chatService.sendUserMessage(chatId, request, senderId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(FileErrorCode.FILE_NOT_FOUND));
-        verifyNoInteractions(chatRoomMessageRepository, chatRoomFileRepository, publisher, messagingTemplate);
+        ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
+        verify(chatRoomMessageRepository).save(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getMember()).isSameAs(member);
+        assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.IMAGE);
+        verifyNoInteractions(chatRoomFileRepository, publisher, messagingTemplate);
     }
 
     @Test
     @DisplayName("채팅방에 참여 중인 멤버가 아니면 메시지를 저장하지 않는다")
-    void sendMessageRejectsMemberWhoIsNotActiveRoomMember() {
+    void sendUserMessageRejectsMemberWhoIsNotActiveRoomMember() {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
@@ -295,7 +317,7 @@ class ChatServiceImplTest {
                 .thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(chatId, request, senderId))
+        assertThatThrownBy(() -> chatService.sendUserMessage(chatId, request, senderId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
         verifyNoInteractions(chatRoomMessageRepository, chatRoomFileRepository, publisher, messagingTemplate);
@@ -303,14 +325,14 @@ class ChatServiceImplTest {
 
     @Test
     @DisplayName("텍스트 메시지 본문이 없으면 메시지를 저장하지 않는다")
-    void sendMessageRejectsTextMessageWithoutMessage() {
+    void sendMessageRejectsTextMessageWithoutUserMessage() {
         // Given
         ChatMessageDto.Request request = new ChatMessageDto.Request();
         request.setClientMessageId("client-message-id");
         request.setType(MessageType.TEXT);
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(10L, request, 1L))
+        assertThatThrownBy(() -> chatService.sendUserMessage(10L, request, 1L))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.MESSAGE_PAYLOAD_INVALID));
         verifyNoInteractions(chatRoomMemberRepository, chatRoomMessageRepository, messagingTemplate);
@@ -318,14 +340,14 @@ class ChatServiceImplTest {
 
     @Test
     @DisplayName("이미지 메시지 URL이 없으면 메시지를 저장하지 않는다")
-    void sendMessageRejectsImageMessageWithoutImageUrl() {
+    void sendMessageRejectsImageUserMessageWithoutImageUrl() {
         // Given
         ChatMessageDto.Request request = new ChatMessageDto.Request();
         request.setClientMessageId("client-message-id");
         request.setType(MessageType.IMAGE);
 
         // When & Then
-        assertThatThrownBy(() -> chatService.sendMessage(10L, request, 1L))
+        assertThatThrownBy(() -> chatService.sendUserMessage(10L, request, 1L))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.MESSAGE_PAYLOAD_INVALID));
         verifyNoInteractions(chatRoomMemberRepository, chatRoomMessageRepository, messagingTemplate);
@@ -353,7 +375,7 @@ class ChatServiceImplTest {
         verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), payloadCaptor.capture());
 
         ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
-        assertThat(response.getEventType()).isEqualTo(EventType.CHAT_MESSAGE);
+        assertThat(response.getEventType()).isEqualTo(EventType.USER_MESSAGE);
         assertThat(response.getChatRoomId()).isEqualTo(chatId);
         assertThat(response.getClientMessageId()).isEqualTo("client-message-id");
         assertThat(response.getSenderId()).isEqualTo(senderId);
@@ -368,11 +390,15 @@ class ChatServiceImplTest {
         // Given
         Long chatRoomId = 10L;
         Long memberId = 1L;
+        ChattingRoom chattingRoom = chattingRoom();
         ChatRoomMember roomMember = ChatRoomMember.builder()
                 .isLeft(false)
                 .build();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         ChatRoomDto.Response result = chatService.leaveChatRoom(memberId, chatRoomId);
@@ -380,15 +406,20 @@ class ChatServiceImplTest {
         // Then
         assertThat(roomMember.getIsLeft()).isTrue();
         assertThat(result.getUpdatedAt()).isNotNull();
+        ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
+        verify(chatRoomMessageRepository).save(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getMember()).isNull();
+        assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
+        assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.LEFT_ROOM);
 
         ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
         verify(publisher).publishEvent(eventCaptor.capture());
         verifyNoInteractions(messagingTemplate);
 
         ChatRoomLeftEvent event = (ChatRoomLeftEvent) eventCaptor.getValue();
-        assertThat(event.memberId()).isEqualTo(memberId);
         assertThat(event.chatRoomId()).isEqualTo(chatRoomId);
         assertThat(event.leftAt()).isEqualTo(result.getUpdatedAt());
+        assertThat(event.message()).isEqualTo("상대방이 나갔습니다.");
     }
 
     @Test
@@ -396,9 +427,8 @@ class ChatServiceImplTest {
     void handleChatRoomLeftPublishesUserLeftEventToRoomDestination() {
         // Given
         Long chatRoomId = 10L;
-        Long memberId = 1L;
         LocalDateTime leftAt = LocalDateTime.of(2026, 6, 19, 21, 50);
-        ChatRoomLeftEvent event = new ChatRoomLeftEvent(memberId, chatRoomId, leftAt);
+        ChatRoomLeftEvent event = new ChatRoomLeftEvent(chatRoomId, leftAt, "상대방이 나갔습니다.");
 
         // When
         chatService.handleChatRoomLeft(event);
@@ -408,9 +438,11 @@ class ChatServiceImplTest {
         verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), payloadCaptor.capture());
 
         ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
-        assertThat(response.getEventType()).isEqualTo(EventType.USER_LEFT);
+        assertThat(response.getEventType()).isEqualTo(EventType.SYSTEM_MESSAGE);
         assertThat(response.getChatRoomId()).isEqualTo(chatRoomId);
-        assertThat(response.getSenderId()).isEqualTo(memberId);
+        assertThat(response.getSenderId()).isNull();
+        assertThat(response.getType()).isEqualTo(MessageType.LEFT_ROOM);
+        assertThat(response.getMessage()).isEqualTo("상대방이 나갔습니다.");
         assertThat(response.getCreatedAt()).isEqualTo(leftAt);
     }
 
@@ -462,10 +494,20 @@ class ChatServiceImplTest {
         return request;
     }
 
-    private ChatRoomMember activeRoomMember() {
+    private ChatRoomMember activeRoomMember(Member member, ChattingRoom chattingRoom) {
         return ChatRoomMember.builder()
+                .member(member)
+                .chattingRoom(chattingRoom)
                 .isLeft(false)
                 .build();
+    }
+
+    private Member member() {
+        return Member.builder().build();
+    }
+
+    private ChattingRoom chattingRoom() {
+        return ChattingRoom.builder().build();
     }
 
     private File chatImage(String savedFileName) {

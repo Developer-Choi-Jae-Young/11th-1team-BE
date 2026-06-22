@@ -2,7 +2,6 @@ package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -52,7 +51,7 @@ public class ChatMessageDto {
 
         public static Response chatMessage(ChatRoomMessageEvent event) {
             return new Response(
-                    EventType.CHAT_MESSAGE,
+                    EventType.USER_MESSAGE,
                     event.chatRoomId(),
                     event.clientMessageId(),
                     event.senderId(),
@@ -63,16 +62,16 @@ public class ChatMessageDto {
             );
         }
 
-        public static Response userLeft(Long chatRoomId, Long senderId, LocalDateTime createdAt) {
+        public static Response userLeft(ChatRoomLeftEvent event) {
             return new Response(
-                    EventType.USER_LEFT,
-                    chatRoomId,
-                    null,
-                    senderId,
+                    EventType.SYSTEM_MESSAGE,
+                    event.chatRoomId(),
                     null,
                     null,
+                    MessageType.LEFT_ROOM,
+                    event.message(),
                     null,
-                    createdAt
+                    event.leftAt()
             );
         }
     }

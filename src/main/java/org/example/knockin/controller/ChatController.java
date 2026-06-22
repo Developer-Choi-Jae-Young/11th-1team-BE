@@ -77,7 +77,7 @@ public class ChatController {
             Principal principal
     ) {
         Long memberId = principalMemberResolver.resolveMemberId(principal);
-        chatService.sendMessage(chatId, request, memberId);
+        chatService.sendUserMessage(chatId, request, memberId);
     }
 }
 

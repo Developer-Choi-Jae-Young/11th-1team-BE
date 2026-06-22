@@ -15,13 +15,14 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.global.jpa.BaseEntity;
 
 
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "roommate_matching_required")
-public class RoommateMatchingRequired {
+public class RoommateMatchingRequired extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")

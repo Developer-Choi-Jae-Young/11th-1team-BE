@@ -11,11 +11,14 @@ import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomMessageEvent;
+import org.example.knockin.dto.MessageType;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
+import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
@@ -25,6 +28,7 @@ import org.example.knockin.repository.chat.ChatRoomMessageRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.service.FileService;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
@@ -38,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class ChatServiceImpl {
 
+    private static final String ROOM_LEAVE_MESSAGE_CONTENTS = "상대방이 나갔습니다.";
     private static final String IMAGE_MESSAGE_CONTENTS = "사진을 보냈습니다.";
 
     private final ChattingRoomRepository chattingRoomRepository;
@@ -74,25 +79,33 @@ public class ChatServiceImpl {
                 .orElseThrow(() -> new BusinessException(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
         roomMember.left();
 
+        ChattingRoom chattingRoom = chattingRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new BusinessException(ChattingErrorCode.ROOM_NOT_FOUND));
+        saveMessage(ROOM_LEAVE_MESSAGE_CONTENTS, null, chattingRoom, MessageType.LEFT_ROOM);
+
         LocalDateTime now = LocalDateTime.now();
-        publisher.publishEvent(new ChatRoomLeftEvent(memberId, chatRoomId, now));
+        publisher.publishEvent(new ChatRoomLeftEvent(chatRoomId, now, ROOM_LEAVE_MESSAGE_CONTENTS));
         return new Response(now);
     }
 
     @Transactional
-    public void sendMessage(Long chatRoomId, ChatMessageDto.Request request, Long senderId) {
+    public void sendUserMessage(Long chatRoomId, ChatMessageDto.Request request, Long senderId) {
         validateMessageRequest(request);
         ChatRoomMember chatRoomMember = chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, senderId)
                 .orElseThrow(() -> new BusinessException(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
+        ChattingRoom chattingRoom = chattingRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new BusinessException(ChattingErrorCode.ROOM_NOT_FOUND));
+        Member member = chatRoomMember.getMember();
+        MessageType type = request.getType();
 
         switch (request.getType()) {
             case TEXT -> {
-                saveMessage(request.getMessage(), chatRoomMember);
+                saveMessage(request.getMessage(), member, chattingRoom, type);
                 publishMessageEvent(chatRoomId, senderId, request);
             }
             case IMAGE -> {
+                ChatRoomMessage chatRoomMessage = saveMessage(IMAGE_MESSAGE_CONTENTS, member, chattingRoom, type);
                 File file = findFile(request.getImageUrl());
-                ChatRoomMessage chatRoomMessage = saveMessage(IMAGE_MESSAGE_CONTENTS, chatRoomMember);
                 saveMessageFile(file, chatRoomMessage);
                 publishMessageEvent(chatRoomId, senderId, request);
             }
@@ -100,10 +113,12 @@ public class ChatServiceImpl {
         }
     }
 
-    private ChatRoomMessage saveMessage(String contents, ChatRoomMember chatRoomMember) {
+    private ChatRoomMessage saveMessage(String contents, @Nullable Member member, ChattingRoom chattingRoom, MessageType type) {
         ChatRoomMessage chatRoomMessage = ChatRoomMessage.builder()
                 .contents(contents)
-                .chatRoomMember(chatRoomMember)
+                .member(member)
+                .chattingRoom(chattingRoom)
+                .type(type)
                 .build();
 
         return chatRoomMessageRepository.save(chatRoomMessage);
@@ -138,7 +153,7 @@ public class ChatServiceImpl {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatRoomLeft(ChatRoomLeftEvent event) {
-        ChatMessageDto.Response response = ChatMessageDto.Response.userLeft(event.chatRoomId(), event.memberId(), event.leftAt());
+        ChatMessageDto.Response response = ChatMessageDto.Response.userLeft(event);
         messagingTemplate.convertAndSend("/sub/chats/" + event.chatRoomId(), response);
     }
 
