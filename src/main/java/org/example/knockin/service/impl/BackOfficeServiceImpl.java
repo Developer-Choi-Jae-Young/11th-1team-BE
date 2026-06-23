@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.alarm.Notification;
+import org.example.knockin.entity.inquiry.Inquiry;
+import org.example.knockin.entity.inquiry.InquiryComment;
 import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.member.Member;
@@ -27,6 +29,7 @@ public class BackOfficeServiceImpl {
     private final AuthenticationServiceImpl authenticationService;
     private final NotificationServiceImpl notificationService;
     private final MemberServiceImpl memberService;
+    private final InquirieServiceImpl inquirieService;
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
@@ -182,5 +185,22 @@ public class BackOfficeServiceImpl {
         Notification notification = notificationService.findNotificationById(id);
         notification.deleteNotification(member);
         return BoNoticeDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoInquiryReplyDto.Response saveInquiryReply(BoInquiryReplyDto.Request request, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        Inquiry inquiry = inquirieService.findInquiryById(request.getInquirieId());
+        inquirieService.saveInquirieReply(InquiryComment.builder().member(member).inquiry(inquiry).contents(request.getContents()).build());
+        return BoInquiryReplyDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    public BoInquiryListDto.Response findInquirieList(Pageable pageable) {
+        List<BoInquiryListDto.Response.InquiryItem> inquiryItemList = inquirieService.findBackOfficeInquirieList(pageable);
+        return BoInquiryListDto.Response.builder().inquiries(inquiryItemList).build();
+    }
+
+    public BoInquiryDetailDto.Response findInquirie(Long id) {
+        return BoInquiryDetailDto.Response.builder().inquirie(inquirieService.findBackOfficeInquirie(id)).build();
     }
 }

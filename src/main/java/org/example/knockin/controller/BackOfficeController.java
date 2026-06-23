@@ -188,20 +188,20 @@ public class BackOfficeController {
 
     @PostMapping("/inquiries")
     @Operation(summary = "문의 답변 저장")
-    public CommonResponse<BoInquiryReplyDto.Response> saveInquiryReply(@RequestBody BoInquiryReplyDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoInquiryReplyDto.Response());
+    public CommonResponse<BoInquiryReplyDto.Response> saveInquiryReply(@RequestBody BoInquiryReplyDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveInquiryReply(request, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/inquiries")
     @Operation(summary = "문의 목록 조회")
     public CommonResponse<BoInquiryListDto.Response> findInquirieList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoInquiryListDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findInquirieList(pageable));
     }
 
     @GetMapping("/inquiries/{id}")
     @Operation(summary = "문의 상세 조회")
     public CommonResponse<BoInquiryDetailDto.Response> findInquirie(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(new BoInquiryDetailDto.Response());
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findInquirie(id));
     }
 
     @PostMapping("/faq")
