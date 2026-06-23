@@ -11,4 +11,6 @@ public interface ChatRoomMemberRepositoryCustom {
     Optional<ChatRoomMember> findActiveMemberByRoomIdAndMemberId(Long chatRoomId, Long memberId);
 
     Member findPartnerMember(ChatRoomMember me, ChattingRoom chattingRoom);
+
+    Member findPartnerMember(ChatRoomMember me, Long chattingRoomId);
 }

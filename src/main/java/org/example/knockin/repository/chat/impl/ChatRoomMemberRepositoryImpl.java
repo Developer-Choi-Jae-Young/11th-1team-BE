@@ -1,5 +1,6 @@
 package org.example.knockin.repository.chat.impl;
 
+import static org.example.knockin.entity.chat.QChattingRoom.chattingRoom;
 import static org.example.knockin.entity.chat.QChatRoomMember.chatRoomMember;
 import static org.example.knockin.entity.member.QMember.member;
 
@@ -49,15 +50,30 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
     }
 
     @Override
-    public Member findPartnerMember(ChatRoomMember me, ChattingRoom chattingRoom) {
-        return jpaQueryFactory
+    public Member findPartnerMember(ChatRoomMember me, ChattingRoom chattingRoomEntity) {
+        return Objects.requireNonNull(jpaQueryFactory
                 .select(member)
                 .from(chatRoomMember)
+                .join(chatRoomMember.chattingRoom, chattingRoom)
                 .join(chatRoomMember.member, member)
                 .where(
-                        chatRoomMember.chattingRoom.eq(chattingRoom),
+                        chatRoomMember.chattingRoom.eq(chattingRoomEntity),
                         chatRoomMember.ne(me)
                 )
-                .fetchFirst();
+                .fetchFirst());
+    }
+
+    @Override
+    public Member findPartnerMember(ChatRoomMember me, Long chattingRoomId) {
+        return Objects.requireNonNull(jpaQueryFactory
+                .select(member)
+                .from(chatRoomMember)
+                .join(chatRoomMember.chattingRoom, chattingRoom)
+                .join(chatRoomMember.member, member)
+                .where(
+                        chatRoomMember.chattingRoom.id.eq(chattingRoomId),
+                        chatRoomMember.ne(me)
+                )
+                .fetchFirst());
     }
 }

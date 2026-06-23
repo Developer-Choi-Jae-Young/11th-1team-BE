@@ -2,11 +2,11 @@ package org.example.knockin.service.impl;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.ChatRoomDetailDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.RoommateRequestDto;
 import org.example.knockin.dto.RoommateRequestDto.Response;
+import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChattingRoom;

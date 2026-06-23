@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
 
@@ -33,6 +34,8 @@ public class ChatRoomDetailDto {
     }
 
     @Data
+    @Builder
+    @AllArgsConstructor
     public static class ProfileInfo {
         @Schema(description = "사용자 고유 식별 ID")
         private Long id;
@@ -41,7 +44,7 @@ public class ChatRoomDetailDto {
         private String name;
 
         @Schema(description = "나이")
-        private String age;
+        private Integer age;
 
         @Schema(description = "성별")
         private Gender gender;
@@ -54,6 +57,7 @@ public class ChatRoomDetailDto {
     }
 
     @Data
+    @AllArgsConstructor
     public static class ChatMessage {
         @Schema(description = "메세지 고유 식별 ID")
         private Long id;
@@ -68,32 +72,9 @@ public class ChatRoomDetailDto {
         private LocalDateTime createdAt;
 
         @Schema(description = "메세지 타입")
-        private MessageType messageType;
+        private MessageType type;
 
         @Schema(description = "이미지 URL")
         private String imageUrl;
-    }
-
-    @Data
-    @Builder
-    @AllArgsConstructor
-    public static class RoommateMatchingRequiredInfo {
-        @Schema(description = "고유 식별 ID")
-        private Long id;
-
-        @Schema(description = "요청자 멤버 고유 식별 ID")
-        private Long requesterMemberId;
-
-        @Schema(description = "피요청자 멤버 고유 식별 ID")
-        private Long requesteeMemberId;
-
-        @Schema(description = "상태")
-        private RoommateRequiredStatus status;
-
-        @Schema(description = "요청 시각")
-        private LocalDateTime createdAt;
-
-        @Schema(description = "수정 시각")
-        private LocalDateTime updatedAt;
     }
 }

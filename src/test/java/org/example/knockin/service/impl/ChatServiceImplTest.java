@@ -8,13 +8,16 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.example.knockin.dto.ChatMessageDto;
+import org.example.knockin.dto.ChatRoomDetailDto;
 import org.example.knockin.dto.ChatRoomDto;
 import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
@@ -23,6 +26,7 @@ import org.example.knockin.dto.ChatRoomMessageEvent;
 import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
+import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
@@ -30,15 +34,22 @@ import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
+import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
+import org.example.knockin.global.exception.MemberErrorCode;
+import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.chat.ChatRoomFileRepository;
 import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
 import org.example.knockin.repository.file.FileRepository;
+import org.example.knockin.repository.member.BasicInformationRepository;
+import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
+import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
 import org.example.knockin.service.FileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -83,6 +94,12 @@ class ChatServiceImplTest {
     @Mock
     private ChatRoomFileRepository chatRoomFileRepository;
 
+    @Mock
+    private BasicInformationRepository basicInformationRepository;
+
+    @Mock
+    private RoommateMatchingRequiredRepository roommateMatchingRequiredRepository;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -126,6 +143,107 @@ class ChatServiceImplTest {
         // Then
         assertThat(responses).isEmpty();
         verify(chattingRoomRepository).findByMemberId(memberId);
+    }
+
+    @Test
+    @DisplayName("채팅방 상세 조회 시 상대 프로필, 메시지 목록, 룸메이트 요청 목록을 반환한다")
+    void getChatRoomDetailReturnsProfileMessagesAndRoommateRequests() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        LocalDate opponentBirth = LocalDate.now().minusYears(25);
+        ChattingRoom chattingRoom = chattingRoom();
+        Member me = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(me, chattingRoom);
+        List<ChatRoomDetailDto.ChatMessage> messages = List.of(
+                new ChatRoomDetailDto.ChatMessage(
+                        100L,
+                        memberId,
+                        "안녕하세요",
+                        LocalDateTime.of(2026, 6, 23, 10, 0),
+                        MessageType.TEXT,
+                        null
+                )
+        );
+        List<RoommateMatchingRequiredInfo> matchingRequiredList = List.of(
+                RoommateMatchingRequiredInfo.builder()
+                        .id(200L)
+                        .requesterMemberId(memberId)
+                        .requesteeMemberId(opponent.getId())
+                        .status(RoommateRequiredStatus.PENDING)
+                        .createdAt(LocalDateTime.of(2026, 6, 23, 10, 30))
+                        .updatedAt(LocalDateTime.of(2026, 6, 23, 10, 30))
+                        .build()
+        );
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent))
+                .thenReturn(Optional.of(new ChattingRoomBasicInfoRow(
+                        "상대방",
+                        opponentBirth,
+                        Gender.FEMALE,
+                        "opponent-profile.jpg"
+                )));
+        when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
+        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
+
+        // When
+        ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
+
+        // Then
+        assertThat(response.getOpponentProfile().getId()).isEqualTo(opponent.getId());
+        assertThat(response.getOpponentProfile().getName()).isEqualTo("상대방");
+        assertThat(response.getOpponentProfile().getAge()).isEqualTo(DateUtils.calculateAge(opponentBirth));
+        assertThat(response.getOpponentProfile().getGender()).isEqualTo(Gender.FEMALE);
+        assertThat(response.getOpponentProfile().getProfileImageUrl()).isEqualTo("opponent-profile.jpg");
+        assertThat(response.getOpponentProfile().getScore()).isEqualTo(100);
+        assertThat(response.getMessages()).isSameAs(messages);
+        assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
+    }
+
+    @Test
+    @DisplayName("채팅방 상세 조회 시 활성 채팅방 멤버가 아니면 실패한다")
+    void getChatRoomDetailRejectsMemberWhoIsNotActiveRoomMember() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        ChattingRoom chattingRoom = chattingRoom();
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.getChatRoomDetail(chatRoomId, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
+        verify(chatRoomMemberRepository, never()).findPartnerMember(any(), eq(chatRoomId));
+        verifyNoInteractions(basicInformationRepository, chatRoomMessageRepository, roommateMatchingRequiredRepository);
+    }
+
+    @Test
+    @DisplayName("채팅방 상세 조회 시 상대방 기본 정보가 없으면 실패한다")
+    void getChatRoomDetailRejectsWhenOpponentBasicInformationMissing() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        ChattingRoom chattingRoom = chattingRoom();
+        Member me = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(me, chattingRoom);
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.getChatRoomDetail(chatRoomId, memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.BASIC_INFO_NOT_FOUND));
+        verifyNoInteractions(chatRoomMessageRepository, roommateMatchingRequiredRepository);
     }
 
     @Test
@@ -382,7 +500,7 @@ class ChatServiceImplTest {
         assertThat(response.getPayload().getClientMessageId()).isEqualTo("client-message-id");
         assertThat(response.getPayload().getSenderId()).isEqualTo(senderId);
         assertThat(response.getPayload().getType()).isEqualTo(MessageType.TEXT);
-        assertThat(response.getPayload().getMessage()).isEqualTo("안녕하세요");
+        assertThat(response.getPayload().getContents()).isEqualTo("안녕하세요");
     }
 
     @Test
@@ -444,7 +562,7 @@ class ChatServiceImplTest {
         assertThat(response.getCreatedAt()).isEqualTo(leftAt);
         assertThat(response.getPayload().getSenderId()).isNull();
         assertThat(response.getPayload().getType()).isEqualTo(MessageType.LEFT_ROOM);
-        assertThat(response.getPayload().getMessage()).isEqualTo("상대방이 나갔습니다.");
+        assertThat(response.getPayload().getContents()).isEqualTo("상대방이 나갔습니다.");
     }
 
     @Test
@@ -505,6 +623,10 @@ class ChatServiceImplTest {
 
     private Member member() {
         return Member.builder().build();
+    }
+
+    private Member member(Long id) {
+        return Member.builder().id(id).build();
     }
 
     private ChattingRoom chattingRoom() {

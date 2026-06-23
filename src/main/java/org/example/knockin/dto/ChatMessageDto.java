@@ -1,7 +1,6 @@
 package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -35,7 +34,7 @@ public class ChatMessageDto {
         private MessageType type;
 
         @Schema(description = "텍스트 메시지 본문")
-        private String message;
+        private String contents;
 
         @Schema(description = "이미지 URL")
         private String imageUrl;
