@@ -82,4 +82,43 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                 .orderBy(chattingRoom.createdAt.desc())
                 .fetch();
     }
+
+    @Override
+    public boolean existsActiveRoomBetweenMembers(Long memberAId, Long memberBId) {
+        QChatRoomMember memberA = new QChatRoomMember("memberA");
+        QChatRoomMember memberB = new QChatRoomMember("memberB");
+
+        Integer result = jpaQueryFactory
+                .selectOne()
+                .from(memberA)
+                .join(memberB)
+                .on(
+                        memberB.chattingRoom.eq(memberA.chattingRoom),
+                        memberB.member.id.eq(memberBId),
+                        memberB.isLeft.isFalse()
+                )
+                .where(
+                        memberA.member.id.eq(memberAId),
+                        memberA.isLeft.isFalse()
+                )
+                .fetchFirst();
+
+        return result != null;
+    }
+
+    @Override
+    public long countActiveRoomsByMemberId(Long memberId) {
+        QChatRoomMember roomMember = new QChatRoomMember("roomMember");
+
+        Long count = jpaQueryFactory
+                .select(roomMember.chattingRoom.id.countDistinct())
+                .from(roomMember)
+                .where(
+                        roomMember.member.id.eq(memberId),
+                        roomMember.isLeft.isFalse()
+                )
+                .fetchOne();
+
+        return count == null ? 0 : count;
+    }
 }

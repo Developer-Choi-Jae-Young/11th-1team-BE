@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.example.knockin.dto.ChatMessageDto;
+import org.example.knockin.dto.ChatRoomCreateDto;
 import org.example.knockin.dto.ChatRoomDetailDto;
 import org.example.knockin.dto.ChatRoomDto;
 import org.example.knockin.dto.ChatRoomImageDto;
@@ -27,9 +28,11 @@ import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
+import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
+import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.file.File;
@@ -41,13 +44,17 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
+import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.chat.ChatRoomFileRepository;
 import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
+import org.example.knockin.repository.chat.ChattingRequiredRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
+import org.example.knockin.repository.member.MemberRepository;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
 import org.example.knockin.service.FileService;
@@ -61,6 +68,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,6 +107,15 @@ class ChatServiceImplTest {
 
     @Mock
     private RoommateMatchingRequiredRepository roommateMatchingRequiredRepository;
+
+    @Mock
+    private RoommateBoardRepository roommateBoardRepository;
+
+    @Mock
+    private ChattingRequiredRepository chattingRequiredRepository;
+
+    @Mock
+    private MemberRepository memberRepository;
 
     @InjectMocks
     private ChatServiceImpl chatService;
@@ -244,6 +261,138 @@ class ChatServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.BASIC_INFO_NOT_FOUND));
         verifyNoInteractions(chatRoomMessageRepository, roommateMatchingRequiredRepository);
+    }
+
+    @Test
+    @DisplayName("채팅방 생성 요청이 유효하면 승인된 요청과 채팅방과 첫 메시지를 저장한다")
+    void createChattingRoomCreatesAcceptedRequestRoomMembersAndFirstMessage() {
+        // Given
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Long boardId = 10L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        RoommateBoard roommateBoard = RoommateBoard.builder().id(boardId).build();
+        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, boardId, "안녕하세요");
+        LocalDateTime messageCreatedAt = LocalDateTime.of(2026, 6, 24, 10, 0);
+
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+        when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(false);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesterId)).thenReturn(14L);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesteeId)).thenReturn(0L);
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
+        when(chattingRequiredRepository.save(any(ChattingRequired.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(chattingRoomRepository.save(any(ChattingRoom.class)))
+                .thenAnswer(invocation -> persistedChattingRoom(invocation.getArgument(0), 100L));
+        when(chatRoomMemberRepository.saveAll(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
+                .thenAnswer(invocation -> persistedMessage(invocation.getArgument(0), messageCreatedAt));
+
+        // When
+        ChatRoomCreateDto.Response response = chatService.createChattingRoom(requesterId, request);
+
+        // Then
+        assertThat(response.getChatRoomId()).isEqualTo(100L);
+        assertThat(response.getUpdatedAt()).isEqualTo(messageCreatedAt);
+
+        ArgumentCaptor<ChattingRequired> requiredCaptor = ArgumentCaptor.forClass(ChattingRequired.class);
+        verify(chattingRequiredRepository).save(requiredCaptor.capture());
+        assertThat(requiredCaptor.getValue().getRequester()).isSameAs(requester);
+        assertThat(requiredCaptor.getValue().getRequestee()).isSameAs(requestee);
+        assertThat(requiredCaptor.getValue().getRoommateBoard()).isSameAs(roommateBoard);
+        assertThat(requiredCaptor.getValue().getStatus()).isEqualTo(ChattingRequiredStatus.ACCEPTED);
+
+        ArgumentCaptor<ChattingRoom> roomCaptor = ArgumentCaptor.forClass(ChattingRoom.class);
+        verify(chattingRoomRepository).save(roomCaptor.capture());
+        assertThat(roomCaptor.getValue().getChattingRequired()).isSameAs(requiredCaptor.getValue());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Iterable<ChatRoomMember>> membersCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(chatRoomMemberRepository).saveAll(membersCaptor.capture());
+        List<ChatRoomMember> members = ((List<ChatRoomMember>) membersCaptor.getValue());
+        assertThat(members).hasSize(2);
+        assertThat(members).extracting(ChatRoomMember::getMember).containsExactly(requester, requestee);
+        assertThat(members).extracting(ChatRoomMember::getIsLeft).containsExactly(false, false);
+
+        ArgumentCaptor<ChatRoomMessage> messageCaptor = ArgumentCaptor.forClass(ChatRoomMessage.class);
+        verify(chatRoomMessageRepository).save(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getContents()).isEqualTo("안녕하세요");
+        assertThat(messageCaptor.getValue().getMember()).isSameAs(requester);
+        assertThat(messageCaptor.getValue().getChattingRoom().getId()).isEqualTo(100L);
+        assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
+    }
+
+    @Test
+    @DisplayName("두 회원 사이에 활성 채팅방이 이미 있으면 채팅방을 생성하지 않는다")
+    void createChattingRoomRejectsDuplicateActiveRoom() {
+        // Given
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, null, "안녕하세요");
+
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+        when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_DUPLICATE));
+        verify(chattingRoomRepository, never()).countActiveRoomsByMemberId(any());
+        verifyNoInteractions(roommateBoardRepository, chattingRequiredRepository, chatRoomMemberRepository, chatRoomMessageRepository);
+    }
+
+    @Test
+    @DisplayName("요청자나 피요청자의 활성 채팅방이 15개 이상이면 채팅방을 생성하지 않는다")
+    void createChattingRoomRejectsMemberOverRoomLimit() {
+        // Given
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, null, "안녕하세요");
+
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+        when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(false);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesterId)).thenReturn(15L);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesteeId)).thenReturn(0L);
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_LIMIT_EXCEEDED));
+        verifyNoInteractions(roommateBoardRepository, chattingRequiredRepository, chatRoomMemberRepository, chatRoomMessageRepository);
+    }
+
+    @Test
+    @DisplayName("요청한 게시글이 없으면 채팅방을 생성하지 않는다")
+    void createChattingRoomRejectsMissingRoommateBoard() {
+        // Given
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Long boardId = 10L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, boardId, "안녕하세요");
+
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+        when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(false);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesterId)).thenReturn(0L);
+        when(chattingRoomRepository.countActiveRoomsByMemberId(requesteeId)).thenReturn(0L);
+        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        verifyNoInteractions(chattingRequiredRepository, chatRoomMemberRepository, chatRoomMessageRepository);
     }
 
     @Test
@@ -613,6 +762,17 @@ class ChatServiceImplTest {
         return request;
     }
 
+    private ChatRoomCreateDto.Request chatRoomCreateRequest(Long requesteeId, Long boardId, String contents) {
+        ChatRoomCreateDto.ChatMessage chatMessage = new ChatRoomCreateDto.ChatMessage();
+        chatMessage.setContents(contents);
+
+        ChatRoomCreateDto.Request request = new ChatRoomCreateDto.Request();
+        request.setRequesteeId(requesteeId);
+        request.setBoardId(boardId);
+        request.setChatMessage(chatMessage);
+        return request;
+    }
+
     private ChatRoomMember activeRoomMember(Member member, ChattingRoom chattingRoom) {
         return ChatRoomMember.builder()
                 .member(member)
@@ -631,6 +791,16 @@ class ChatServiceImplTest {
 
     private ChattingRoom chattingRoom() {
         return ChattingRoom.builder().build();
+    }
+
+    private ChattingRoom persistedChattingRoom(ChattingRoom chattingRoom, Long id) {
+        ReflectionTestUtils.setField(chattingRoom, "id", id);
+        return chattingRoom;
+    }
+
+    private ChatRoomMessage persistedMessage(ChatRoomMessage message, LocalDateTime createdAt) {
+        ReflectionTestUtils.setField(message, "createdAt", createdAt);
+        return message;
     }
 
     private File chatImage(String savedFileName) {
