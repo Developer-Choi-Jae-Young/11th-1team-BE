@@ -20,6 +20,7 @@ import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomMessageEvent;
+import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.entity.chat.ChatRoomFile;
@@ -374,14 +375,14 @@ class ChatServiceImplTest {
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), payloadCaptor.capture());
 
-        ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
+        ChatSocketResponse<ChatMessageDto.Response> response = (ChatSocketResponse<ChatMessageDto.Response>) payloadCaptor.getValue();
         assertThat(response.getEventType()).isEqualTo(EventType.USER_MESSAGE);
         assertThat(response.getChatRoomId()).isEqualTo(chatId);
-        assertThat(response.getClientMessageId()).isEqualTo("client-message-id");
-        assertThat(response.getSenderId()).isEqualTo(senderId);
-        assertThat(response.getType()).isEqualTo(MessageType.TEXT);
-        assertThat(response.getMessage()).isEqualTo("안녕하세요");
         assertThat(response.getCreatedAt()).isNotNull();
+        assertThat(response.getPayload().getClientMessageId()).isEqualTo("client-message-id");
+        assertThat(response.getPayload().getSenderId()).isEqualTo(senderId);
+        assertThat(response.getPayload().getType()).isEqualTo(MessageType.TEXT);
+        assertThat(response.getPayload().getMessage()).isEqualTo("안녕하세요");
     }
 
     @Test
@@ -437,13 +438,13 @@ class ChatServiceImplTest {
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), payloadCaptor.capture());
 
-        ChatMessageDto.Response response = (ChatMessageDto.Response) payloadCaptor.getValue();
+        ChatSocketResponse<ChatMessageDto.Response> response = (ChatSocketResponse<ChatMessageDto.Response>) payloadCaptor.getValue();
         assertThat(response.getEventType()).isEqualTo(EventType.SYSTEM_MESSAGE);
         assertThat(response.getChatRoomId()).isEqualTo(chatRoomId);
-        assertThat(response.getSenderId()).isNull();
-        assertThat(response.getType()).isEqualTo(MessageType.LEFT_ROOM);
-        assertThat(response.getMessage()).isEqualTo("상대방이 나갔습니다.");
         assertThat(response.getCreatedAt()).isEqualTo(leftAt);
+        assertThat(response.getPayload().getSenderId()).isNull();
+        assertThat(response.getPayload().getType()).isEqualTo(MessageType.LEFT_ROOM);
+        assertThat(response.getPayload().getMessage()).isEqualTo("상대방이 나갔습니다.");
     }
 
     @Test

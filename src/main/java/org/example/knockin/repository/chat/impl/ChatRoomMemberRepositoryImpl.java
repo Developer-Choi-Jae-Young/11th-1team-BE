@@ -3,15 +3,18 @@ package org.example.knockin.repository.chat.impl;
 import static org.example.knockin.entity.chat.QChatRoomMember.chatRoomMember;
 import static org.example.knockin.entity.member.QMember.member;
 
-
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.chat.ChatRoomMember;
+import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.chat.ChatRoomMemberRepositoryCustom;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Repository;
 
+@NullMarked
 @Repository
 @RequiredArgsConstructor
 public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCustom {
@@ -43,5 +46,18 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
                         chatRoomMember.isLeft.isFalse())
                 .fetchFirst()
         );
+    }
+
+    @Override
+    public Member findPartnerMember(ChatRoomMember me, ChattingRoom chattingRoom) {
+        return jpaQueryFactory
+                .select(member)
+                .from(chatRoomMember)
+                .join(chatRoomMember.member, member)
+                .where(
+                        chatRoomMember.chattingRoom.eq(chattingRoom),
+                        chatRoomMember.ne(me)
+                )
+                .fetchFirst();
     }
 }

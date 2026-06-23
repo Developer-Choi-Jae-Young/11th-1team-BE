@@ -11,6 +11,8 @@ import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomMessageEvent;
+import org.example.knockin.dto.ChatSocketResponse;
+import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
@@ -153,13 +155,22 @@ public class ChatServiceImpl {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleChatRoomLeft(ChatRoomLeftEvent event) {
-        ChatMessageDto.Response response = ChatMessageDto.Response.userLeft(event);
+        ChatSocketResponse<ChatMessageDto.Response> response = ChatSocketResponse.of(
+                EventType.SYSTEM_MESSAGE,
+                event.chatRoomId(),
+                ChatMessageDto.Response.userLeft(event),
+                event.leftAt()
+        );
         messagingTemplate.convertAndSend("/sub/chats/" + event.chatRoomId(), response);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleMessageSend(ChatRoomMessageEvent event) {
-        ChatMessageDto.Response response = ChatMessageDto.Response.chatMessage(event);
+        ChatSocketResponse<ChatMessageDto.Response> response = ChatSocketResponse.of(
+                EventType.USER_MESSAGE,
+                event.chatRoomId(),
+                ChatMessageDto.Response.chatMessage(event)
+        );
         messagingTemplate.convertAndSend("/sub/chats/" + event.chatRoomId(), response);
     }
 

@@ -25,12 +25,6 @@ public class ChatMessageDto {
     @Data
     @AllArgsConstructor
     public static class Response {
-        @Schema(description = "WebSocket 이벤트 유형")
-        private EventType eventType;
-
-        @Schema(description = "채팅방 ID")
-        private Long chatRoomId;
-
         @Schema(description = "FE 로컬 메시지 식별 ID")
         private String clientMessageId;
 
@@ -46,32 +40,23 @@ public class ChatMessageDto {
         @Schema(description = "이미지 URL")
         private String imageUrl;
 
-        @Schema(description = "서버 broadcast 시각")
-        private LocalDateTime createdAt;
-
         public static Response chatMessage(ChatRoomMessageEvent event) {
             return new Response(
-                    EventType.USER_MESSAGE,
-                    event.chatRoomId(),
                     event.clientMessageId(),
                     event.senderId(),
                     event.messageType(),
                     event.message(),
-                    event.imageUrl(),
-                    LocalDateTime.now()
+                    event.imageUrl()
             );
         }
 
         public static Response userLeft(ChatRoomLeftEvent event) {
             return new Response(
-                    EventType.SYSTEM_MESSAGE,
-                    event.chatRoomId(),
                     null,
                     null,
                     MessageType.LEFT_ROOM,
                     event.message(),
-                    null,
-                    event.leftAt()
+                    null
             );
         }
     }

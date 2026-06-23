@@ -2,9 +2,12 @@ package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
+import org.example.knockin.dto.ChatRoomDetailDto.RoommateMatchingRequiredInfo;
 
 @Data
 public class RoommateRequestDto {
@@ -15,8 +18,11 @@ public class RoommateRequestDto {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
-        @Schema(description = "수정 일시")
-        private LocalDateTime updatedAt;
+        @Schema(description = "신규 룸메이트 매칭 요청 정보")
+        private RoommateMatchingRequiredInfo roommateMatchingRequiredInfo;
     }
 }
