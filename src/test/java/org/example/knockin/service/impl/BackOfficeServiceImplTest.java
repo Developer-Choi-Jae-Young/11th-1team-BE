@@ -3,6 +3,8 @@ package org.example.knockin.service.impl;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.alarm.Notification;
+import org.example.knockin.entity.inquiry.Inquiry;
+import org.example.knockin.entity.inquiry.InquiryComment;
 import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
@@ -55,6 +57,9 @@ class BackOfficeServiceImplTest {
 
     @Mock
     private MemberServiceImpl memberService;
+
+    @Mock
+    private InquirieServiceImpl inquirieService;
 
     @InjectMocks
     private BackOfficeServiceImpl backOfficeService;
@@ -619,5 +624,85 @@ class BackOfficeServiceImplTest {
         assertThatThrownBy(() -> backOfficeService.deleteNotice(id, memberId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("문의 답변 등록 성공 테스트 (saveInquiryReply)")
+    void saveInquiryReplySuccessTest() {
+        // given
+        Long memberId = 1L;
+        BoInquiryReplyDto.Request request = new BoInquiryReplyDto.Request();
+        request.setInquirieId(100L);
+        request.setContents("답변 내용");
+
+        Member member = mock(Member.class);
+        Inquiry inquiry = mock(Inquiry.class);
+
+        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(inquirieService.findInquiryById(100L)).willReturn(inquiry);
+
+        // when
+        BoInquiryReplyDto.Response response = backOfficeService.saveInquiryReply(request, memberId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(inquirieService).saveInquirieReply(any(InquiryComment.class));
+    }
+
+    @Test
+    @DisplayName("문의 답변 등록 시 회원을 찾을 수 없으면 BusinessException 발생")
+    void saveInquiryReplyMemberNotFoundTest() {
+        // given
+        Long memberId = 1L;
+        BoInquiryReplyDto.Request request = new BoInquiryReplyDto.Request();
+        request.setInquirieId(100L);
+
+        given(memberService.findById(memberId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> backOfficeService.saveInquiryReply(request, memberId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("문의 목록 조회 성공 테스트 (findInquirieList)")
+    void findInquirieListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoInquiryListDto.Response.InquiryItem item = new BoInquiryListDto.Response.InquiryItem();
+        item.setId(100L);
+        item.setTitle("문의 제목");
+
+        given(inquirieService.findBackOfficeInquirieList(pageable)).willReturn(List.of(item));
+
+        // when
+        BoInquiryListDto.Response response = backOfficeService.findInquirieList(pageable);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getInquiries()).hasSize(1);
+        assertThat(response.getInquiries().get(0).getId()).isEqualTo(100L);
+        assertThat(response.getInquiries().get(0).getTitle()).isEqualTo("문의 제목");
+    }
+
+    @Test
+    @DisplayName("문의 상세 조회 성공 테스트 (findInquirie)")
+    void findInquirieSuccessTest() {
+        // given
+        Long inquiryId = 100L;
+        BoInquiryDetailDto.Response.InquiryDetail detail = new BoInquiryDetailDto.Response.InquiryDetail();
+        detail.setId(inquiryId);
+        detail.setTitle("문의 제목");
+
+        given(inquirieService.findBackOfficeInquirie(inquiryId)).willReturn(detail);
+
+        // when
+        BoInquiryDetailDto.Response response = backOfficeService.findInquirie(inquiryId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getInquirie()).isEqualTo(detail);
     }
 }

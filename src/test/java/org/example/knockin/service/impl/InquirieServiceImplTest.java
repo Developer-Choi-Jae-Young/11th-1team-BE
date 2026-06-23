@@ -1,16 +1,15 @@
 package org.example.knockin.service.impl;
 
-import org.example.knockin.dto.InquiryCategoryListDto;
-import org.example.knockin.dto.InquiryDetailDto;
-import org.example.knockin.dto.InquiryDto;
-import org.example.knockin.dto.InquiryListDto;
+import org.example.knockin.dto.*;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryCategory;
+import org.example.knockin.entity.inquiry.InquiryComment;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.InquiryErrorCode;
 import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
+import org.example.knockin.repository.inquiry.InquiryCommentRepository;
 import org.example.knockin.repository.inquiry.InquiryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +42,9 @@ class InquirieServiceImplTest {
 
     @Mock
     private InquiryRepository inquiryRepository;
+
+    @Mock
+    private InquiryCommentRepository inquiryCommentRepository;
 
     @InjectMocks
     private InquirieServiceImpl inquiriesService;
@@ -194,5 +196,108 @@ class InquirieServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getInquirie()).isEqualTo(detail);
+    }
+
+    @Test
+    @DisplayName("문의 답변 저장 성공 테스트 (saveInquirieReply)")
+    void saveInquirieReplySuccessTest() {
+        // given
+        InquiryComment comment = InquiryComment.builder()
+                .contents("답변 내용")
+                .build();
+        given(inquiryCommentRepository.save(any(InquiryComment.class))).willReturn(comment);
+
+        // when
+        InquiryComment result = inquiriesService.saveInquirieReply(comment);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getContents()).isEqualTo("답변 내용");
+        verify(inquiryCommentRepository).save(comment);
+    }
+
+    @Test
+    @DisplayName("문의 ID로 조회 성공 테스트 (findInquiryById)")
+    void findInquiryByIdSuccessTest() {
+        // given
+        Long inquiryId = 100L;
+        Inquiry inquiry = Inquiry.builder()
+                .id(inquiryId)
+                .title("제목")
+                .build();
+        given(inquiryRepository.findByIdAndIsDeleted(inquiryId, false)).willReturn(Optional.of(inquiry));
+
+        // when
+        Inquiry result = inquiriesService.findInquiryById(inquiryId);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(inquiryId);
+        assertThat(result.getTitle()).isEqualTo("제목");
+        verify(inquiryRepository).findByIdAndIsDeleted(inquiryId, false);
+    }
+
+    @Test
+    @DisplayName("문의 ID로 조회 시 문의가 없으면 BusinessException 발생 (findInquiryById)")
+    void findInquiryByIdNotFoundTest() {
+        // given
+        Long inquiryId = 100L;
+        given(inquiryRepository.findByIdAndIsDeleted(inquiryId, false)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> inquiriesService.findInquiryById(inquiryId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", InquiryErrorCode.INQUIRY_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("백오피스 문의 목록 조회 성공 테스트 (findBackOfficeInquirieList)")
+    void findBackOfficeInquirieListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoInquiryListDto.Response.InquiryItem item = new BoInquiryListDto.Response.InquiryItem();
+        item.setId(100L);
+        item.setTitle("백오피스 문의 제목");
+
+        given(inquiryRepository.findBackOfficeInquirieList(pageable)).willReturn(List.of(item));
+
+        // when
+        List<BoInquiryListDto.Response.InquiryItem> result = inquiriesService.findBackOfficeInquirieList(pageable);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(100L);
+        assertThat(result.get(0).getTitle()).isEqualTo("백오피스 문의 제목");
+        verify(inquiryRepository).findBackOfficeInquirieList(pageable);
+    }
+
+    @Test
+    @DisplayName("백오피스 문의 상세 조회 성공 테스트 (findBackOfficeInquirie)")
+    void findBackOfficeInquirieSuccessTest() {
+        // given
+        Long id = 100L;
+        BoInquiryDetailDto.Response.InquiryDetail detail = new BoInquiryDetailDto.Response.InquiryDetail();
+        detail.setId(id);
+        detail.setTitle("백오피스 문의 제목");
+
+        BoInquiryDetailDto.Response.InquiryDetail.Reply reply = new BoInquiryDetailDto.Response.InquiryDetail.Reply();
+        reply.setId(200L);
+        reply.setContents("답변 내용");
+
+        given(inquiryRepository.findBackOfficeInquirie(id)).willReturn(detail);
+        given(inquiryRepository.findBackOfficeInquirieReply(id)).willReturn(List.of(reply));
+
+        // when
+        BoInquiryDetailDto.Response.InquiryDetail result = inquiriesService.findBackOfficeInquirie(id);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(id);
+        assertThat(result.getTitle()).isEqualTo("백오피스 문의 제목");
+        assertThat(result.getReply()).hasSize(1);
+        assertThat(result.getReply().get(0).getId()).isEqualTo(200L);
+        assertThat(result.getReply().get(0).getContents()).isEqualTo("답변 내용");
+        verify(inquiryRepository).findBackOfficeInquirie(id);
+        verify(inquiryRepository).findBackOfficeInquirieReply(id);
     }
 }

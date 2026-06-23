@@ -4,6 +4,8 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.BoInquiryDetailDto;
+import org.example.knockin.dto.BoInquiryListDto;
 import org.example.knockin.dto.InquiryDetailDto;
 import org.example.knockin.dto.InquiryListDto;
 import org.example.knockin.entity.member.Member;
@@ -61,5 +63,51 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                                         inquiryComment.contents,
                                         inquiryComment.createdAt.as("createAt"))).as("reply"))
                 )).stream().findFirst().orElse(null);
+    }
+
+    @Override
+    public List<BoInquiryListDto.Response.InquiryItem> findBackOfficeInquirieList(Pageable pageable) {
+        return jpaQueryFactory.select(Projections.fields(BoInquiryListDto.Response.InquiryItem.class,
+                inquiry.id,
+                inquiry.title,
+                inquiry.createdAt,
+                inquiry.inquiryCategory.title.as("type"), basicInformation.name.as("writer"),
+                new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status")
+                )).from(inquiry).leftJoin(inquiry.inquiryCategory)
+                .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
+                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
+                .where(inquiry.isDeleted.eq(false))
+                .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
+    }
+
+    @Override
+    public BoInquiryDetailDto.Response.InquiryDetail findBackOfficeInquirie(Long id) {
+        return jpaQueryFactory.select(Projections.fields(BoInquiryDetailDto.Response.InquiryDetail.class,
+                        inquiry.id,
+                        inquiry.title,
+                        inquiry.contents,
+                        inquiry.createdAt,
+                        inquiry.inquiryCategory.title.as("type"), basicInformation.name.as("writer"),
+                        new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status")
+                )).from(inquiry).leftJoin(inquiry.inquiryCategory)
+                .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
+                .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
+                .where(inquiry.isDeleted.eq(false)).fetchOne();
+    }
+
+    @Override
+    public List<BoInquiryDetailDto.Response.InquiryDetail.Reply> findBackOfficeInquirieReply(Long id) {
+        return jpaQueryFactory.select(Projections.fields(
+                        BoInquiryDetailDto.Response.InquiryDetail.Reply.class,
+                        inquiryComment.id,
+                        inquiryComment.contents,
+                        basicInformation.name.as("writer"),
+                        inquiryComment.createdAt.as("createAt")
+                ))
+                .from(inquiryComment)
+                .join(inquiryComment.inquiry, inquiry)
+                .join(basicInformation).on(basicInformation.member.eq(inquiryComment.member))
+                .where(inquiry.id.eq(id))
+                .fetch();
     }
 }
