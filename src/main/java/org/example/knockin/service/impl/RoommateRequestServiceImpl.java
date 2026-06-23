@@ -131,6 +131,7 @@ public class RoommateRequestServiceImpl {
             throw new BusinessException(RoommateMatchingRequiredErrorCode.ACCESS_DENIED);
         }
 
+        validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.accept();
         saveMyRoommate(roommateMatchingRequired);
 
@@ -160,6 +161,7 @@ public class RoommateRequestServiceImpl {
             throw new BusinessException(RoommateMatchingRequiredErrorCode.ACCESS_DENIED);
         }
 
+        validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.reject();
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
@@ -175,9 +177,16 @@ public class RoommateRequestServiceImpl {
             throw new BusinessException(RoommateMatchingRequiredErrorCode.ACCESS_DENIED);
         }
 
+        validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.cancel();
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
         return response;
+    }
+
+    private void validateRequired(RoommateMatchingRequired roommateMatchingRequired) {
+        if (!roommateMatchingRequired.isPending()) {
+            throw new BusinessException(RoommateMatchingRequiredErrorCode.INVALID_STATUS);
+        }
     }
 }

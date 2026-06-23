@@ -385,6 +385,69 @@ class RoommateRequestServiceImplTest {
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository, alarmService, messagingTemplate);
     }
 
+    @Test
+    @DisplayName("이미 처리된 요청을 수락하려 하면 상태 오류 예외를 던지고 부수 효과를 만들지 않는다")
+    void acceptRequiredRejectsInvalidStatus() {
+        // Given
+        Long requestId = 1000L;
+        Long requesteeId = 2L;
+        RoommateMatchingRequired roommateRequest = persistedRoommateRequest(
+                roommateRequest(member(1L), member(requesteeId), chattingRoom(10L), RoommateRequiredStatus.REJECTED),
+                requestId
+        );
+
+        when(roommateMatchingRequiredRepository.findById(requestId)).thenReturn(Optional.of(roommateRequest));
+
+        // When & Then
+        assertThatThrownBy(() -> roommateRequestService.acceptRequired(requesteeId, requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RoommateMatchingRequiredErrorCode.INVALID_STATUS));
+        assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.REJECTED);
+        verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository, alarmService, messagingTemplate);
+    }
+
+    @Test
+    @DisplayName("이미 처리된 요청을 거절하려 하면 상태 오류 예외를 던지고 부수 효과를 만들지 않는다")
+    void rejectRequiredRejectsInvalidStatus() {
+        // Given
+        Long requestId = 1000L;
+        Long requesteeId = 2L;
+        RoommateMatchingRequired roommateRequest = persistedRoommateRequest(
+                roommateRequest(member(1L), member(requesteeId), chattingRoom(10L), RoommateRequiredStatus.ACCEPTED),
+                requestId
+        );
+
+        when(roommateMatchingRequiredRepository.findById(requestId)).thenReturn(Optional.of(roommateRequest));
+
+        // When & Then
+        assertThatThrownBy(() -> roommateRequestService.rejectRequired(requesteeId, requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RoommateMatchingRequiredErrorCode.INVALID_STATUS));
+        assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.ACCEPTED);
+        verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository, alarmService, messagingTemplate);
+    }
+
+    @Test
+    @DisplayName("이미 처리된 요청을 취소하려 하면 상태 오류 예외를 던지고 부수 효과를 만들지 않는다")
+    void cancelRequiredRejectsInvalidStatus() {
+        // Given
+        Long requestId = 1000L;
+        Long requesterId = 1L;
+        RoommateMatchingRequired roommateRequest = persistedRoommateRequest(
+                roommateRequest(member(requesterId), member(2L), chattingRoom(10L), RoommateRequiredStatus.EXPIRED),
+                requestId
+        );
+
+        when(roommateMatchingRequiredRepository.findById(requestId)).thenReturn(Optional.of(roommateRequest));
+
+        // When & Then
+        assertThatThrownBy(() -> roommateRequestService.cancelRequired(requesterId, requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RoommateMatchingRequiredErrorCode.INVALID_STATUS));
+        assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.EXPIRED);
+        verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository, alarmService, messagingTemplate);
+    }
+
     private RoommateRequestDto.Request request(Long chatRoomId) {
         RoommateRequestDto.Request request = new RoommateRequestDto.Request();
         request.setChatRoomId(chatRoomId);

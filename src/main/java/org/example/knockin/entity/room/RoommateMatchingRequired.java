@@ -57,6 +57,10 @@ public class RoommateMatchingRequired extends BaseEntity {
         return requestee.getId().equals(requesteeId);
     }
 
+    public boolean isPending() {
+        return this.status.equals(RoommateRequiredStatus.PENDING);
+    }
+
     public void accept() {
         this.status = RoommateRequiredStatus.ACCEPTED;
     }
