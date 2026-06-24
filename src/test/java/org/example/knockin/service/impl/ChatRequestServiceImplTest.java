@@ -10,7 +10,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import org.example.knockin.dto.ChatRequestListDto;
 import org.example.knockin.dto.ChatRequestDto;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.board.RoommateBoard;
@@ -26,11 +29,13 @@ import org.example.knockin.global.exception.CommonErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.RequiredErrorCode;
 import org.example.knockin.global.exception.RoommateBoardErrorCode;
+import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChattingRequiredAlarmRepository;
 import org.example.knockin.repository.chat.ChattingRequiredRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
+import org.example.knockin.repository.chat.row.ChatRequestListRow;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -71,6 +76,80 @@ class ChatRequestServiceImplTest {
 
     @InjectMocks
     private ChatRequestServiceImpl chatRequestService;
+
+    @Test
+    @DisplayName("대기 중인 채팅 요청 목록을 조회하면 요청자 정보와 임시 점수를 반환한다")
+    void getPendingChatRequestListReturnsRequesterInfoWithTemporaryScore() {
+        // Given
+        Long memberId = 1L;
+        Member requestee = Member.builder().id(memberId).build();
+        LocalDate requesterBirth = LocalDate.of(2000, 1, 1);
+        LocalDateTime createdAt = LocalDateTime.of(2026, 6, 23, 10, 0);
+        ChatRequestListRow row = new ChatRequestListRow(
+                1000L,
+                ChattingRequiredStatus.PENDING,
+                2L,
+                "요청자",
+                requesterBirth,
+                Gender.FEMALE,
+                createdAt
+        );
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(requestee));
+        when(chattingRequiredRepository.findAllPendingByRequestee(requestee)).thenReturn(List.of(row));
+
+        // When
+        List<ChatRequestListDto.Response> responses = chatRequestService.getPendingChatRequestList(memberId);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        ChatRequestListDto.Response response = responses.getFirst();
+        assertThat(response.getRequiredId()).isEqualTo(1000L);
+        assertThat(response.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
+        assertThat(response.getMemberId()).isEqualTo(2L);
+        assertThat(response.getMemberName()).isEqualTo("요청자");
+        assertThat(response.getMemberAge()).isEqualTo(DateUtils.calculateAge(requesterBirth));
+        assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
+        assertThat(response.getScore()).isEqualTo(100);
+        assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+        verify(chattingRequiredRepository).findAllPendingByRequestee(requestee);
+        verifyNoInteractions(roommateBoardRepository, chattingRoomRepository, chatRoomMemberRepository,
+                basicInformationRepository, chattingRequiredAlarmRepository, alarmService);
+    }
+
+    @Test
+    @DisplayName("대기 중인 채팅 요청이 없으면 빈 목록을 반환한다")
+    void getPendingChatRequestListReturnsEmptyList() {
+        // Given
+        Long memberId = 1L;
+        Member requestee = Member.builder().id(memberId).build();
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(requestee));
+        when(chattingRequiredRepository.findAllPendingByRequestee(requestee)).thenReturn(List.of());
+
+        // When
+        List<ChatRequestListDto.Response> responses = chatRequestService.getPendingChatRequestList(memberId);
+
+        // Then
+        assertThat(responses).isEmpty();
+        verify(chattingRequiredRepository).findAllPendingByRequestee(requestee);
+        verifyNoInteractions(roommateBoardRepository, chattingRoomRepository, chatRoomMemberRepository,
+                basicInformationRepository, chattingRequiredAlarmRepository, alarmService);
+    }
+
+    @Test
+    @DisplayName("채팅 요청 목록 조회 회원이 없으면 회원 없음 예외를 던지고 요청 목록을 조회하지 않는다")
+    void getPendingChatRequestListThrowsWhenMemberDoesNotExist() {
+        // Given
+        Long memberId = 1L;
+        when(memberRepository.findById(memberId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> chatRequestService.getPendingChatRequestList(memberId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.MEMBER_NOT_FOUND));
+        verifyNoInteractions(chattingRequiredRepository, roommateBoardRepository, chattingRoomRepository,
+                chatRoomMemberRepository, basicInformationRepository, chattingRequiredAlarmRepository, alarmService);
+    }
 
     @Test
     @DisplayName("중복 요청이 아니면 대기 중인 채팅 요청을 저장하고 채팅방은 생성하지 않는다")

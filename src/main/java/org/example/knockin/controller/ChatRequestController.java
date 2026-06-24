@@ -3,6 +3,7 @@ package org.example.knockin.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatRequestDetailDto;
 import org.example.knockin.dto.ChatRequestDto;
@@ -27,8 +28,12 @@ public class ChatRequestController {
 
     @GetMapping("")
     @Operation(summary = "채팅 요청 목록 조회")
-    public CommonResponse<ChatRequestListDto.Response> findChatRequestList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new ChatRequestListDto.Response());
+    public CommonResponse<List<ChatRequestListDto.Response>> findChatRequestList(
+            @AuthenticationPrincipal PrincipalDetails details
+    ) {
+        Long memberId = details.getMember().getId();
+        List<ChatRequestListDto.Response> pendingChatRequestList = chatRequestService.getPendingChatRequestList(memberId);
+        return CommonResponse.status(HttpStatus.OK).body(pendingChatRequestList);
     }
 
     @GetMapping("/{requestId}")
