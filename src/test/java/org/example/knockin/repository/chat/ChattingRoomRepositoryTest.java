@@ -161,6 +161,81 @@ class ChattingRoomRepositoryTest {
         assertThat(responses).isEmpty();
     }
 
+    @Test
+    @DisplayName("두 회원이 모두 참여 중인 채팅방이 있으면 활성 채팅방이 있다고 조회한다")
+    void existsActiveRoomBetweenMembersReturnsTrueWhenBothMembersAreActive() {
+        // Given
+        Member memberA = persistMember("active-room-member-a");
+        Member memberB = persistMember("active-room-member-b");
+        Member otherMember = persistMember("active-room-other-member");
+
+        ChattingRoom activeRoom = persistChattingRoom(memberA, memberB, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(activeRoom, memberA, false);
+        persistChatRoomMember(activeRoom, memberB, false);
+
+        ChattingRoom leftRoom = persistChattingRoom(memberA, otherMember, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(leftRoom, memberA, false);
+        persistChatRoomMember(leftRoom, otherMember, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        boolean exists = chattingRoomRepository.existsActiveRoomBetweenMembers(memberA.getId(), memberB.getId());
+
+        // Then
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    @DisplayName("한 회원이 나간 채팅방만 있으면 활성 채팅방이 없다고 조회한다")
+    void existsActiveRoomBetweenMembersReturnsFalseWhenMemberLeft() {
+        // Given
+        Member memberA = persistMember("left-room-member-a");
+        Member memberB = persistMember("left-room-member-b");
+        ChattingRoom room = persistChattingRoom(memberA, memberB, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(room, memberA, false);
+        persistChatRoomMember(room, memberB, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        boolean exists = chattingRoomRepository.existsActiveRoomBetweenMembers(memberA.getId(), memberB.getId());
+
+        // Then
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    @DisplayName("회원의 활성 채팅방 수를 조회할 때 나간 방은 제외한다")
+    void countActiveRoomsByMemberIdExcludesLeftRooms() {
+        // Given
+        Member viewer = persistMember("room-count-viewer");
+        Member activeOpponent = persistMember("room-count-active-opponent");
+        Member leftOpponent = persistMember("room-count-left-opponent");
+        Member unrelatedA = persistMember("room-count-unrelated-a");
+        Member unrelatedB = persistMember("room-count-unrelated-b");
+
+        ChattingRoom activeRoom = persistChattingRoom(viewer, activeOpponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(activeRoom, viewer, false);
+        persistChatRoomMember(activeRoom, activeOpponent, false);
+
+        ChattingRoom leftRoom = persistChattingRoom(viewer, leftOpponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(leftRoom, viewer, true);
+        persistChatRoomMember(leftRoom, leftOpponent, false);
+
+        ChattingRoom unrelatedRoom = persistChattingRoom(unrelatedA, unrelatedB, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(unrelatedRoom, unrelatedA, false);
+        persistChatRoomMember(unrelatedRoom, unrelatedB, false);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        long count = chattingRoomRepository.countActiveRoomsByMemberId(viewer.getId());
+
+        // Then
+        assertThat(count).isEqualTo(1L);
+    }
+
     private Member persistMember(String providerId) {
         Member member = Member.builder()
                 .providerType(LoginProviderType.KAKAO)

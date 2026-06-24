@@ -2,10 +2,12 @@ package org.example.knockin.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatMessageDto;
+import org.example.knockin.dto.ChatRoomCreateDto;
 import org.example.knockin.dto.ChatRoomDto;
 import org.example.knockin.dto.ChatRoomImageDto;
 import org.example.knockin.dto.ChatRoomDetailDto;
@@ -24,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,6 +58,17 @@ public class ChatController {
     ) {
         Long memberId = details.getMember().getId();
         ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatId, memberId);
+        return CommonResponse.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("")
+    @Operation(summary = "채팅방 생성")
+    public CommonResponse<ChatRoomCreateDto.Response> createChatRoom(
+            @AuthenticationPrincipal PrincipalDetails details,
+            @Valid @RequestBody ChatRoomCreateDto.Request request
+    ) {
+        Long memberId = details.getMember().getId();
+        ChatRoomCreateDto.Response response = chatService.createChattingRoom(memberId, request);
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
 

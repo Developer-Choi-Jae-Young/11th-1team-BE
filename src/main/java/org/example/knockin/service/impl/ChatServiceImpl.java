@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatMessageDto;
+import org.example.knockin.dto.ChatRoomCreateDto;
 import org.example.knockin.dto.ChatRoomDetailDto;
 import org.example.knockin.dto.ChatRoomDto;
 import org.example.knockin.dto.ChatRoomDto.Response;
@@ -16,9 +17,12 @@ import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
+import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
+import org.example.knockin.entity.chat.ChattingRequired;
+import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
@@ -27,13 +31,17 @@ import org.example.knockin.global.exception.BusinessException;
 import org.example.knockin.global.exception.ChattingErrorCode;
 import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
+import org.example.knockin.global.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
+import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.chat.ChatRoomFileRepository;
 import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
+import org.example.knockin.repository.chat.ChattingRequiredRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
+import org.example.knockin.repository.member.MemberRepository;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
 import org.example.knockin.service.FileService;
@@ -53,6 +61,7 @@ public class ChatServiceImpl {
 
     private static final String ROOM_LEAVE_MESSAGE_CONTENTS = "상대방이 나갔습니다.";
     private static final String IMAGE_MESSAGE_CONTENTS = "사진을 보냈습니다.";
+    private static final long CHAT_ROOM_LIMIT_PER_MEMBER = 15L;
 
     private final ChattingRoomRepository chattingRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
@@ -65,6 +74,9 @@ public class ChatServiceImpl {
     private final ChatRoomFileRepository chatRoomFileRepository;
     private final BasicInformationRepository basicInformationRepository;
     private final RoommateMatchingRequiredRepository roommateMatchingRequiredRepository;
+    private final RoommateBoardRepository roommateBoardRepository;
+    private final ChattingRequiredRepository chattingRequiredRepository;
+    private final MemberRepository memberRepository;
 
     public List<ChatRoomListDto.Response> getChatRoomList(Long memberId) {
         return chattingRoomRepository.findByMemberId(memberId);
@@ -229,6 +241,79 @@ public class ChatServiceImpl {
                 // TODO: 점수 적용
                 .score(100)
                 .build();
+    }
+
+    @Transactional
+    public ChatRoomCreateDto.Response createChattingRoom(Long requesterId, ChatRoomCreateDto.Request request) {
+        Member requester = memberRepository.findById(requesterId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+        Member requestee = memberRepository.findById(request.getRequesteeId())
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        validateActiveRoomDoesNotExist(requesterId, request.getRequesteeId());
+        validateChatRoomLimit(requesterId, request.getRequesteeId());
+
+        RoommateBoard roommateBoard = findRoommateBoardNullSafety(request.getBoardId());
+        ChattingRequired chattingRequired = saveChattingRequiredDirectly(requester, requestee, roommateBoard);
+        ChattingRoom chattingRoom = saveChattingRoom(chattingRequired);
+        saveChattingRoomMembers(chattingRoom, List.of(requester, requestee));
+        String contents = request.getChatMessage().getContents();
+        ChatRoomMessage chatRoomMessage = saveMessage(contents, requester, chattingRoom, MessageType.TEXT);
+
+        return ChatRoomCreateDto.Response.builder()
+                .chatRoomId(chattingRoom.getId())
+                .updatedAt(chatRoomMessage.getCreatedAt())
+                .build();
+    }
+
+    private void validateActiveRoomDoesNotExist(Long requesterId, Long requesteeId) {
+        if (chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)) {
+            throw new BusinessException(ChattingErrorCode.ROOM_DUPLICATE);
+        }
+    }
+
+    private void validateChatRoomLimit(Long requesterId, Long requesteeId) {
+        long requesterRoomCount = chattingRoomRepository.countActiveRoomsByMemberId(requesterId);
+        long requesteeRoomCount = chattingRoomRepository.countActiveRoomsByMemberId(requesteeId);
+
+        if (requesterRoomCount >= CHAT_ROOM_LIMIT_PER_MEMBER || requesteeRoomCount >= CHAT_ROOM_LIMIT_PER_MEMBER) {
+            throw new BusinessException(ChattingErrorCode.ROOM_LIMIT_EXCEEDED);
+        }
+    }
+
+    private RoommateBoard findRoommateBoardNullSafety(@Nullable Long boardId) {
+        if (boardId == null) return null;
+
+        return roommateBoardRepository.findById(boardId)
+                .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+    }
+
+    private ChattingRequired saveChattingRequiredDirectly(Member requester, Member requestee, @Nullable RoommateBoard roommateBoard) {
+        ChattingRequired chattingRequired = ChattingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .roommateBoard(roommateBoard)
+                .status(ChattingRequiredStatus.ACCEPTED)
+                .build();
+
+        return chattingRequiredRepository.save(chattingRequired);
+    }
+
+    private ChattingRoom saveChattingRoom(ChattingRequired chattingRequired) {
+        ChattingRoom chattingRoom = ChattingRoom.builder().chattingRequired(chattingRequired).build();
+        return chattingRoomRepository.save(chattingRoom);
+    }
+
+    private List<ChatRoomMember> saveChattingRoomMembers(ChattingRoom chattingRoom, List<Member> members) {
+        if (members.size() > 2) {
+            throw new BusinessException(ChattingErrorCode.ROOM_CAPACITY_EXCEEDED);
+        }
+
+        List<ChatRoomMember> chatRoomMembers = members.stream()
+                .map(member -> ChatRoomMember.of(chattingRoom, member))
+                .toList();
+
+        return chatRoomMemberRepository.saveAll(chatRoomMembers);
     }
 
     private void validateTextMessage(ChatMessageDto.Request request) {
