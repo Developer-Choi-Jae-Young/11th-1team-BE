@@ -2,9 +2,13 @@ package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.example.knockin.entity.chat.ChattingRequiredStatus;
+import org.example.knockin.entity.member.Gender;
 
 @Data
 public class ChatRequestListDto {
@@ -13,22 +17,31 @@ public class ChatRequestListDto {
     }
 
     @Data
+    @Builder
+    @AllArgsConstructor
     public static class Response {
-        @Schema(description = "채팅 requireds")
-        private List<ChatRequired> chatRequireds;
+        @Schema(description = "채팅 요청 고유 식별 ID")
+        private Long requiredId;
 
-        @Data
-        public static class ChatRequired {
-            @Schema(description = "이름")
-            private String name;
-            @Schema(description = "유형")
-            private String type;
-            @Schema(description = "점수")
-            private Integer score;
-            @Schema(description = "creat at")
-            private LocalDateTime creatAt;
-            @Schema(description = "채팅 req id")
-            private Long chatReqId;
-        }
+        @Schema(description = "채팅 요청 상태값")
+        private ChattingRequiredStatus status;
+
+        @Schema(description = "사용자 고유 식별 ID")
+        private Long memberId;
+
+        @Schema(description = "이름")
+        private String memberName;
+
+        @Schema(description = "사용자 나이")
+        private Integer memberAge;
+
+        @Schema(description = "사용자 성별")
+        private Gender gender;
+
+        @Schema(description = "궁합 점수")
+        private Integer score;
+
+        @Schema(description = "생성일자")
+        private LocalDateTime createdAt;
     }
 }

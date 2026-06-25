@@ -1,9 +1,13 @@
 package org.example.knockin.service.impl;
 
+import java.awt.print.Pageable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatRequestDto;
+import org.example.knockin.dto.ChatRequestListDto;
+import org.example.knockin.dto.ChatRequestListDto.Response;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChattingRequired;
@@ -16,9 +20,11 @@ import org.example.knockin.global.exception.CommonErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.RequiredErrorCode;
 import org.example.knockin.global.exception.RoommateBoardErrorCode;
+import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.chat.ChattingRequiredAlarmRepository;
 import org.example.knockin.repository.chat.ChattingRequiredRepository;
+import org.example.knockin.repository.chat.row.ChatRequestListRow;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
 import org.jspecify.annotations.Nullable;
@@ -43,6 +49,31 @@ public class ChatRequestServiceImpl {
     private final AlarmServiceImpl alarmService;
     private final ChattingRequiredAlarmRepository chattingRequiredAlarmRepository;
     private final BasicInformationRepository basicInformationRepository;
+
+    @Transactional
+    public List<ChatRequestListDto.Response> getPendingChatRequestList(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        List<ChatRequestListRow> requestListRows = chattingRequiredRepository.findAllPendingByRequestee(member);
+        return requestListRows.stream()
+                .map(row -> toResponse(row, 100))
+                .toList();
+    }
+
+    private ChatRequestListDto.Response toResponse(ChatRequestListRow row, Integer score) {
+        return ChatRequestListDto.Response.builder()
+                .requiredId(row.requiredId())
+                .status(row.status())
+                .memberId(row.memberId())
+                .memberName(row.memberName())
+                .memberAge(DateUtils.calculateAge(row.birth()))
+                .gender(row.gender())
+                // TODO: 점수 계산식 확정 후 적용
+                .score(score)
+                .createdAt(row.createdAt())
+                .build();
+    }
 
     @Transactional
     public ChatRequestDto.Response saveChatRequest(Long requesterId, ChatRequestDto.Request request) {
