@@ -9,9 +9,12 @@ import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.global.auth.exception.AuthErrorCode;
 import org.example.knockin.global.exception.BusinessException;
+import org.example.knockin.global.util.ReportType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,6 +63,9 @@ class BackOfficeServiceImplTest {
 
     @Mock
     private InquirieServiceImpl inquirieService;
+
+    @Mock
+    private DeclarationServiceImpl declarationService;
 
     @InjectMocks
     private BackOfficeServiceImpl backOfficeService;
@@ -661,7 +667,53 @@ class BackOfficeServiceImplTest {
         given(memberService.findById(memberId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> backOfficeService.saveInquiryReply(request, memberId))
+        assertThatThrownBy(() -> backOfficeService.saveInquiryReply(request, memberId));
+    }
+
+    @DisplayName("회원 목록 조회 성공 테스트 (findMemberList)")
+    void findMemberListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoMemberListDto.Response expected = BoMemberListDto.Response.builder().build();
+
+        given(memberService.findBackOfficeMemberList(pageable)).willReturn(expected);
+
+        // when
+        BoMemberListDto.Response response = backOfficeService.findMemberList(pageable);
+
+        // then
+        assertThat(response).isEqualTo(expected);
+        verify(memberService).findBackOfficeMemberList(pageable);
+    }
+
+    @Test
+    @DisplayName("회원 상세 조회 성공 테스트 (findMember)")
+    void findMemberSuccessTest() {
+        // given
+        Long id = 1L;
+        Member member = mock(Member.class);
+        BoMemberDetailDto.Response expected = new BoMemberDetailDto.Response();
+
+        given(memberService.findById(id)).willReturn(Optional.of(member));
+        given(memberService.findBackOfficeMember(id)).willReturn(expected);
+
+        // when
+        BoMemberDetailDto.Response response = backOfficeService.findMember(id);
+
+        // then
+        assertThat(response).isEqualTo(expected);
+        verify(memberService).findBackOfficeMember(id);
+    }
+
+    @Test
+    @DisplayName("회원 상세 조회 시 회원을 찾지 못하면 BusinessException 발생")
+    void findMemberNotFoundTest() {
+        // given
+        Long id = 1L;
+        given(memberService.findById(id)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> backOfficeService.findMember(id))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
     }
@@ -704,5 +756,162 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getInquirie()).isEqualTo(detail);
+    }
+
+    @DisplayName("회원 삭제/비활성화 성공 테스트 (deleteMember)")
+    void deleteMemberSuccessTest() {
+        // given
+        Long id = 1L;
+        Member member = mock(Member.class);
+
+        given(memberService.findById(id)).willReturn(Optional.of(member));
+
+        // when
+        BoMemberCancelDto.Response response = backOfficeService.deleteMember(id);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(memberService).setMemberState(member, MemberState.INACTIVE);
+    }
+
+    @Test
+    @DisplayName("회원 삭제/비활성화 시 회원을 찾지 못하면 BusinessException 발생")
+    void deleteMemberNotFoundTest() {
+        // given
+        Long id = 1L;
+        given(memberService.findById(id)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> backOfficeService.deleteMember(id))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("회원 권한 부여 성공 테스트 (authMember)")
+    void authMemberSuccessTest() {
+        // given
+        Long id = 1L;
+        BoMemberAuthDto.Request request = new BoMemberAuthDto.Request(MemberRole.ADMIN);
+        Member member = mock(Member.class);
+
+        given(memberService.findById(id)).willReturn(Optional.of(member));
+
+        // when
+        BoMemberAuthDto.Response response = backOfficeService.authMember(id, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(memberService).setMemberAuth(member, MemberRole.ADMIN);
+    }
+
+    @Test
+    @DisplayName("회원 권한 부여 시 회원을 찾을 수 없으면 BusinessException 발생")
+    void authMemberNotFoundTest() {
+        // given
+        Long id = 1L;
+        BoMemberAuthDto.Request request = new BoMemberAuthDto.Request(MemberRole.ADMIN);
+
+        given(memberService.findById(id)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> backOfficeService.authMember(id, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("신고 대기 목록 조회 성공 테스트 (findReportWaitList)")
+    void findReportWaitListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoReportWaitListDto.Response.ReportInfo info = new BoReportWaitListDto.Response.ReportInfo();
+        info.setId(100L);
+
+        given(declarationService.findReportWaitList(pageable)).willReturn(List.of(info));
+
+        // when
+        BoReportWaitListDto.Response response = backOfficeService.findReportWaitList(pageable);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReportInfoList()).hasSize(1);
+        assertThat(response.getReportInfoList().get(0).getId()).isEqualTo(100L);
+        verify(declarationService).findReportWaitList(pageable);
+    }
+
+    @Test
+    @DisplayName("신고 완료 목록 조회 성공 테스트 (findReportDoneList)")
+    void findReportDoneListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        BoReportDoneListDto.Response.ReportInfo info = new BoReportDoneListDto.Response.ReportInfo();
+        info.setId(100L);
+
+        given(declarationService.findReportDoneList(pageable)).willReturn(List.of(info));
+
+        // when
+        BoReportDoneListDto.Response response = backOfficeService.findReportDoneList(pageable);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReportInfoList()).hasSize(1);
+        assertThat(response.getReportInfoList().get(0).getId()).isEqualTo(100L);
+        verify(declarationService).findReportDoneList(pageable);
+    }
+
+    @Test
+    @DisplayName("신고 숨김 처리 성공 테스트 (reportHidden)")
+    void reportHiddenSuccessTest() {
+        // given
+        BoReportHiddenDto.Request request = new BoReportHiddenDto.Request();
+        request.setId(100L);
+        request.setType(ReportType.BOARD);
+        request.setReason("사유");
+
+        // when
+        BoReportHiddenDto.Response response = backOfficeService.reportHidden(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(declarationService).reportHidden(100L, ReportType.BOARD, "사유");
+    }
+
+    @Test
+    @DisplayName("신고 무조치 처리 성공 테스트 (reportNoAction)")
+    void reportNoActionSuccessTest() {
+        // given
+        BoReportNoActionDto.Request request = new BoReportNoActionDto.Request();
+        request.setId(100L);
+        request.setType(ReportType.MEMBER);
+
+        // when
+        BoReportNoActionDto.Response response = backOfficeService.reportNoAction(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(declarationService).reportNoAction(100L, ReportType.MEMBER);
+    }
+
+    @Test
+    @DisplayName("신고 정지 처리 성공 테스트 (reportSuspended)")
+    void reportSuspendedSuccessTest() {
+        // given
+        BoReportSuspendedDto.Request request = new BoReportSuspendedDto.Request();
+        request.setId(100L);
+        request.setType(ReportType.BOARD);
+        request.setReason("사유");
+
+        // when
+        BoReportSuspendedDto.Response response = backOfficeService.reportSuspended(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(declarationService).reportSuspended(100L, ReportType.BOARD, "사유");
     }
 }

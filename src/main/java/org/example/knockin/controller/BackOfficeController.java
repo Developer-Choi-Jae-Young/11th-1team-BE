@@ -269,5 +269,59 @@ public class BackOfficeController {
     public CommonResponse<AuthEmailModifyDto.Response> modifyAuthEmail(AuthEmailModifyDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(authEmailService.modifyAuthEmail(request));
     }
+
+    @GetMapping("/member")
+    @Operation(summary = "회원 관리 목록 조회")
+    public CommonResponse<BoMemberListDto.Response> findMemberList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findMemberList(pageable));
+    }
+
+    @GetMapping("/member/{id}")
+    @Operation(summary = "회원 관리 상세 조회")
+    public CommonResponse<BoMemberDetailDto.Response> findMember(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findMember(id));
+    }
+
+    @PatchMapping("/member/cancel/{id}")
+    @Operation(summary = "회원 정지")
+    public CommonResponse<BoMemberCancelDto.Response> deleteMember(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteMember(id));
+    }
+
+    @PatchMapping("/member/auth/{id}")
+    @Operation(summary = "회원 권한 수정")
+    public CommonResponse<BoMemberAuthDto.Response> authMember(@PathVariable Long id, @RequestBody BoMemberAuthDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.authMember(id, request));
+    }
+
+    @GetMapping("/report/wait")
+    @Operation(summary = "신고 관리 대기 목록 조회")
+    public CommonResponse<BoReportWaitListDto.Response> findReportWaitList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findReportWaitList(pageable));
+    }
+
+    @GetMapping("/report/done")
+    @Operation(summary = "신고 관리 완료 목록 조회")
+    public CommonResponse<BoReportDoneListDto.Response> findReportDoneList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findReportDoneList(pageable));
+    }
+
+    @PostMapping("/report/hidden")
+    @Operation(summary = "신고 관리 게시물 비공개")
+    public CommonResponse<BoReportHiddenDto.Response> reportHidden(@RequestBody BoReportHiddenDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.reportHidden(request));
+    }
+
+    @PostMapping("/report/no-action")
+    @Operation(summary = "신고 관리 무혐의")
+    public CommonResponse<BoReportNoActionDto.Response> reportNoAction(@RequestBody BoReportNoActionDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.reportNoAction(request));
+    }
+
+    @PostMapping("/report/suspended")
+    @Operation(summary = "신고 관리 무혐의")
+    public CommonResponse<BoReportSuspendedDto.Response> reportSuspended(@RequestBody BoReportSuspendedDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.reportSuspended(request));
+    }
 }
 
