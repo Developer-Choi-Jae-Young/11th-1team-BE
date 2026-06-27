@@ -2,6 +2,8 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoTermsListDto;
+import org.example.knockin.dto.BoTypeTermsDto;
+import org.example.knockin.dto.BoTypeTermsListDto;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.AgreementLog;
 import org.example.knockin.entity.agreement.AgreementType;
@@ -68,5 +70,22 @@ public class AgreementServiceImpl {
 
     public AgreementType findAgreementTypeById(Long id) {
         return agreementTypeRepository.findById(id).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT));
+    }
+
+    public List<BoTypeTermsListDto.Response.TermsTypeItem> findTypeTermsList() {
+        return agreementTypeRepository.findAll().stream().map(item ->
+                BoTypeTermsListDto.Response.TermsTypeItem.builder().id(item.getId()).title(item.getName()).createAt(item.getCreatedAt()).build()).toList();
+    }
+
+    @Transactional
+    public AgreementType saveTermType(AgreementType agreementType) {
+        return agreementTypeRepository.save(agreementType);
+    }
+
+    @Transactional
+    public AgreementType deleteTermType(Long termTypeId) {
+        AgreementType agreementType = agreementTypeRepository.findById(termTypeId).orElseThrow(() -> new BusinessException(AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT));
+        agreementType.deleteAgreementType();
+        return agreementType;
     }
 }

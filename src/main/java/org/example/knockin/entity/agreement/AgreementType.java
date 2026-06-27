@@ -16,4 +16,12 @@ public class AgreementType extends CreatedAtEntity {
     @Column(nullable = false, length = 50)
     private String name;
     private Boolean isDeleted;
+
+    public void modifyAgreementType(String name) {
+        this.name = name;
+    }
+
+    public void deleteAgreementType() {
+        this.isDeleted = true;
+    }
 }

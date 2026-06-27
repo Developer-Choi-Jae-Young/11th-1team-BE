@@ -1,6 +1,8 @@
 package org.example.knockin.service.impl;
  
 import org.example.knockin.dto.BoTermsListDto;
+import org.example.knockin.dto.BoTypeTermsListDto;
+import java.time.LocalDateTime;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.AgreementLog;
 import org.example.knockin.entity.agreement.AgreementType;
@@ -258,6 +260,74 @@ class AgreementServiceImplTest {
  
         // when & then
         assertThatThrownBy(() -> agreementService.findAgreementTypeById(id))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT);
+    }
+
+    @Test
+    @DisplayName("약관 유형 목록 조회 성공 테스트")
+    void findTypeTermsListSuccessTest() {
+        // given
+        AgreementType type1 = AgreementType.builder().id(1L).name("유형 1").build();
+        org.springframework.test.util.ReflectionTestUtils.setField(type1, "createdAt", LocalDateTime.now());
+        AgreementType type2 = AgreementType.builder().id(2L).name("유형 2").build();
+        org.springframework.test.util.ReflectionTestUtils.setField(type2, "createdAt", LocalDateTime.now());
+
+        given(agreementTypeRepository.findAll()).willReturn(List.of(type1, type2));
+
+        // when
+        List<BoTypeTermsListDto.Response.TermsTypeItem> result = agreementService.findTypeTermsList();
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(1L);
+        assertThat(result.get(0).getTitle()).isEqualTo("유형 1");
+        assertThat(result.get(1).getId()).isEqualTo(2L);
+        assertThat(result.get(1).getTitle()).isEqualTo("유형 2");
+    }
+
+    @Test
+    @DisplayName("약관 유형 저장 성공 테스트")
+    void saveTermTypeSuccessTest() {
+        // given
+        AgreementType agreementType = AgreementType.builder().name("새 유형").isDeleted(false).build();
+        given(agreementTypeRepository.save(agreementType)).willReturn(agreementType);
+
+        // when
+        AgreementType result = agreementService.saveTermType(agreementType);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo("새 유형");
+        verify(agreementTypeRepository).save(agreementType);
+    }
+
+    @Test
+    @DisplayName("약관 유형 삭제 성공 테스트")
+    void deleteTermTypeSuccessTest() {
+        // given
+        Long termTypeId = 1L;
+        AgreementType agreementType = spy(AgreementType.builder().id(termTypeId).name("유형").isDeleted(false).build());
+        given(agreementTypeRepository.findById(termTypeId)).willReturn(Optional.of(agreementType));
+
+        // when
+        AgreementType result = agreementService.deleteTermType(termTypeId);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getIsDeleted()).isTrue();
+        verify(agreementType).deleteAgreementType();
+    }
+
+    @Test
+    @DisplayName("약관 유형 삭제 시 대상을 찾지 못하면 BusinessException 발생")
+    void deleteTermTypeNotFoundTest() {
+        // given
+        Long termTypeId = 1L;
+        given(agreementTypeRepository.findById(termTypeId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> agreementService.deleteTermType(termTypeId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AgreementErrorCode.AGREEMENT_TYPE_NOT_FOUNT);
     }

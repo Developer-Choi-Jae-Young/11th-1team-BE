@@ -974,13 +974,85 @@ class BackOfficeServiceImplTest {
     void deleteBoardSuccessTest() {
         // given
         Long id = 100L;
-
+ 
         // when
         BoBoardDeleteDto.Response response = backOfficeService.deleteBoard(id);
-
+ 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(roommateBoardService).deleteBackOfficeBoard(id);
+    }
+
+    @Test
+    @DisplayName("약관 유형 목록 조회 성공 테스트 (findTypeTermsList)")
+    void findTypeTermsListSuccessTest() {
+        // given
+        BoTypeTermsListDto.Response.TermsTypeItem item = BoTypeTermsListDto.Response.TermsTypeItem.builder()
+                .id(1L)
+                .title("약관 유형")
+                .createAt(LocalDateTime.now())
+                .build();
+        given(agreementService.findTypeTermsList()).willReturn(List.of(item));
+
+        // when
+        BoTypeTermsListDto.Response response = backOfficeService.findTypeTermsList();
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getTermTypes()).hasSize(1);
+        assertThat(response.getTermTypes().get(0).getId()).isEqualTo(1L);
+        assertThat(response.getTermTypes().get(0).getTitle()).isEqualTo("약관 유형");
+    }
+
+    @Test
+    @DisplayName("약관 유형 수정 성공 테스트 (modifyTermType)")
+    void modifyTermTypeSuccessTest() {
+        // given
+        Long termTypeId = 1L;
+        BoTypeTermsDto.Request request = new BoTypeTermsDto.Request();
+        request.setTitle("수정된 약관 유형");
+
+        AgreementType agreementType = spy(AgreementType.builder().id(termTypeId).name("기존 약관 유형").build());
+        given(agreementService.findAgreementTypeById(termTypeId)).willReturn(agreementType);
+
+        // when
+        BoTypeTermsDto.Response response = backOfficeService.modifyTermType(termTypeId, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(agreementType).modifyAgreementType("수정된 약관 유형");
+    }
+
+    @Test
+    @DisplayName("약관 유형 저장 성공 테스트 (saveTermType)")
+    void saveTermTypeSuccessTest() {
+        // given
+        BoTypeTermsDto.Request request = new BoTypeTermsDto.Request();
+        request.setTitle("새 약관 유형");
+
+        // when
+        BoTypeTermsDto.Response response = backOfficeService.saveTermType(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(agreementService).saveTermType(any(AgreementType.class));
+    }
+
+    @Test
+    @DisplayName("약관 유형 삭제 성공 테스트 (deleteTermType)")
+    void deleteTermTypeSuccessTest() {
+        // given
+        Long termTypeId = 1L;
+
+        // when
+        BoTypeTermsDto.Response response = backOfficeService.deleteTermType(termTypeId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(agreementService).deleteTermType(termTypeId);
     }
 }

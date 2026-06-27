@@ -272,4 +272,26 @@ public class BackOfficeServiceImpl {
         roommateBoardService.deleteBackOfficeBoard(id);
         return BoBoardDeleteDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
+
+    public BoTypeTermsListDto.Response findTypeTermsList() {
+        return BoTypeTermsListDto.Response.builder().termTypes(agreementService.findTypeTermsList()).build();
+    }
+
+    @Transactional
+    public BoTypeTermsDto.Response modifyTermType(Long termTypeId, BoTypeTermsDto.Request request) {
+        agreementService.findAgreementTypeById(termTypeId).modifyAgreementType(request.getTitle());
+        return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoTypeTermsDto.Response saveTermType(BoTypeTermsDto.Request request) {
+        agreementService.saveTermType(AgreementType.builder().name(request.getTitle()).isDeleted(false).build());
+        return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoTypeTermsDto.Response deleteTermType(Long termTypeId) {
+        agreementService.deleteTermType(termTypeId);
+        return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
 }
