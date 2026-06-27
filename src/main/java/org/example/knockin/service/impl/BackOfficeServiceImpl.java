@@ -33,16 +33,18 @@ public class BackOfficeServiceImpl {
     private final MemberServiceImpl memberService;
     private final InquirieServiceImpl inquirieService;
     private final DeclarationServiceImpl declarationService;
+    private final RoommateBoardServiceImpl roommateBoardService;
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
-        agreementService.saveAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).build());
+        agreementService.saveAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(1L).build());
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public BoTermsDto.Response modifyTerms(BoTermsDto.Request request, Long termsId) {
-        agreementService.modifyTemporaryAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).build(), termsId);
+        Long type = agreementService.findMaxAgreementType(termsId);
+        agreementService.modifyTemporaryAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(type).build());
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -254,5 +256,19 @@ public class BackOfficeServiceImpl {
     public BoReportSuspendedDto.Response reportSuspended(BoReportSuspendedDto.Request request) {
         declarationService.reportSuspended(request.getId(), request.getType(), request.getReason());
         return BoReportSuspendedDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    public BoBoardListDto.Response findBoardList(Pageable pageable) {
+        return BoBoardListDto.Response.builder().boardInfoList(roommateBoardService.findBackOfficeBoardList(pageable)).build();
+    }
+
+    public BoBoardDetailDto.Response findBoard(Long id) {
+        return roommateBoardService.findBackOffcieBoard(id);
+    }
+
+    @Transactional
+    public BoBoardDeleteDto.Response deleteBoard(Long id) {
+        roommateBoardService.deleteBackOfficeBoard(id);
+        return BoBoardDeleteDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }

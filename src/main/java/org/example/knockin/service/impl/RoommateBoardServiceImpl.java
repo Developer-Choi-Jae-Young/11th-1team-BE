@@ -12,20 +12,16 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoardDetailDto;
+import org.example.knockin.dto.*;
 import org.example.knockin.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.dto.BoardDetailDto.Response.FileDetailDto;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
-import org.example.knockin.dto.BoardDto;
 import org.example.knockin.dto.BoardDto.Request.FileDto;
 import org.example.knockin.dto.BoardDto.Response;
-import org.example.knockin.dto.BoardEditDto;
 import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RegionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RoomTypeInfo;
-import org.example.knockin.dto.BoardListDto;
-import org.example.knockin.dto.BoardModifyDto;
 import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
 import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.dto.Compatibility;
@@ -661,6 +657,24 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         roommateBoardDeclarationRepository.save(roommateBoardDeclaration);
 
         return new ReportDto.Response(LocalDateTime.now());
+    }
+
+    @Override
+    public List<BoBoardListDto.Response.BoardInfo> findBackOfficeBoardList(Pageable pageable) {
+        return roommateBoardRepository.findBackOfficeBoardList(pageable);
+    }
+
+    @Override
+    public BoBoardDetailDto.Response findBackOffcieBoard(Long id) {
+        return roommateBoardRepository.findBackOffcieBoard(id);
+    }
+
+    @Transactional
+    @Override
+    public RoommateBoard deleteBackOfficeBoard(Long id) {
+        RoommateBoard roommateBoard = roommateBoardRepository.findById(id).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        roommateBoard.softDelete();
+        return roommateBoard;
     }
 
     private String getFullRegionName(Region regionEntity) {

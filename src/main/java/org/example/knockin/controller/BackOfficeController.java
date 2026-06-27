@@ -260,7 +260,7 @@ public class BackOfficeController {
 
     @PostMapping("/auth-email")
     @Operation(summary = "인증 이메일 정보 삽입")
-    public CommonResponse<AuthEmailSaveDto.Response> saveAuthEmail(AuthEmailSaveDto.Request request) {
+    public CommonResponse<AuthEmailSaveDto.Response> saveAuthEmail(@RequestBody AuthEmailSaveDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(authEmailService.saveAuthEmail(request));
     }
 
@@ -322,6 +322,24 @@ public class BackOfficeController {
     @Operation(summary = "신고 관리 무혐의")
     public CommonResponse<BoReportSuspendedDto.Response> reportSuspended(@RequestBody BoReportSuspendedDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.reportSuspended(request));
+    }
+
+    @GetMapping("/boards")
+    @Operation(summary = "게시글 목록 조회")
+    public CommonResponse<BoBoardListDto.Response> findBoardList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findBoardList(pageable));
+    }
+
+    @GetMapping("/board/{id}")
+    @Operation(summary = "게시글 상세 조회")
+    public CommonResponse<BoBoardDetailDto.Response> findBoard(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findBoard(id));
+    }
+
+    @DeleteMapping("/board/{id}")
+    @Operation(summary = "게시글 삭제")
+    public CommonResponse<BoBoardDeleteDto.Response> deleteBoard(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteBoard(id));
     }
 }
 
