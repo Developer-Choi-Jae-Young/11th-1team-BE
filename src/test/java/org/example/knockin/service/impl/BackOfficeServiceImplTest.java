@@ -2,6 +2,7 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
+import org.example.knockin.entity.agreement.AgreementType;
 import org.example.knockin.entity.alarm.Notification;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryComment;
@@ -78,19 +79,22 @@ class BackOfficeServiceImplTest {
     void saveTermsSuccessTest() {
         // given
         BoTermsDto.Request request = new BoTermsDto.Request();
+        request.setAgreementTypeId(1L);
         request.setTitle("약관 제목");
         request.setContents("약관 내용");
         request.setIsRequired(true);
-
+ 
+        given(agreementService.findAgreementTypeById(1L)).willReturn(AgreementType.builder().id(1L).name("약관동의").isDeleted(false).build());
+ 
         // when
         BoTermsDto.Response response = backOfficeService.saveTerms(request);
-
+ 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(agreementService).saveAgreement(any(Agreement.class));
     }
-
+ 
     @Test
     @DisplayName("임시 약관 수정 성공 테스트 (modifyTerms)")
     void modifyTermsSuccessTest() {
@@ -100,34 +104,38 @@ class BackOfficeServiceImplTest {
         request.setTitle("임시 약관 제목");
         request.setContents("임시 약관 내용");
         request.setIsRequired(false);
-
-        given(agreementService.findMaxAgreementType(termsId)).willReturn(1L);
-
+ 
+        given(agreementService.findAgreementType(termsId)).willReturn(AgreementType.builder().id(1L).name("약관동의").isDeleted(false).build());
+ 
         // when
         BoTermsDto.Response response = backOfficeService.modifyTerms(request, termsId);
-
+ 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(agreementService).modifyTemporaryAgreement(any(Agreement.class));
     }
-
+ 
     @Test
     @DisplayName("약관 목록 조회 성공 테스트 (findTermsList)")
     void findTermsListSuccessTest() {
         // given
         Pageable pageable = PageRequest.of(0, 10);
-        Agreement agreement = Agreement.builder()
+        BoTermsListDto.Request request = new BoTermsListDto.Request();
+        request.setAgreementTypeId(1L);
+ 
+        BoTermsListDto.Response.TermsItem itemMock = BoTermsListDto.Response.TermsItem.builder()
                 .id(100L)
                 .title("서비스 약관")
+                .createAt(LocalDateTime.now())
+                .isCurrent(true)
                 .build();
-        ReflectionTestUtils.setField(agreement, "createdAt", LocalDateTime.now());
-
-        given(agreementService.findAgreementList(pageable)).willReturn(List.of(agreement));
-
+ 
+        given(agreementService.findAgreementList(pageable, 1L)).willReturn(List.of(itemMock));
+ 
         // when
-        BoTermsListDto.Response response = backOfficeService.findTermsList(pageable);
-
+        BoTermsListDto.Response response = backOfficeService.findTermsList(pageable, request);
+ 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getTerms()).hasSize(1);

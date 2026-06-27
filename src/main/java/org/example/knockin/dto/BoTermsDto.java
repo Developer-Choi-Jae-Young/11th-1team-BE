@@ -15,6 +15,8 @@ public class BoTermsDto {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Request {
+        @Schema(description = "약관 유형 고유 번호")
+        private Long agreementTypeId;
         @Schema(description = "제목")
         private String title;
         @Schema(description = "내용")

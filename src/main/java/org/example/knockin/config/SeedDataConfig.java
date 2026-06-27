@@ -3,6 +3,7 @@ package org.example.knockin.config;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.AgreementLog;
+import org.example.knockin.entity.agreement.AgreementType;
 import org.example.knockin.entity.inquiry.InquiryCategory;
 import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
@@ -12,6 +13,7 @@ import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.repository.agreement.AgreementLogRepository;
 import org.example.knockin.repository.agreement.AgreementRepository;
+import org.example.knockin.repository.agreement.AgreementTypeRepository;
 import org.example.knockin.repository.board.FaqRepository;
 import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
 import org.example.knockin.repository.life.LifePatternInformationRepository;
@@ -39,6 +41,7 @@ public class SeedDataConfig implements CommandLineRunner {
     private final RoomTypeRepository roomTypeRepository;
     private final RoomExtraOptionRepository roomExtraOptionRepository;
     private final InquiryCategoryRepository inquiryCategoryRepository;
+    private final AgreementTypeRepository agreementTypeRepository;
 
     @Override
     @Transactional
@@ -47,10 +50,14 @@ public class SeedDataConfig implements CommandLineRunner {
             return;
         }
 
-        Agreement termsOfService1 = Agreement.builder().title("서비스 이용약관").contents("상세 내용...").isDeleted(false).isRequired(true).type(1L).build();
-        Agreement termsOfService2 = Agreement.builder().title("서비스 이용약관").contents("상세 내용... 수정1").isDeleted(false).isRequired(true).type(1L).build();
-        Agreement termsOfService3 = Agreement.builder().title("서비스 이용약관").contents("상세 내용... 수정2").isDeleted(false).isRequired(true).type(1L).build();
-        Agreement privacyPolicy = Agreement.builder().title("개인정보 처리방침").contents("상세 내용...").isDeleted(false).isRequired(true).type(2L).build();
+        AgreementType agreementType1 = AgreementType.builder().name("서비스 이용약관").build();
+        AgreementType agreementType2 = AgreementType.builder().name("개인정보 처리방침").build();
+        agreementTypeRepository.saveAll(List.of(agreementType1, agreementType2));
+
+        Agreement termsOfService1 = Agreement.builder().title("서비스 이용약관").contents("상세 내용...").isDeleted(false).isRequired(true).type(agreementType1).build();
+        Agreement termsOfService2 = Agreement.builder().title("서비스 이용약관").contents("상세 내용... 수정1").isDeleted(false).isRequired(true).type(agreementType1).build();
+        Agreement termsOfService3 = Agreement.builder().title("서비스 이용약관").contents("상세 내용... 수정2").isDeleted(false).isRequired(true).type(agreementType1).build();
+        Agreement privacyPolicy = Agreement.builder().title("개인정보 처리방침").contents("상세 내용...").isDeleted(false).isRequired(true).type(agreementType2).build();
         agreementRepository.saveAll(List.of(termsOfService1, termsOfService2, termsOfService3, privacyPolicy));
 
         AgreementLog termsLog1 = AgreementLog.builder().agreement(termsOfService1).isCurrent(true).build();

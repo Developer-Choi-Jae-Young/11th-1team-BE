@@ -34,4 +34,6 @@ public class AgreementLog extends CreatedAtEntity {
     public void clearCurrent() {
         this.isCurrent = false;
     }
+
+    public void enableCurrent() { this.isCurrent = true; }
 }

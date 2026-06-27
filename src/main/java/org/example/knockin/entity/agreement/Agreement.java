@@ -1,11 +1,6 @@
 package org.example.knockin.entity.agreement;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import org.example.knockin.global.jpa.CreatedAtEntity;
 import org.hibernate.annotations.ColumnDefault;
@@ -22,7 +17,9 @@ public class Agreement extends CreatedAtEntity {
     @Column(name = "id")
     private Long id;
 
-    private Long type;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agreement_type_id")
+    private AgreementType type;
 
     @Column(name = "title", length = 50)
     private String title;
@@ -40,7 +37,6 @@ public class Agreement extends CreatedAtEntity {
     public void modifyAgreement(Agreement agreement) {
         this.title = agreement.getTitle();
         this.contents = agreement.getContents();
-        this.isDeleted = agreement.getIsDeleted();
         this.isRequired = agreement.getIsRequired();
     }
 

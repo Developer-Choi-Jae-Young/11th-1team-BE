@@ -38,8 +38,8 @@ public class BackOfficeController {
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
-    public CommonResponse<BoTermsListDto.Response> findTermsList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTermsList(pageable));
+    public CommonResponse<BoTermsListDto.Response> findTermsList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable, BoTermsListDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findTermsList(pageable, request));
     }
 
     @GetMapping("/terms/{termsId}")

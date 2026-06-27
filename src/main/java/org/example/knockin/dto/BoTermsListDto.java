@@ -13,7 +13,10 @@ import java.util.List;
 @Data
 public class BoTermsListDto {
     @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class Request {
+        private Long agreementTypeId;
     }
 
     @Data
@@ -35,6 +38,8 @@ public class BoTermsListDto {
             private String title;
             @Schema(description = "생성 일시")
             private LocalDateTime createAt;
+            @Schema(description = "현행 여부")
+            private boolean isCurrent;
         }
     }
 }

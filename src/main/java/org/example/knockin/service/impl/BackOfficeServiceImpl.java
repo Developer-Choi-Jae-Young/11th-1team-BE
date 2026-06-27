@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
+import org.example.knockin.entity.agreement.AgreementType;
 import org.example.knockin.entity.alarm.Notification;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryComment;
@@ -37,20 +38,20 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
-        agreementService.saveAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(1L).build());
+        AgreementType agreementType = agreementService.findAgreementTypeById(request.getAgreementTypeId());
+        agreementService.saveAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(agreementType).build());
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public BoTermsDto.Response modifyTerms(BoTermsDto.Request request, Long termsId) {
-        Long type = agreementService.findMaxAgreementType(termsId);
-        agreementService.modifyTemporaryAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(type).build());
+        AgreementType type = agreementService.findAgreementType(termsId);
+        agreementService.modifyTemporaryAgreement(Agreement.builder().title(request.getTitle()).contents(request.getContents()).isRequired(request.getIsRequired()).type(type).isDeleted(false).build());
         return BoTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
-    public BoTermsListDto.Response findTermsList(Pageable pageable) {
-        List<BoTermsListDto.Response.TermsItem> termsItemList = agreementService.findAgreementList(pageable).stream().map(item ->
-                BoTermsListDto.Response.TermsItem.builder().title(item.getTitle()).createAt(item.getCreatedAt()).id(item.getId()).build()).toList();
+    public BoTermsListDto.Response findTermsList(Pageable pageable, BoTermsListDto.Request request) {
+        List<BoTermsListDto.Response.TermsItem> termsItemList = agreementService.findAgreementList(pageable, request.getAgreementTypeId());
         return BoTermsListDto.Response.builder().terms(termsItemList).build();
     }
 
