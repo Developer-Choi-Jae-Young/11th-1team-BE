@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import static org.example.knockin.entity.agreement.QAgreementLog.agreementLog;
 import static org.example.knockin.entity.agreement.QAgreement.agreement;
+import static org.example.knockin.entity.agreement.QAgreementType.agreementType;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,12 +24,13 @@ public class AgreementLogRepositoryImpl implements AgreementLogRepositoryCustom 
     }
 
     @Override
-    public List<AgreementLog> findByAgreemnetIsCurrent(boolean isCurrent, Pageable pageable) {
+    public List<AgreementLog> findByAgreemnetIsCurrent(boolean isCurrent, Pageable pageable, Long agreementTypeId) {
         return jpaQueryFactory.selectFrom(agreementLog)
-                .where(agreementLog.id.in(JPAExpressions.select(agreementLog.id.max())
+                .where(agreementLog.id.in(JPAExpressions.select(agreementLog.id)
                                         .from(agreementLog)
                                         .join(agreementLog.agreement, agreement)
-                                        .where(agreementLog.isCurrent.isTrue())
-                                        .groupBy(agreement.type).offset(pageable.getOffset()).limit(pageable.getPageSize()))).fetch();
+                                        .join(agreement.type, agreementType)
+                                        .where(agreementType.id.eq(agreementTypeId), agreement.isDeleted.eq(false))
+                                        .offset(pageable.getOffset()).limit(pageable.getPageSize()))).fetch();
     }
 }

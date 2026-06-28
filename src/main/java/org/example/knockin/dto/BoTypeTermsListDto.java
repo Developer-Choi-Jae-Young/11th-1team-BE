@@ -11,12 +11,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class BoTermsListDto {
+public class BoTypeTermsListDto {
     @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
     public static class Request {
-        private Long agreementTypeId;
     }
 
     @Data
@@ -24,22 +21,20 @@ public class BoTermsListDto {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Response {
-        @Schema(description = "약관")
-        private List<TermsItem> terms;
+        @Schema(description = "약관 유형")
+        private List<TermsTypeItem> termTypes;
 
         @Data
         @Builder
         @AllArgsConstructor
         @NoArgsConstructor
-        public static class TermsItem {
+        public static class TermsTypeItem {
             @Schema(description = "고유 식별 ID")
             private Long id;
             @Schema(description = "제목")
             private String title;
             @Schema(description = "생성 일시")
             private LocalDateTime createAt;
-            @Schema(description = "현행 여부")
-            private boolean isCurrent;
         }
     }
 }

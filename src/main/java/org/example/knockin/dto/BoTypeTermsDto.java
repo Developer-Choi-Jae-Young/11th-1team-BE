@@ -10,19 +10,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
-public class BoTermsDto {
+public class BoTypeTermsDto {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Request {
-        @Schema(description = "약관 유형 고유 번호")
-        private Long agreementTypeId;
         @Schema(description = "제목")
         private String title;
-        @Schema(description = "내용")
-        private String contents;
-        @Schema(description = "필수 여부")
-        private Boolean isRequired;
     }
 
     @Data

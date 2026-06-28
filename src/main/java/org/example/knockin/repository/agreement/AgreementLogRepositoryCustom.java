@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface AgreementLogRepositoryCustom {
     List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds);
-    List<AgreementLog> findByAgreemnetIsCurrent(boolean isCurrent, Pageable pageable);
+    List<AgreementLog> findByAgreemnetIsCurrent(boolean isCurrent, Pageable pageable, Long agreementTypeId);
 }
