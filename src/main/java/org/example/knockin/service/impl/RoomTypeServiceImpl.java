@@ -43,4 +43,12 @@ public class RoomTypeServiceImpl {
     public RoomType findRoomType(Long roomTypeId) {
         return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
     }
+
+    public List<RoomType> findByRoomTypes(List<Long> roomTypes) {
+        return roomTypeRepository.findByRoomTypes(roomTypes);
+    }
+
+    public List<RoomType> findAllByIsDeleted(boolean isDeleted) {
+        return roomTypeRepository.findAllByIsDeleted(isDeleted);
+    }
 }

@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoLifeStylePatternDetailDto;
 import org.example.knockin.dto.BoLifeStylePatternListDto;
+import org.example.knockin.dto.MetaLifestylePatternsDto;
 import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.global.exception.BusinessException;
@@ -59,5 +60,17 @@ public class LifeStyleServiceImpl {
 
     public LifePattern findLifeStyle(Long patternId) {
         return lifePatternRepository.findById(patternId).orElseThrow(() -> new BusinessException(LifePatternErrorCode.LIFE_PATTERN_NOT_FOUNT));
+    }
+
+    public List<LifePattern> findAllById(List<Long> lifeStyles) {
+        return lifePatternRepository.findAllById(lifeStyles);
+    }
+
+    public List<LifePatternInformation> findByLifeStyles(List<Long> lifeStyles) {
+        return lifePatternInformationRepository.findByLifeStyles(lifeStyles);
+    }
+
+    public List<MetaLifestylePatternsDto.Response.PatternItem> findLifeStylePatterns() {
+        return lifePatternRepository.findLifeStylePatterns();
     }
 }

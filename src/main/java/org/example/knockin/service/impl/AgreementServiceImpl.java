@@ -88,4 +88,12 @@ public class AgreementServiceImpl {
         agreementType.deleteAgreementType();
         return agreementType;
     }
+
+    public List<Agreement> findByAgreementsIsCurrentAndIsDeleted() {
+        return agreementRepository.findByAgreementsIsCurrentAndIsDeleted();
+    }
+
+    public List<AgreementLog> findByAgreementLogIsCurrent(List<Long> agreementIds) {
+        return agreementLogRepository.findByAgreementLogIsCurrent(agreementIds);
+    }
 }

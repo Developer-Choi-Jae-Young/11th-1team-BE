@@ -47,6 +47,7 @@ import org.example.knockin.global.exception.FileErrorCode;
 import org.example.knockin.global.exception.MemberErrorCode;
 import org.example.knockin.global.exception.MetaErrorCode;
 import org.example.knockin.global.exception.RoommateBoardErrorCode;
+import org.example.knockin.global.exception.RoomTypeErrorCode;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.board.RoommateBoardDeclarationRepository;
 import org.example.knockin.repository.board.RoommateBoardFileRepository;
@@ -445,7 +446,7 @@ class RoommateBoardServiceImplTest {
         LocalDateTime updatedAt = LocalDateTime.of(2026, 6, 4, 16, 30);
 
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(fileService.upload(thumbnailImage, FileType.ROOMMATE_BOARD_IMAGE)).thenReturn(thumbnailFile);
         when(fileService.upload(roomImage, FileType.ROOMMATE_BOARD_IMAGE)).thenReturn(roomFile);
@@ -510,12 +511,12 @@ class RoommateBoardServiceImplTest {
         Long memberId = 42L;
         Member member = org.mockito.Mockito.mock(Member.class);
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.empty());
-
+        when(metaService.findByRoomTypeId(1L)).thenThrow(new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+ 
         assertThatThrownBy(() -> roommateBoardService.save(request, memberId, List.of(emptyMultipartFile())))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(MetaErrorCode.ROOM_TYPE_NOT_FOUND));
-
+                        e -> assertThat(e.getErrorCode()).isEqualTo(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+ 
         verifyNoInteractions(fileService, roommateBoardRepository, roommateBoardFileRepository);
     }
 
@@ -527,7 +528,7 @@ class RoommateBoardServiceImplTest {
         Member member = org.mockito.Mockito.mock(Member.class);
         RoomType roomType = org.mockito.Mockito.mock(RoomType.class);
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roommateBoardService.save(request, memberId, List.of(emptyMultipartFile())))
@@ -547,7 +548,7 @@ class RoommateBoardServiceImplTest {
         RoomType roomType = org.mockito.Mockito.mock(RoomType.class);
         Region region = org.mockito.Mockito.mock(Region.class);
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(fileService.upload(thumbnailImage, FileType.ROOMMATE_BOARD_IMAGE))
                 .thenThrow(new IOException("upload failed"));
@@ -573,7 +574,7 @@ class RoommateBoardServiceImplTest {
         Region region = org.mockito.Mockito.mock(Region.class);
         File thumbnailFile = createFile("thumbnail.jpg", "saved-thumbnail.jpg", "jpg");
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(fileService.upload(thumbnailImage, FileType.ROOMMATE_BOARD_IMAGE)).thenReturn(thumbnailFile);
         when(fileService.upload(roomImage, FileType.ROOMMATE_BOARD_IMAGE))
@@ -599,7 +600,7 @@ class RoommateBoardServiceImplTest {
         Region region = org.mockito.Mockito.mock(Region.class);
         File thumbnailFile = createFile("thumbnail.jpg", "saved-thumbnail.jpg", "jpg");
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(fileService.upload(thumbnailImage, FileType.ROOMMATE_BOARD_IMAGE)).thenReturn(thumbnailFile);
         when(roommateBoardRepository.save(any(RoommateBoard.class))).thenThrow(new IllegalStateException("db failed"));
@@ -625,7 +626,7 @@ class RoommateBoardServiceImplTest {
         LocalDateTime updatedAt = LocalDateTime.of(2026, 6, 4, 16, 30);
 
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(roommateBoardRepository.save(any(RoommateBoard.class))).thenReturn(savedRoommateBoard);
         when(savedRoommateBoard.getUpdatedAt()).thenReturn(updatedAt);
@@ -655,7 +656,7 @@ class RoommateBoardServiceImplTest {
         LocalDateTime updatedAt = LocalDateTime.of(2026, 6, 4, 16, 30);
 
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
         when(roommateBoardRepository.save(any(RoommateBoard.class))).thenReturn(savedRoommateBoard);
         when(savedRoommateBoard.getUpdatedAt()).thenReturn(updatedAt);
@@ -681,7 +682,7 @@ class RoommateBoardServiceImplTest {
         Region region = org.mockito.Mockito.mock(Region.class);
 
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(1L)).thenReturn(roomType);
         when(metaService.findByRegionId(2L)).thenReturn(Optional.of(region));
 
         assertThatThrownBy(() -> roommateBoardService.save(request, memberId, List.of(emptyMultipartFile())))
@@ -1014,7 +1015,7 @@ class RoommateBoardServiceImplTest {
         request.setNewImages(List.of(createNewFileDto(0, false)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(newRoomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(newRoomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(newRegion));
         when(roommateBoardOptionRepository.findWithRoomExtraOptionByBoardId(boardId))
                 .thenReturn(List.of(deleteBoardOption, keepBoardOption));
@@ -1089,7 +1090,7 @@ class RoommateBoardServiceImplTest {
         request.setExistingImages(List.of(createExistingFileDto(101L, true)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(List.of(existingThumbnail));
 
@@ -1125,7 +1126,7 @@ class RoommateBoardServiceImplTest {
         request.setExistingImages(existingImages);
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(boardFiles);
 
@@ -1157,7 +1158,7 @@ class RoommateBoardServiceImplTest {
         request.setNewImages(List.of());
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard))
                 .thenAnswer(invocation -> new ArrayList<>(persistedBoardFiles));
@@ -1204,7 +1205,7 @@ class RoommateBoardServiceImplTest {
                 createExistingFileDto(102L, false)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard))
                 .thenReturn(List.of(firstImage, secondImage));
@@ -1252,7 +1253,7 @@ class RoommateBoardServiceImplTest {
         request.setExistingImages(List.of(createExistingFileDto(101L, true)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(List.of(existingThumbnail));
 
@@ -1277,7 +1278,7 @@ class RoommateBoardServiceImplTest {
         request.setNewExtraOptionIds(List.of(20L, 21L));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(metaService.findRoomExtraOptionsByIdIn(List.of(20L, 21L)))
                 .thenReturn(List.of(org.mockito.Mockito.mock(RoomExtraOption.class)));
@@ -1309,7 +1310,7 @@ class RoommateBoardServiceImplTest {
         request.setNewImages(List.of(createNewFileDto(0, false)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(List.of(existingThumbnail));
         when(fileService.upload(failedFile, FileType.ROOMMATE_BOARD_IMAGE))
@@ -1358,7 +1359,7 @@ class RoommateBoardServiceImplTest {
         request.setNewImages(List.of(createNewFileDto(1, false)));
 
         when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
-        when(metaService.findByRoomTypeId(11L)).thenReturn(Optional.of(roomType));
+        when(metaService.findByRoomTypeId(11L)).thenReturn(roomType);
         when(metaService.findByRegionId(22L)).thenReturn(Optional.of(region));
         when(roommateBoardFileRepository.findByRoommateBoard(roommateBoard)).thenReturn(List.of(existingThumbnail));
 
