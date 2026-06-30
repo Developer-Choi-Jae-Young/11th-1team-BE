@@ -104,8 +104,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Member member = memberService.findById(memberId)
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId())
-                .orElseThrow(() -> new BusinessException(MetaErrorCode.ROOM_TYPE_NOT_FOUND));
+        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
 
         Region region = metaService.findByRegionId(request.getRegionId())
                 .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
@@ -381,8 +380,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
 
         checkingIsOwner(roommateBoard, memberId);
 
-        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId())
-                .orElseThrow(() -> new BusinessException(MetaErrorCode.ROOM_TYPE_NOT_FOUND));
+        RoomType roomType = metaService.findByRoomTypeId(request.getRoomTypeId());
         Region region = metaService.findByRegionId(request.getRegionId())
                 .orElseThrow(() -> new BusinessException(MetaErrorCode.REGION_NOT_FOUND));
 
