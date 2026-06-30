@@ -352,7 +352,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     }
 
     private Integer extractScore(Compatibility compatibility) {
-        return compatibility == null ? null : compatibility.getScore();
+        return compatibility == null ? null : compatibility.getTotalScore();
     }
 
     @Override

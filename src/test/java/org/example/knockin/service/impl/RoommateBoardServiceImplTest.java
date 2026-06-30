@@ -3,7 +3,6 @@ package org.example.knockin.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -778,7 +777,7 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getMemberAge()).isEqualTo(Period.between(birth, LocalDate.now()).getYears());
         assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
         assertThat(response.getAuthentications()).isSameAs(authenticationTypes);
-        assertThat(response.getCompatibility().getScore()).isEqualTo(76);
+        assertThat(response.getCompatibility().getTotalScore()).isEqualTo(76);
         assertThat(response.isInterested()).isTrue();
         InOrder inOrder = inOrder(roommateBoardRepository);
         inOrder.verify(roommateBoardRepository).increaseHitsById(boardId);

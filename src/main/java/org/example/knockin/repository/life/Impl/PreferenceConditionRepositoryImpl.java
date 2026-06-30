@@ -61,4 +61,15 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                 .orderBy(lifePattern.sort.asc(), preferenceCondition.id.asc())
                 .fetch();
     }
+
+    @Override
+    public List<Long> findLifeInformationIdByMemberId(Long memberId) {
+        return jpaQueryFactory
+                .select(lifePatternInformation.id)
+                .distinct()
+                .from(preferenceCondition)
+                .join(preferenceCondition.lifePatternInformation, lifePatternInformation)
+                .where(preferenceCondition.member.id.eq(memberId))
+                .fetch();
+    }
 }
