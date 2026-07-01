@@ -233,7 +233,7 @@ public class ChatServiceImpl {
 
     private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChatRoomMember me, Long chatRoomId) {
         Member opponentMember = chatRoomMemberRepository.findPartnerMember(me, chatRoomId);
-        ChattingRoomBasicInfoRow row = basicInformationRepository.findChattingRoomBasicInfoRow(opponentMember)
+        ChattingRoomBasicInfoRow row = basicInformationRepository.findChattingRoomBasicInfoRow(opponentMember.getId())
                 .orElseThrow(() -> new BusinessException(MemberErrorCode.BASIC_INFO_NOT_FOUND));
         Integer score = roommateScoreService.calculateSimpleScore(me.getMember().getId(), opponentMember.getId());
 

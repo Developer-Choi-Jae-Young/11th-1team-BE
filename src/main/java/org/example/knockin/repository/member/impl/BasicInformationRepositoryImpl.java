@@ -40,7 +40,7 @@ public class BasicInformationRepositoryImpl implements BasicInformationRepositor
     }
 
     @Override
-    public Optional<ChattingRoomBasicInfoRow> findChattingRoomBasicInfoRow(Member memberEntity) {
+    public Optional<ChattingRoomBasicInfoRow> findChattingRoomBasicInfoRow(Long memberId) {
         QBasicInformationFile latestBasicInformationFile = new QBasicInformationFile("latestBasicInformationFile");
 
         return Optional.ofNullable(jpaQueryFactory
@@ -61,7 +61,7 @@ public class BasicInformationRepositoryImpl implements BasicInformationRepositor
                                 .where(latestBasicInformationFile.basicInformation.id.eq(basicInformation.id))
                 ))
                 .leftJoin(basicInformationFile.file, file)
-                .where(basicInformation.member.eq(memberEntity))
+                .where(basicInformation.member.id.eq(memberId))
                 .orderBy(basicInformation.id.desc())
                 .fetchFirst()
         );

@@ -1,8 +1,10 @@
 package org.example.knockin.repository.room.Impl;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.repository.room.MyRoommateRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -26,5 +28,18 @@ public class MyRoommateRepositoryImpl implements MyRoommateRepositoryCustom {
                 .fetchFirst();
 
         return fetchOne != null;
+    }
+
+    @Override
+    public Optional<MyRoommate> findWithFetchedByMemberId(Long memberId) {
+        return Optional.ofNullable(
+                jpaQueryFactory
+                        .select(myRoommate)
+                        .from(myRoommate)
+                        .join(myRoommate.roommateMatchingRequired, roommateMatchingRequired).fetchJoin()
+                        .where(roommateMatchingRequired.requestee.id.eq(memberId)
+                                .or(roommateMatchingRequired.requester.id.eq(memberId)))
+                        .fetchFirst()
+        );
     }
 }

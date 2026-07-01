@@ -1,9 +1,11 @@
 package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.example.knockin.entity.life.LifePatternType;
-import java.util.List;
+import lombok.NoArgsConstructor;
+import org.example.knockin.entity.member.Gender;
 
 @Data
 public class MyRoommateDto {
@@ -12,28 +14,43 @@ public class MyRoommateDto {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
         @Schema(description = "고유 식별 ID")
-        private Long userId;
-        @Schema(description = "이름")
-        private String userName;
-        @Schema(description = "적합도")
-        private Compatibility compatibility;
-        @Schema(description = "선호도 목록")
-        private List<Lifestyle> preferences;
+        private Long id;
+
+        @Schema(description = "내 룸메 정보")
+        private MyRoommateInfo myRoommateInfo;
+
+        @Schema(description = "채팅방 고유 식별 ID")
+        private Long chatRoomId;
+
+        @Schema(description = "궁합 점수")
+        private Integer score;
 
         @Data
-        public static class Lifestyle {
-            @Schema(description = "고유 식별 ID")
-            private Long lifestyleId;
-            @Schema(description = "이름")
-            private String name;
-            @Schema(description = "값")
-            private String value;
-            @Schema(description = "설명")
-            private String description;
-            @Schema(description = "타입/유형")
-            private LifePatternType type;
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class MyRoommateInfo {
+            @Schema(description = "내 룸메 회원 고유 식별 ID")
+            private Long memberId;
+
+            @Schema(description = "내 룸메 이름")
+            private String memberName;
+
+            @Schema(description = "내 룸메 나이")
+            private Integer memberAge;
+
+            @Schema(description = "내 룸메 성별")
+            private Gender gender;
+
+            @Schema(description = "내 룸메 프로필 사진 URL")
+            private String memberProfileImageUrl;
         }
     }
+
+
 }

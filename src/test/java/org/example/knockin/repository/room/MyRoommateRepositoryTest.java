@@ -1,0 +1,119 @@
+package org.example.knockin.repository.room;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import jakarta.persistence.EntityManager;
+import java.util.Optional;
+import org.example.knockin.config.QueryDslConfig;
+import org.example.knockin.entity.auth.LoginProviderType;
+import org.example.knockin.entity.chat.ChattingRequired;
+import org.example.knockin.entity.chat.ChattingRequiredStatus;
+import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.room.MyRoommate;
+import org.example.knockin.entity.room.RoommateMatchingRequired;
+import org.example.knockin.entity.room.RoommateRequiredStatus;
+import org.hibernate.Hibernate;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+
+@DataJpaTest
+@ActiveProfiles("test")
+@Import(QueryDslConfig.class)
+@DisplayName("내 룸메이트 리포지토리")
+class MyRoommateRepositoryTest {
+
+    @Autowired
+    private MyRoommateRepository myRoommateRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Test
+    @DisplayName("요청자나 피요청자 회원 ID로 내 룸메이트와 룸메이트 요청 정보를 조회한다")
+    void findWithFetchedByMemberIdReturnsMyRoommateForRequesterOrRequestee() {
+        // Given
+        Member requester = persistMember("my-roommate-requester");
+        Member requestee = persistMember("my-roommate-requestee");
+        MyRoommate myRoommate = persistMyRoommate(requester, requestee);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Optional<MyRoommate> requesterResult = myRoommateRepository.findWithFetchedByMemberId(requester.getId());
+        Optional<MyRoommate> requesteeResult = myRoommateRepository.findWithFetchedByMemberId(requestee.getId());
+
+        // Then
+        assertThat(requesterResult).isPresent();
+        assertThat(requesterResult.get().getId()).isEqualTo(myRoommate.getId());
+        assertThat(Hibernate.isInitialized(requesterResult.get().getRoommateMatchingRequired())).isTrue();
+        assertThat(requesterResult.get().getRoommateMatchingRequired().getRequester().getId()).isEqualTo(requester.getId());
+        assertThat(requesterResult.get().getRoommateMatchingRequired().getRequestee().getId()).isEqualTo(requestee.getId());
+
+        assertThat(requesteeResult).isPresent();
+        assertThat(requesteeResult.get().getId()).isEqualTo(myRoommate.getId());
+    }
+
+    @Test
+    @DisplayName("룸메이트 요청에 포함되지 않은 회원 ID이면 빈 값을 반환한다")
+    void findWithFetchedByMemberIdReturnsEmptyWhenMemberIsNotRequesterOrRequestee() {
+        // Given
+        Member requester = persistMember("my-roommate-requester-empty");
+        Member requestee = persistMember("my-roommate-requestee-empty");
+        Member unrelated = persistMember("my-roommate-unrelated");
+        persistMyRoommate(requester, requestee);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Optional<MyRoommate> result = myRoommateRepository.findWithFetchedByMemberId(unrelated.getId());
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    private Member persistMember(String providerId) {
+        Member member = Member.builder()
+                .providerType(LoginProviderType.KAKAO)
+                .providerId(providerId)
+                .role(MemberRole.USER)
+                .isDelete(false)
+                .build();
+        entityManager.persist(member);
+        return member;
+    }
+
+    private MyRoommate persistMyRoommate(Member requester, Member requestee) {
+        ChattingRequired chattingRequired = ChattingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .status(ChattingRequiredStatus.ACCEPTED)
+                .build();
+        entityManager.persist(chattingRequired);
+
+        ChattingRoom chattingRoom = ChattingRoom.builder()
+                .chattingRequired(chattingRequired)
+                .build();
+        entityManager.persist(chattingRoom);
+
+        RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .chattingRoom(chattingRoom)
+                .status(RoommateRequiredStatus.ACCEPTED)
+                .build();
+        entityManager.persist(matchingRequired);
+
+        MyRoommate myRoommate = MyRoommate.builder()
+                .roommateMatchingRequired(matchingRequired)
+                .isDeleted(false)
+                .build();
+        entityManager.persist(myRoommate);
+        return myRoommate;
+    }
+}
