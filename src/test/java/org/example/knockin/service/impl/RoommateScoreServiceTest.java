@@ -1,16 +1,34 @@
 package org.example.knockin.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
 import org.example.knockin.dto.Compatibility;
+import org.example.knockin.entity.chat.ChattingRequired;
+import org.example.knockin.entity.chat.ChattingRequiredStatus;
+import org.example.knockin.entity.chat.ChattingScore;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
+import org.example.knockin.entity.life.MemberLifePatternLog;
+import org.example.knockin.entity.life.PreferenceConditionLog;
+import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.room.MyRoommate;
+import org.example.knockin.entity.room.RoommateMatchingRequired;
+import org.example.knockin.entity.room.RoommateRequiredStatus;
+import org.example.knockin.entity.room.RoommateScore;
 import org.example.knockin.repository.life.LifePatternInformationRepository;
+import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
+import org.example.knockin.repository.life.PreferenceConditionLogRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
+import org.example.knockin.repository.life.PreferenceConditionWeightLogRepository;
 import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
 import org.example.knockin.repository.life.row.LifePatternInformationValueRow;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
@@ -38,6 +56,15 @@ class RoommateScoreServiceTest {
     @Mock
     private LifePatternInformationRepository lifePatternInformationRepository;
 
+    @Mock
+    private MemberLifePatternLogRepository memberLifePatternLogRepository;
+
+    @Mock
+    private PreferenceConditionLogRepository preferenceConditionLogRepository;
+
+    @Mock
+    private PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+
     private JavaRoommateScoreService roommateScoreService;
 
     @BeforeEach
@@ -47,7 +74,10 @@ class RoommateScoreServiceTest {
                 preferenceConditionRepository,
                 preferenceConditionWeightRepository,
                 lifePatternInformationRepository,
-                new RoommateScorePolicy()
+                new RoommateScorePolicy(),
+                memberLifePatternLogRepository,
+                preferenceConditionLogRepository,
+                preferenceConditionWeightLogRepository
         );
     }
 
@@ -95,9 +125,9 @@ class RoommateScoreServiceTest {
         Map<Long, Integer> simpleScores = roommateScoreService.calculateSimpleScores(requesterId, List.of(targetId));
 
         // Then
-        assertThat(scores.get(targetId).getScore()).isEqualTo(90);
+        assertThat(scores.get(targetId).getTotalScore()).isEqualTo(90);
         assertThat(scores.get(targetId).getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getTitle, Compatibility.LifeStyleInfo::getPercent)
+                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
                 .containsExactlyInAnyOrder(
                         org.assertj.core.groups.Tuple.tuple("청결 민감도", 75),
                         org.assertj.core.groups.Tuple.tuple("흡연", 100),
@@ -130,9 +160,9 @@ class RoommateScoreServiceTest {
         Map<Long, Compatibility> scores = roommateScoreService.calculateScores(requesterId, List.of(targetId));
 
         // Then
-        assertThat(scores.get(targetId).getScore()).isEqualTo(100);
+        assertThat(scores.get(targetId).getTotalScore()).isEqualTo(100);
         assertThat(scores.get(targetId).getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getTitle, Compatibility.LifeStyleInfo::getPercent)
+                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("아침형 인간", 100));
     }
 
@@ -180,10 +210,148 @@ class RoommateScoreServiceTest {
         Map<Long, Compatibility> scores = roommateScoreService.calculateScores(requesterId, List.of(targetId));
 
         // Then
-        assertThat(scores.get(targetId).getScore()).isEqualTo(75);
+        assertThat(scores.get(targetId).getTotalScore()).isEqualTo(75);
         verify(memberLifePatternRepository).findAllLifestyleByMemberIdIn(lookupMemberIds);
         verify(preferenceConditionRepository).findAllPreferenceConditionByMemberIdIn(lookupMemberIds);
         verify(preferenceConditionWeightRepository).findAllPreferenceConditionWeightByMemberIdIn(lookupMemberIds);
+    }
+
+    @Test
+    @DisplayName("채팅 요청 기준 양방향 점수 row를 생성하고 저장된 row는 생활패턴별 최대 점수로 총점을 계산한다")
+    void createChattingScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
+        // Given
+        Member requester = member(1L);
+        Member requestee = member(2L);
+        ChattingRequired chattingRequired = ChattingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .status(ChattingRequiredStatus.PENDING)
+                .build();
+
+        LifePattern smoking = lifePattern(101L, "흡연", LifePatternType.SINGLE_CHOICE, 1);
+        LifePattern pet = lifePattern(102L, "반려동물", LifePatternType.SINGLE_CHOICE, 2);
+
+        LifePatternInformation nonSmoking = information(1001L, smoking, "NON_SMOKING");
+        LifePatternInformation smokingEveryday = information(1002L, smoking, "SMOKING");
+        LifePatternInformation petYes = information(2001L, pet, "YES");
+
+        MemberLifePatternLog requesterSmokingLog = lifePatternLog(requester, nonSmoking);
+        MemberLifePatternLog requesterPetLog = lifePatternLog(requester, petYes);
+        MemberLifePatternLog requesteeSmokingLog = lifePatternLog(requestee, smokingEveryday);
+        MemberLifePatternLog requesteePetLog = lifePatternLog(requestee, petYes);
+
+        PreferenceConditionLog requesterNonSmokingPreference = preferenceLog(requester, nonSmoking);
+        PreferenceConditionLog requesterSmokingPreference = preferenceLog(requester, smokingEveryday);
+        PreferenceConditionWeightLog requesterSmokingWeight = weightLog(requester, smoking);
+
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(1L))
+                .thenReturn(List.of(requesterSmokingLog, requesterPetLog));
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(2L))
+                .thenReturn(List.of(requesteeSmokingLog, requesteePetLog));
+        when(preferenceConditionRepository.findLifeInformationIdByMemberId(1L))
+                .thenReturn(List.of(1001L, 1002L));
+        when(preferenceConditionRepository.findLifeInformationIdByMemberId(2L))
+                .thenReturn(List.of());
+        when(preferenceConditionLogRepository.findLatestLogsWithFetchByMemberId(1L, List.of(1001L, 1002L)))
+                .thenReturn(List.of(requesterNonSmokingPreference, requesterSmokingPreference));
+        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(1L))
+                .thenReturn(List.of(requesterSmokingWeight));
+        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(2L))
+                .thenReturn(List.of());
+        when(lifePatternInformationRepository.findAllValueRowsByLifePatternIdIn(anyList()))
+                .thenReturn(List.of());
+
+        // When
+        List<ChattingScore> scores = roommateScoreService.createChattingScores(chattingRequired);
+        Compatibility requesterCompatibility = roommateScoreService.calculateChattingCompatibility(1L, scores);
+        Compatibility requesteeCompatibility = roommateScoreService.calculateChattingCompatibility(2L, scores);
+
+        // Then
+        assertThat(scores).hasSize(5);
+        assertThat(scores)
+                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
+                .extracting(ChattingScore::getScore)
+                .containsExactly(0, 100, 100);
+        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(100);
+        assertThat(requesterCompatibility.getLifeStyleInfo())
+                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("흡연", 100),
+                        org.assertj.core.groups.Tuple.tuple("반려동물", 100)
+                );
+        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(50);
+    }
+
+    @Test
+    @DisplayName("룸메이트 확정 기준 양방향 점수 row를 생성하고 저장된 row로 사용자별 총점을 계산한다")
+    void createRoommateScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
+        // Given
+        Member requester = member(1L);
+        Member requestee = member(2L);
+        RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .status(RoommateRequiredStatus.ACCEPTED)
+                .build();
+        MyRoommate myRoommate = MyRoommate.builder()
+                .roommateMatchingRequired(matchingRequired)
+                .isDeleted(false)
+                .build();
+
+        LifePattern cleaning = lifePattern(101L, "청결 민감도", LifePatternType.SCALE, 1);
+        LifePattern smoking = lifePattern(102L, "흡연", LifePatternType.SINGLE_CHOICE, 2);
+
+        LifePatternInformation cleaning3 = information(1001L, cleaning, "3");
+        LifePatternInformation cleaning5 = information(1002L, cleaning, "5");
+        LifePatternInformation nonSmoking = information(2001L, smoking, "NON_SMOKING");
+        LifePatternInformation smokingEveryday = information(2002L, smoking, "SMOKING");
+
+        MemberLifePatternLog requesterCleaningLog = lifePatternLog(requester, cleaning3);
+        MemberLifePatternLog requesterSmokingLog = lifePatternLog(requester, nonSmoking);
+        MemberLifePatternLog requesteeCleaningLog = lifePatternLog(requestee, cleaning5);
+        MemberLifePatternLog requesteeSmokingLog = lifePatternLog(requestee, smokingEveryday);
+        PreferenceConditionWeightLog requesterCleaningWeight = weightLog(requester, cleaning);
+
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(1L))
+                .thenReturn(List.of(requesterCleaningLog, requesterSmokingLog));
+        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(2L))
+                .thenReturn(List.of(requesteeCleaningLog, requesteeSmokingLog));
+        when(preferenceConditionRepository.findLifeInformationIdByMemberId(1L))
+                .thenReturn(List.of());
+        when(preferenceConditionRepository.findLifeInformationIdByMemberId(2L))
+                .thenReturn(List.of());
+        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(1L))
+                .thenReturn(List.of(requesterCleaningWeight));
+        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(2L))
+                .thenReturn(List.of());
+        when(lifePatternInformationRepository.findAllValueRowsByLifePatternIdIn(List.of(101L, 102L)))
+                .thenReturn(List.of(
+                        new LifePatternInformationValueRow(101L, "1"),
+                        new LifePatternInformationValueRow(101L, "2"),
+                        new LifePatternInformationValueRow(101L, "3"),
+                        new LifePatternInformationValueRow(101L, "4"),
+                        new LifePatternInformationValueRow(101L, "5")
+                ));
+
+        // When
+        List<RoommateScore> scores = roommateScoreService.createRoommateScores(myRoommate);
+        Compatibility requesterCompatibility = roommateScoreService.calculateRoommateCompatibility(1L, scores);
+        Compatibility requesteeCompatibility = roommateScoreService.calculateRoommateCompatibility(2L, scores);
+
+        // Then
+        assertThat(scores).hasSize(4);
+        assertThat(scores)
+                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
+                .extracting(RoommateScore::getScore)
+                .containsExactly(50, 0);
+        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(33);
+        assertThat(requesterCompatibility.getLifeStyleInfo())
+                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("청결 민감도", 50),
+                        org.assertj.core.groups.Tuple.tuple("흡연", 0)
+                );
+        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(25);
     }
 
     private MatchingLifestyleRow lifestyle(
@@ -226,5 +394,53 @@ class RoommateScoreServiceTest {
                 value,
                 type
         );
+    }
+
+    private Member member(Long id) {
+        return Member.builder()
+                .id(id)
+                .providerId("provider-" + id)
+                .role(MemberRole.USER)
+                .build();
+    }
+
+    private LifePattern lifePattern(Long id, String name, LifePatternType type, Integer sort) {
+        return LifePattern.builder()
+                .id(id)
+                .name(name)
+                .dtype(type)
+                .isDeleted(false)
+                .sort(sort)
+                .build();
+    }
+
+    private LifePatternInformation information(Long id, LifePattern lifePattern, String value) {
+        return LifePatternInformation.builder()
+                .id(id)
+                .lifePattern(lifePattern)
+                .dvalue(value)
+                .description(value)
+                .build();
+    }
+
+    private MemberLifePatternLog lifePatternLog(Member member, LifePatternInformation information) {
+        return MemberLifePatternLog.builder()
+                .member(member)
+                .lifePatternInformation(information)
+                .build();
+    }
+
+    private PreferenceConditionLog preferenceLog(Member member, LifePatternInformation information) {
+        return PreferenceConditionLog.builder()
+                .member(member)
+                .lifePatternInformation(information)
+                .build();
+    }
+
+    private PreferenceConditionWeightLog weightLog(Member member, LifePattern lifePattern) {
+        return PreferenceConditionWeightLog.builder()
+                .member(member)
+                .lifePattern(lifePattern)
+                .build();
     }
 }

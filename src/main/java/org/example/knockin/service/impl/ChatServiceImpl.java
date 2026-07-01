@@ -24,6 +24,7 @@ import org.example.knockin.entity.chat.ChatRoomMessage;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.Member;
@@ -39,6 +40,7 @@ import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
 import org.example.knockin.repository.chat.ChattingRequiredRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
+import org.example.knockin.repository.chat.ChattingScoreRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
@@ -79,6 +81,7 @@ public class ChatServiceImpl {
     private final ChattingRequiredRepository chattingRequiredRepository;
     private final MemberRepository memberRepository;
     private final RoommateScoreService roommateScoreService;
+    private final ChattingScoreRepository chattingScoreRepository;
 
     public List<ChatRoomListDto.Response> getChatRoomList(Long memberId) {
         return chattingRoomRepository.findByMemberId(memberId);
@@ -260,6 +263,7 @@ public class ChatServiceImpl {
         saveChattingRoomMembers(chattingRoom, List.of(requester, requestee));
         String contents = request.getChatMessage().getContents();
         ChatRoomMessage chatRoomMessage = saveMessage(contents, requester, chattingRoom, MessageType.TEXT);
+        chattingScoreRepository.saveAll(roommateScoreService.createChattingScores(chattingRequired));
 
         return ChatRoomCreateDto.Response.builder()
                 .chatRoomId(chattingRoom.getId())

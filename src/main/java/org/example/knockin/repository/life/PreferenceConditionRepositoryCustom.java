@@ -9,4 +9,6 @@ public interface PreferenceConditionRepositoryCustom {
     List<BoardDetailDto.Response.Condition> getConditionDtoByMemberId(Long memberId);
 
     List<MatchingPreferenceConditionRow> findAllPreferenceConditionByMemberIdIn(List<Long> memberIds);
+
+    List<Long> findLifeInformationIdByMemberId(Long memberId);
 }

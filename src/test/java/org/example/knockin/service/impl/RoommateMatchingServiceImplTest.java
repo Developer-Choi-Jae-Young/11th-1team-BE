@@ -492,7 +492,7 @@ class RoommateMatchingServiceImplTest {
         assertThat(response.getConditions()).extracting(MatchListDto.Condition::getName).containsExactly("소음");
         assertThat(response.getConditionWeights()).extracting(MatchListDto.ConditionWeight::getName).containsExactly("흡연");
         assertThat(response.getAuthentications()).containsExactly(AuthenticationType.STUDENT);
-        assertThat(response.getCompatibility().getScore()).isEqualTo(87);
+        assertThat(response.getCompatibility().getTotalScore()).isEqualTo(87);
         verifyNoInteractions(roomSeekerProfileRepository);
     }
 
