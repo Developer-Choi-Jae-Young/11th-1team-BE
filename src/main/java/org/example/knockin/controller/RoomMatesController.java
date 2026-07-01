@@ -2,23 +2,34 @@ package org.example.knockin.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.CalendarDto;
 import org.example.knockin.dto.CalendarTypesDto;
 import org.example.knockin.dto.MyRoommateCalendarDetailDto;
 import org.example.knockin.dto.MyRoommateCalendarListDto;
 import org.example.knockin.dto.MyRoommateDto;
+import org.example.knockin.dto.MyRoommateDto.Response;
 import org.example.knockin.global.api.CommonResponse;
+import org.example.knockin.global.auth.dto.PrincipalDetails;
+import org.example.knockin.service.impl.MyRoomMateServiceImpl;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/roommates")
 @Tag(name = "8. 룸메이트 관리")
 public class RoomMatesController {
+    private final MyRoomMateServiceImpl myRoomMateService;
+
     @GetMapping("/me")
     @Operation(summary = "내 룸메이트 조회")
-    public CommonResponse<MyRoommateDto.Response> findMyRoomMate() {
-        return CommonResponse.status(HttpStatus.OK).body(new MyRoommateDto.Response());
+    public CommonResponse<MyRoommateDto.Response> findMyRoomMate(
+            @AuthenticationPrincipal PrincipalDetails details
+    ) {
+        MyRoommateDto.Response response = myRoomMateService.findMyRoommate(details.getMember().getId());
+        return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
     @DeleteMapping("/me/{roommateId}")

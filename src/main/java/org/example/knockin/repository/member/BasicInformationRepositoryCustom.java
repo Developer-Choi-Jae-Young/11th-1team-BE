@@ -11,7 +11,7 @@ public interface BasicInformationRepositoryCustom {
 
     Optional<BasicInformation> findLatestBasicInformation(Member member);
 
-    Optional<ChattingRoomBasicInfoRow> findChattingRoomBasicInfoRow(Member memberEntity);
+    Optional<ChattingRoomBasicInfoRow> findChattingRoomBasicInfoRow(Long memberId);
 
     List<ChattingRoomBasicInfoRow> findChattingRoomBasicInfoRows(List<Long> memberIds);
 }

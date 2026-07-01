@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.example.knockin.config.QueryDslConfig;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.file.BasicInformationFile;
@@ -79,6 +80,47 @@ class BasicInformationRepositoryTest {
         assertThat(requesteeRow.birth()).isEqualTo(LocalDate.of(2001, 3, 3));
         assertThat(requesteeRow.gender()).isEqualTo(Gender.MALE);
         assertThat(requesteeRow.profileImageUrl()).isEqualTo("requestee-profile.jpg");
+    }
+
+    @Test
+    @DisplayName("채팅방 기본 정보 단건 조회는 회원 ID로 최신 기본 정보와 최신 프로필 이미지를 반환한다")
+    void findChattingRoomBasicInfoRowReturnsLatestBasicInformationAndProfileByMemberId() {
+        // Given
+        Member member = persistMember("single-row-member");
+        BasicInformation oldInfo = persistBasicInformation(member, "이전이름", LocalDate.of(1998, 1, 1), Gender.MALE);
+        persistBasicInformationFile(oldInfo, "old-profile.jpg");
+        BasicInformation latestInfo = persistBasicInformation(member, "최신이름", LocalDate.of(2000, 2, 2), Gender.FEMALE);
+        persistBasicInformationFile(latestInfo, "latest-profile-1.jpg");
+        persistBasicInformationFile(latestInfo, "latest-profile-2.jpg");
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Optional<ChattingRoomBasicInfoRow> row = basicInformationRepository.findChattingRoomBasicInfoRow(member.getId());
+
+        // Then
+        assertThat(row).isPresent();
+        assertThat(row.get().memberId()).isEqualTo(member.getId());
+        assertThat(row.get().name()).isEqualTo("최신이름");
+        assertThat(row.get().birth()).isEqualTo(LocalDate.of(2000, 2, 2));
+        assertThat(row.get().gender()).isEqualTo(Gender.FEMALE);
+        assertThat(row.get().profileImageUrl()).isEqualTo("latest-profile-2.jpg");
+    }
+
+    @Test
+    @DisplayName("채팅방 기본 정보 단건 조회는 기본 정보가 없는 회원 ID이면 빈 값을 반환한다")
+    void findChattingRoomBasicInfoRowReturnsEmptyWhenBasicInformationDoesNotExist() {
+        // Given
+        Member member = persistMember("single-row-empty-member");
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Optional<ChattingRoomBasicInfoRow> row = basicInformationRepository.findChattingRoomBasicInfoRow(member.getId());
+
+        // Then
+        assertThat(row).isEmpty();
     }
 
     private Member persistMember(String providerId) {

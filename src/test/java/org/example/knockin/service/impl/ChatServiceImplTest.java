@@ -35,6 +35,7 @@ import org.example.knockin.entity.chat.ChatRoomMessage;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.Gender;
@@ -52,6 +53,7 @@ import org.example.knockin.repository.chat.ChatRoomMemberRepository;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
 import org.example.knockin.repository.chat.ChattingRequiredRepository;
 import org.example.knockin.repository.chat.ChattingRoomRepository;
+import org.example.knockin.repository.chat.ChattingScoreRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
@@ -120,6 +122,9 @@ class ChatServiceImplTest {
 
     @Mock
     private RoommateScoreService roommateScoreService;
+
+    @Mock
+    private ChattingScoreRepository chattingScoreRepository;
 
     @InjectMocks
     private ChatServiceImpl chatService;
@@ -201,7 +206,7 @@ class ChatServiceImplTest {
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
         when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
-        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent))
+        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId()))
                 .thenReturn(Optional.of(new ChattingRoomBasicInfoRow(
                         opponent.getId(),
                         "상대방",
@@ -260,7 +265,7 @@ class ChatServiceImplTest {
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
         when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
-        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent)).thenReturn(Optional.empty());
+        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId())).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> chatService.getChatRoomDetail(chatRoomId, memberId))
@@ -296,6 +301,8 @@ class ChatServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> persistedMessage(invocation.getArgument(0), messageCreatedAt));
+        List<ChattingScore> chattingScores = List.of(ChattingScore.builder().score(80).build());
+        when(roommateScoreService.createChattingScores(any(ChattingRequired.class))).thenReturn(chattingScores);
 
         // When
         ChatRoomCreateDto.Response response = chatService.createChattingRoom(requesterId, request);
@@ -329,6 +336,8 @@ class ChatServiceImplTest {
         assertThat(messageCaptor.getValue().getMember()).isSameAs(requester);
         assertThat(messageCaptor.getValue().getChattingRoom().getId()).isEqualTo(100L);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
+        verify(roommateScoreService).createChattingScores(requiredCaptor.getValue());
+        verify(chattingScoreRepository).saveAll(chattingScores);
     }
 
     @Test
