@@ -15,7 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface RoommateBoardRepositoryCustom {
-    Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate);
+    Page<BoardListDto.Response> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate);
     Optional<BasicInfoRow> getBasicInfo(Long boardId);
     Page<MyRoommateBoardRow> findMyBoardList(Pageable page, Member member);
     Optional<EditFormRow> getEditRow(Long boardId);

@@ -60,7 +60,7 @@ class NotificationServiceImplTest {
                 .title("제목")
                 .writer("작성자")
                 .build();
-        given(notificationRepository.findNotificationsByIsDeleted(false, pageable))
+        given(notificationRepository.findNotificationsByIsDeleted(BoNoticeListDto.Response.NoticeItem.class, false, pageable))
                 .willReturn(List.of(noticeItem));
 
         // when
@@ -71,7 +71,7 @@ class NotificationServiceImplTest {
         assertThat(result.get(0).getId()).isEqualTo(1L);
         assertThat(result.get(0).getTitle()).isEqualTo("제목");
         assertThat(result.get(0).getWriter()).isEqualTo("작성자");
-        verify(notificationRepository).findNotificationsByIsDeleted(false, pageable);
+        verify(notificationRepository).findNotificationsByIsDeleted(BoNoticeListDto.Response.NoticeItem.class,false, pageable);
     }
 
     @Test

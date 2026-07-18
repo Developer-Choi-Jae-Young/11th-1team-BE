@@ -930,30 +930,24 @@ class RoommateBoardServiceImplTest {
         BoardListDto.Request request = new BoardListDto.Request();
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime comeableDate = LocalDateTime.of(2026, 8, 1, 9, 0);
-        BoardBaseRow baseRow = new BoardBaseRow(
-                1L,
-                "룸메이트를 구합니다",
-                1_000,
-                50,
-                10,
-                comeableDate,
-                7L,
-                "원룸",
-                "역삼동",
-                "강남구",
-                "서울",
-                11L,
-                "작성자"
-        );
+        BoardListDto.Response baseRow = BoardListDto.Response.builder()
+                .id(1L)
+                .imageUrl("thumbnail.jpg")
+                .title("룸메이트를 구합니다")
+                .deposit(1_000)
+                .monthlyRent(50)
+                .managementCost(10)
+                .comeableDate(comeableDate)
+                .hits(7L)
+                .roomTypes(List.of("원룸"))
+                .regionFullName("서울 강남구 역삼동")
+                .memberName("작성자")
+                .authentications(List.of(AuthenticationType.STUDENT, AuthenticationType.COMPANY))
+                .badges(List.of())
+                .build();
+
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
                 .thenReturn(new PageImpl<>(List.of(baseRow), pageable, 1));
-        when(roommateBoardFileService.findThumbnailsByBoardIds(List.of(1L)))
-                .thenReturn(List.of(new BoardThumbnailRow(1L, "thumbnail.jpg")));
-        when(authenticationService.findAcceptedByMemberIds(List.of(11L)))
-                .thenReturn(List.of(
-                        new MemberAuthenticationRow(11L, AuthenticationType.STUDENT),
-                        new MemberAuthenticationRow(11L, AuthenticationType.COMPANY)
-                ));
 
         // When
         Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable);
@@ -972,8 +966,6 @@ class RoommateBoardServiceImplTest {
                     .containsExactly(AuthenticationType.STUDENT, AuthenticationType.COMPANY);
             assertThat(response.getBadges()).isEmpty();
         });
-        verify(roommateBoardFileService).findThumbnailsByBoardIds(List.of(1L));
-        verify(authenticationService).findAcceptedByMemberIds(List.of(11L));
     }
 
     @Test

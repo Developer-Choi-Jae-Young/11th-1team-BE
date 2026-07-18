@@ -22,7 +22,7 @@ public class NotificationServiceImpl {
     }
 
     public List<BoNoticeListDto.Response.NoticeItem> findNotificationList(Pageable pageable) {
-        return notificationRepository.findNotificationsByIsDeleted(false, pageable);
+        return notificationRepository.findNotificationsByIsDeleted(BoNoticeListDto.Response.NoticeItem.class, false, pageable);
     }
 
     public Notification findNotificationById(Long id) {

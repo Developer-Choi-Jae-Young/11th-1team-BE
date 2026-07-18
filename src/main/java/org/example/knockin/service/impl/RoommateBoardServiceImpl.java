@@ -151,62 +151,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     @Override
     @Transactional(readOnly = true)
     public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
-        LocalDateTime endDate = LocalDateTime.now()
-                .minusDays(RoommateBoard.COMEABLE_DATE_VISIBLE_GRACE_DAYS);
-        Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate);
-
-        if (baseRows.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, baseRows.getTotalElements());
-        }
-
-        List<Long> boardIds = baseRows.stream()
-                .map(BoardBaseRow::boardId)
-                .toList();
-        List<Long> memberIds = baseRows.stream()
-                .map(BoardBaseRow::memberId)
-                .distinct()
-                .toList();
-
-        Map<Long, String> thumbnailByBoardId = roommateBoardFileService.findThumbnailsByBoardIds(boardIds).stream()
-                .collect(Collectors.toMap(
-                        BoardThumbnailRow::boardId,
-                        BoardThumbnailRow::imageUrl,
-                        (first, second) -> first
-                ));
-        Map<Long, List<AuthenticationType>> authenticationsByMemberId =
-                authenticationService.findAcceptedByMemberIds(memberIds).stream()
-                        .collect(Collectors.groupingBy(
-                                MemberAuthenticationRow::memberId,
-                                Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
-                        ));
-
-        return baseRows.map(row -> toResponse(row, thumbnailByBoardId, authenticationsByMemberId));
-    }
-
-    private BoardListDto.Response toResponse(
-            BoardBaseRow row,
-            Map<Long, String> thumbnailByBoardId,
-            Map<Long, List<AuthenticationType>> authenticationsByMemberId
-    ) {
-        return BoardListDto.Response.builder()
-                .id(row.boardId())
-                .imageUrl(thumbnailByBoardId.get(row.boardId()))
-                .title(row.title())
-                .deposit(row.deposit())
-                .monthlyRent(row.monthlyRent())
-                .managementCost(row.managementCost())
-                .roomTypes(List.of(row.roomTypeName()))
-                .comeableDate(row.comeableDate())
-                .regionFullName(StringUtils.parseToRegionFullName(
-                        row.grandParentRegionName(),
-                        row.parentRegionName(),
-                        row.regionName()
-                ))
-                .memberName(row.memberName())
-                .authentications(authenticationsByMemberId.getOrDefault(row.memberId(), List.of()))
-                .hits(row.hits())
-                .badges(List.of())
-                .build();
+        LocalDateTime endDate = LocalDateTime.now().minusDays(RoommateBoard.COMEABLE_DATE_VISIBLE_GRACE_DAYS);
+        return roommateBoardRepository.search(request, pageable, endDate);
     }
 
     @Override
@@ -224,8 +170,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         List<Long> scoreLookupMemberIds = List.of(ownerId);
         List<MatchingLifestyleRow> lifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(scoreLookupMemberIds);
         List<MatchingPreferenceConditionRow> conditionRows = preferenceConditionService.findRowByMemberIdsIn(scoreLookupMemberIds);
-        List<MatchingPreferenceConditionWeightRow> conditionWeightRows =
-                preferenceConditionService.findWeightRowByMemberIdsIn(scoreLookupMemberIds);
+        List<MatchingPreferenceConditionWeightRow> conditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(scoreLookupMemberIds);
 
         List<Lifestyle> lifestyles = lifestyleRows.stream()
                 .filter(row -> Objects.equals(row.memberId(), ownerId))

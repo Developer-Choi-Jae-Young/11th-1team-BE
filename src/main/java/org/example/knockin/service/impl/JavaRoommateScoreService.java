@@ -43,6 +43,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class JavaRoommateScoreService implements RoommateScoreService {
     private final MemberLifePatternRepository memberLifePatternRepository;
+    private final MemberLifePatternService memberLifePatternService;
     private final PreferenceConditionRepository preferenceConditionRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final LifePatternInformationRepository lifePatternInformationRepository;
@@ -56,7 +57,7 @@ public class JavaRoommateScoreService implements RoommateScoreService {
         if (requesterId == null || targetMemberIds == null || targetMemberIds.isEmpty()) return Map.of();
 
         List<Long> memberIds = includeRequester(targetMemberIds, requesterId);
-        List<MatchingLifestyleRow> lifestyleRows = memberLifePatternRepository.findAllLifestyleByMemberIdIn(memberIds);
+        List<MatchingLifestyleRow> lifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(memberIds);
         List<MatchingPreferenceConditionRow> conditionRows = preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(memberIds);
         List<MatchingPreferenceConditionWeightRow> conditionWeightRows = preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(memberIds);
 

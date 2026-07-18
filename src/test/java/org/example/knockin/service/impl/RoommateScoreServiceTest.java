@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.example.knockin.dto.Compatibility;
@@ -108,7 +109,7 @@ class RoommateScoreServiceTest {
         );
 
         List<Long> lookupMemberIds = List.of(targetId, requesterId);
-        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(lifestyles);
+        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(Collections.singletonList(lifestyles));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(lookupMemberIds)).thenReturn(conditions);
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(lookupMemberIds)).thenReturn(weights);
         when(lifePatternInformationRepository.findAllValueRowsByLifePatternIdIn(List.of(101L)))
@@ -152,7 +153,7 @@ class RoommateScoreServiceTest {
         );
 
         List<Long> lookupMemberIds = List.of(targetId, requesterId);
-        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(lifestyles);
+        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(Collections.singletonList(lifestyles));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(lookupMemberIds)).thenReturn(conditions);
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(lookupMemberIds)).thenReturn(List.of());
 
@@ -194,7 +195,7 @@ class RoommateScoreServiceTest {
                 lifestyle(targetId, 21L, 101L, 1002L, "청결 민감도", "4", LifePatternType.SCALE)
         );
 
-        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(lifestyles);
+        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(lookupMemberIds)).thenReturn(Collections.singletonList(lifestyles));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(lookupMemberIds)).thenReturn(List.of());
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(lookupMemberIds)).thenReturn(List.of());
         when(lifePatternInformationRepository.findAllValueRowsByLifePatternIdIn(List.of(101L)))

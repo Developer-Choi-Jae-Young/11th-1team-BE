@@ -6,8 +6,13 @@ import static org.example.knockin.entity.file.QBasicInformationFile.basicInforma
 import static org.example.knockin.entity.file.QFile.file;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
 import static org.example.knockin.entity.member.QMember.member;
+import static org.example.knockin.entity.member.QMemberDeclaration.memberDeclaration;
 import static org.example.knockin.entity.room.QRegion.region;
 import static org.example.knockin.entity.room.QRoomType.roomType;
+import static org.example.knockin.entity.auth.QAuthenticationApprove.authenticationApprove;
+import static org.example.knockin.entity.auth.QAuthentication.authentication;
+import static com.querydsl.core.group.GroupBy.groupBy;
+import static com.querydsl.core.group.GroupBy.list;
 
 import com.querydsl.core.types.*;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -46,7 +51,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate) {
+    public Page<BoardListDto.Response> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate) {
         QRegion boardRegion = new QRegion("searchBoardRegion");
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
@@ -62,9 +67,21 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 comeableDateNotExpired(endDate)
         };
 
-        List<BoardBaseRow> content = jpaQueryFactory
-                .select(Projections.constructor(
-                        BoardBaseRow.class,
+        List<BoardListDto.Response> content = jpaQueryFactory
+                .from(roommateBoard)
+                .join(roommateBoard.roomType, roomType)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.member, member)
+                .leftJoin(member.basicInformations, latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
+                .leftJoin(roommateBoardFile).on(roommateBoardFile.roommateBoard.eq(roommateBoard).and(roommateBoardFile.isThumbnail.isTrue()))
+                .leftJoin(roommateBoardFile.file, file)
+                .where(searchCondition)
+                .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .transform(groupBy(roommateBoard.id).list(Projections.fields(BoardListDto.Response.class,
                         roommateBoard.id,
                         roommateBoard.title,
                         roommateBoard.deposit,
@@ -72,26 +89,16 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.managementCost,
                         roommateBoard.comeableDate,
                         roommateBoard.hits,
-                        roomType.name,
-                        boardRegion.name,
-                        parentRegion.name,
-                        grandParentRegion.name,
-                        member.id,
-                        latestBasicInformation.name
-                ))
-                .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
-                .leftJoin(boardRegion.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
-                .join(roommateBoard.member, member)
-                .leftJoin(member.basicInformations, latestBasicInformation)
-                .on(latestBasicInformationIdEq(latestBasicInformation))
-                .where(searchCondition)
-                .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
+                        Expressions.stringTemplate("concat(coalesce({0}, ''), ' ', coalesce({1}, ''), ' ', coalesce({2}, ''))",
+                                grandParentRegion.name, parentRegion.name, boardRegion.name).as("regionFullName"),
+                        latestBasicInformation.name.as("memberName"),
+                        ExpressionUtils.as(JPAExpressions
+                                .select(authentication.type)
+                                .from(authenticationApprove).join(authenticationApprove.authentication, authentication)
+                                .where(authentication.member.eq(roommateBoard.member)), "authentications"),
+                        list(roomType.name).as("roomTypes"),
+                        file.savedFileName.as("imageUrl")
+                        )));
 
         Long total = jpaQueryFactory
                 .select(roommateBoard.count())

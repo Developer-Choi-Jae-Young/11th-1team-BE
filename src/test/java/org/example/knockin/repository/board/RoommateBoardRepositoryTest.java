@@ -100,12 +100,12 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardListDto.Response> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
         assertThat(result.getContent())
-                .extracting(BoardBaseRow::title)
+                .extracting(BoardListDto.Response::getTitle)
                 .containsExactlyInAnyOrder("기준일 게시글", "미래 게시글")
                 .doesNotContain("숨김 게시글");
     }
@@ -128,11 +128,11 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardListDto.Response> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
 
         // Then
         assertThat(result.getContent())
-                .extracting(BoardBaseRow::title)
+                .extracting(BoardListDto.Response::getTitle)
                 .containsExactly("협의 가능 게시글");
         assertThat(result.getTotalElements()).isEqualTo(1);
     }
@@ -154,7 +154,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(1, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardListDto.Response> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
 
         // Then
         assertThat(result.getContent()).isEmpty();
@@ -196,15 +196,15 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate);
-        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate);
+        Page<BoardListDto.Response> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate);
+        Page<BoardListDto.Response> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate);
 
         // Then
         assertThat(femaleResult.getContent())
-                .extracting(BoardBaseRow::title)
+                .extracting(BoardListDto.Response::getTitle)
                 .containsExactly("최신 성별 기준 게시글");
         assertThat(femaleResult.getContent())
-                .extracting(BoardBaseRow::memberName)
+                .extracting(BoardListDto.Response::getMemberName)
                 .containsExactly("최신정보");
         assertThat(maleResult.getContent()).isEmpty();
     }
