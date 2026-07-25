@@ -6,13 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BlockDto;
 import org.example.knockin.dto.BlockListDto;
 import org.example.knockin.dto.BlockListDto.Response;
-import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.BlockErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.repository.member.BlockRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class BlockServiceImpl {
 
     private final MemberServiceImpl memberService;
-    private final BasicInformationServiceImpl basicInformationService;
     private final BlockRepository blockRepository;
 
     @Transactional
@@ -41,6 +38,7 @@ public class BlockServiceImpl {
     @Transactional(readOnly = true)
     public BlockListDto.Response findMyList(Long memberId, Pageable pageable) {
         Member blocker = memberService.findByIdOrThrow(memberId);
+        // TODO: 차단 목록 API의 페이지 응답 계약이 확정되면 pageable을 조회 쿼리에 적용한다.
         List<Response.Block> myList = blockRepository.findMyList(blocker.getId());
         return BlockListDto.Response.builder().blocks(myList).build();
     }

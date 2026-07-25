@@ -24,11 +24,11 @@ public class BlockRepositoryImpl implements BlockRepositoryCustom {
     public List<BlockListDto.Response.Block> findMyList(Long blockerId) {
 
         return jpaQueryFactory
-                .select(Projections.constructor(
+                .select(Projections.fields(
                         Block.class,
-                        block.blocked.id,
-                        basicInformation.name,
-                        block.createdAt
+                        block.blocked.id.as("userId"),
+                        basicInformation.name.as("name"),
+                        block.createdAt.as("createAt")
                 ))
                 .from(block)
                 .join(block.blocked, member)
@@ -39,7 +39,11 @@ public class BlockRepositoryImpl implements BlockRepositoryCustom {
                                 .from(basicInformation)
                                 .where(basicInformation.member.id.eq(member.id))
                 ))
-                .where(block.blocker.id.eq(blockerId))
+                .where(
+                        block.blocker.id.eq(blockerId),
+                        block.isDeleted.isFalse()
+                )
+                .orderBy(block.createdAt.desc(), block.id.desc())
                 .fetch();
     }
 }

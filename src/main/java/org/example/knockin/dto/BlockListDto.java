@@ -2,8 +2,10 @@ package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +23,8 @@ public class BlockListDto {
 
         @Data
         @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class Block {
             @Schema(description = "차단한 사용자 ID")
             private Long userId;

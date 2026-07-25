@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import org.example.knockin.dto.BlockDto;
 import org.example.knockin.dto.BlockListDto;
-import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.BlockErrorCode;
@@ -25,7 +24,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -35,9 +33,6 @@ class BlockServiceImplTest {
 
     @Mock
     private MemberServiceImpl memberService;
-
-    @Mock
-    private BasicInformationServiceImpl basicInformationService;
 
     @Mock
     private BlockRepository blockRepository;
@@ -88,22 +83,16 @@ class BlockServiceImplTest {
     void findMyListSuccess() {
         // given
         Member blocker = Member.builder().id(1L).build();
-        Member blocked = Member.builder().id(2L).build();
         LocalDateTime blockedAt = LocalDateTime.of(2026, 7, 25, 12, 0);
-        Block block = org.mockito.Mockito.mock(Block.class);
-        BasicInformation basicInformation = BasicInformation.builder()
-                .member(blocked)
+        BlockListDto.Response.Block block = BlockListDto.Response.Block.builder()
+                .userId(2L)
                 .name("차단회원")
+                .createAt(blockedAt)
                 .build();
         Pageable pageable = PageRequest.of(0, 20);
 
         given(memberService.findByIdOrThrow(1L)).willReturn(blocker);
-        given(blockRepository.findByBlocker(blocker, pageable))
-                .willReturn(new PageImpl<>(List.of(block), pageable, 1));
-        given(block.getBlocked()).willReturn(blocked);
-        given(block.getCreatedAt()).willReturn(blockedAt);
-        given(basicInformationService.findLatestBasicInformation(blocked))
-                .willReturn(basicInformation);
+        given(blockRepository.findMyList(1L)).willReturn(List.of(block));
 
         // when
         BlockListDto.Response response = blockService.findMyList(1L, pageable);
@@ -113,7 +102,7 @@ class BlockServiceImplTest {
         assertThat(response.getBlocks().getFirst().getUserId()).isEqualTo(2L);
         assertThat(response.getBlocks().getFirst().getName()).isEqualTo("차단회원");
         assertThat(response.getBlocks().getFirst().getCreateAt()).isEqualTo(blockedAt);
-        verify(basicInformationService).findLatestBasicInformation(blocked);
+        verify(blockRepository).findMyList(1L);
     }
 
     @Test
