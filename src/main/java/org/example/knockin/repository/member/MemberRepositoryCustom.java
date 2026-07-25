@@ -22,7 +22,7 @@ public interface MemberRepositoryCustom {
     Optional<AuthResponse> findMemberInfo(Member member);
     Optional<Member> findByProviderId(String providerId);
     List<Member> findMemberByDelete();
-    List<Member> findByProfile(Member memberEntity);
+    MyProfileAllDto.Response.UserInfo findByProfile(Member memberEntity);
     List<MyProfileAllDto.Response.Lifestyle> findByLifePattern(Member memberEntity);
     Optional<RoomProfile> findByRoomProfile(Member memberEntity);
     List<MyProfileAllDto.Response.RoomProfile> findRoomTypes(RoomProfile profile);
