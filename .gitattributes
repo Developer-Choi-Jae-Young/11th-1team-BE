@@ -6,3 +6,4 @@ src/main/resources/application-secret-*.properties filter=git-crypt diff=git-cry
 *.key filter=git-crypt diff=git-crypt
 *.p12 filter=git-crypt diff=git-crypt -text
 *.pem filter=git-crypt diff=git-crypt -text
+*.p8 filter=git-crypt diff=git-crypt -text
