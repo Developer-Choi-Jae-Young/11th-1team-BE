@@ -31,6 +31,9 @@ public class ChatRoomDetailDto {
 
         @Schema(description = "룸메이트 매칭 요청 목록")
         private List<RoommateMatchingRequiredInfo> matchingRequiredList;
+
+        @Schema(description = "채팅 상대와의 양방향 차단 여부")
+        private boolean blocked;
     }
 
     @Data

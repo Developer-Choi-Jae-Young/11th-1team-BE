@@ -61,7 +61,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<Long> excludeMemberIds = resolveExcludeMemberIds(memberId, request);
         Long likedByMemberId = Boolean.TRUE.equals(request.getLikedOnly()) ? memberId : null;
 
-        List<MatchingBasicInfoRow> rawRows = memberService.findMatchingBasicRow(excludeMemberIds, size + 1, likedByMemberId);
+        List<MatchingBasicInfoRow> rawRows = memberService.findMatchingBasicRow(excludeMemberIds, size + 1, likedByMemberId, memberId);
         boolean hasNext = rawRows.size() > size;
         List<MatchingBasicInfoRow> matchingListBasicRow = rawRows.stream().limit(size).toList();
         List<Long> memberIds = matchingListBasicRow.stream().map(MatchingBasicInfoRow::memberId).toList();

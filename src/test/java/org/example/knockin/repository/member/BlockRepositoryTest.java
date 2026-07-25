@@ -84,6 +84,26 @@ class BlockRepositoryTest {
                 );
     }
 
+    @Test
+    @DisplayName("두 회원 중 어느 한쪽이라도 활성 차단하면 양방향 차단 관계로 조회한다")
+    void existsActiveBlockBetweenMembersChecksBothDirectionsAndIgnoresDeletedBlocks() {
+        // Given
+        Member first = persistMember("first-member");
+        Member second = persistMember("second-member");
+        Member third = persistMember("third-member");
+        Member fourth = persistMember("fourth-member");
+        persistBlock(first, second);
+        persistBlock(third, fourth, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When & Then
+        assertThat(blockRepository.existsActiveBlockBetweenMembers(first.getId(), second.getId())).isTrue();
+        assertThat(blockRepository.existsActiveBlockBetweenMembers(second.getId(), first.getId())).isTrue();
+        assertThat(blockRepository.existsActiveBlockBetweenMembers(third.getId(), fourth.getId())).isFalse();
+        assertThat(blockRepository.existsActiveBlockBetweenMembers(first.getId(), fourth.getId())).isFalse();
+    }
+
     private Member persistMember(String providerId) {
         Member member = Member.builder()
                 .providerType(LoginProviderType.KAKAO)

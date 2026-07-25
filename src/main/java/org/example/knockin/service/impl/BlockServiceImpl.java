@@ -43,6 +43,11 @@ public class BlockServiceImpl {
         return BlockListDto.Response.builder().blocks(myList).build();
     }
 
+    @Transactional(readOnly = true)
+    public boolean isBlockedBetween(Long firstMemberId, Long secondMemberId) {
+        return blockRepository.existsActiveBlockBetweenMembers(firstMemberId, secondMemberId);
+    }
+
     @Transactional
     public BlockDto.Response deleteBlock(Long blockerId, Long blockedId) {
         Member blocker = memberService.findByIdOrThrow(blockerId);

@@ -16,6 +16,7 @@ public enum ChattingErrorCode implements ErrorCode{
     ROOM_ACCESS_DENIED(9006, HttpStatus.FORBIDDEN, "채팅방 접근 권한이 없습니다."),
     ROOM_LIMIT_EXCEEDED(9007, HttpStatus.BAD_REQUEST, "생성 가능한 채팅방 수를 초과했습니다."),
     ROOM_DUPLICATE(9008, HttpStatus.BAD_REQUEST, "이미 활성화된 채팅방이 존재합니다."),
+    MESSAGE_BLOCKED(9009, HttpStatus.FORBIDDEN, "차단 관계에서는 채팅 메시지를 전송할 수 없습니다."),
     ;
 
     private final Integer no;

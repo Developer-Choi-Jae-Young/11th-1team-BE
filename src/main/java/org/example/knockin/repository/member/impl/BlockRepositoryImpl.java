@@ -46,4 +46,21 @@ public class BlockRepositoryImpl implements BlockRepositoryCustom {
                 .orderBy(block.createdAt.desc(), block.id.desc())
                 .fetch();
     }
+
+    @Override
+    public boolean existsActiveBlockBetweenMembers(Long firstMemberId, Long secondMemberId) {
+        Integer result = jpaQueryFactory
+                .selectOne()
+                .from(block)
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocker.id.eq(firstMemberId)
+                                .and(block.blocked.id.eq(secondMemberId))
+                                .or(block.blocker.id.eq(secondMemberId)
+                                        .and(block.blocked.id.eq(firstMemberId)))
+                )
+                .fetchFirst();
+
+        return result != null;
+    }
 }

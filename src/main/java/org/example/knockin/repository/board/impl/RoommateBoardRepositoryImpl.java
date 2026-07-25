@@ -6,6 +6,7 @@ import static org.example.knockin.entity.board.QRoommateBoardInterest.roommateBo
 import static org.example.knockin.entity.file.QBasicInformationFile.basicInformationFile;
 import static org.example.knockin.entity.file.QFile.file;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
+import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
 import static org.example.knockin.entity.room.QRegion.region;
 import static org.example.knockin.entity.room.QRoomType.roomType;
@@ -64,7 +65,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 monthlyRentBetween(request.getMinMounthRent(), request.getMaxMounthRent()),
                 isNotDeleted(),
                 comeableDateNotExpired(endDate),
-                likedOnly(request.getLikedOnly(), requesterId)
+                likedOnly(request.getLikedOnly(), requesterId),
+                notBlockedBetween(requesterId)
         };
 
         List<BoardBaseRow> content = jpaQueryFactory
@@ -126,6 +128,22 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoardInterest.isDeleted.isFalse()
                 )
                 .exists();
+    }
+
+    private BooleanExpression notBlockedBetween(@Nullable Long requesterId) {
+        if (requesterId == null) return null;
+
+        return JPAExpressions
+                .selectOne()
+                .from(block)
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocker.id.eq(requesterId)
+                                .and(block.blocked.id.eq(roommateBoard.member.id))
+                                .or(block.blocker.id.eq(roommateBoard.member.id)
+                                        .and(block.blocked.id.eq(requesterId)))
+                )
+                .notExists();
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {

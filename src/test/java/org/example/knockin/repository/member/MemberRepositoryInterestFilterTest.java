@@ -11,6 +11,7 @@ import java.util.List;
 import org.example.knockin.config.QueryDslConfig;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.member.BasicInformation;
+import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberInterest;
@@ -61,6 +62,7 @@ class MemberRepositoryInterestFilterTest {
         List<MatchingBasicInfoRow> result = memberRepository.findMatchingBasicRow(
                 List.of(requester.getId()),
                 20,
+                requester.getId(),
                 requester.getId()
         );
 
@@ -69,6 +71,37 @@ class MemberRepositoryInterestFilterTest {
                 .extracting(MatchingBasicInfoRow::memberId)
                 .containsExactly(activeCandidate.getId())
                 .doesNotContain(deletedCandidate.getId(), unrelatedCandidate.getId());
+    }
+
+    @Test
+    @DisplayName("매칭 목록은 요청자와 양방향 활성 차단 관계인 회원을 제외한다")
+    void findMatchingBasicRowExcludesBlockedMembersInBothDirections() {
+        // Given
+        Member requester = persistMember("block-requester");
+        Region region = persistRegion("삼성동");
+        Member blockedByRequester = persistPublicCandidate("blocked-by-requester", "내가차단", region);
+        Member requesterBlockedBy = persistPublicCandidate("requester-blocked-by", "나를차단", region);
+        Member deletedBlockCandidate = persistPublicCandidate("deleted-block", "차단해제", region);
+        Member visibleCandidate = persistPublicCandidate("visible-candidate", "노출회원", region);
+        persistBlock(requester, blockedByRequester, false);
+        persistBlock(requesterBlockedBy, requester, false);
+        persistBlock(requester, deletedBlockCandidate, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        List<MatchingBasicInfoRow> result = memberRepository.findMatchingBasicRow(
+                List.of(requester.getId()),
+                20,
+                null,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result)
+                .extracting(MatchingBasicInfoRow::memberId)
+                .containsExactlyInAnyOrder(deletedBlockCandidate.getId(), visibleCandidate.getId())
+                .doesNotContain(blockedByRequester.getId(), requesterBlockedBy.getId());
     }
 
     @Test
@@ -137,6 +170,14 @@ class MemberRepositoryInterestFilterTest {
         entityManager.persist(MemberInterest.builder()
                 .sender(sender)
                 .receiver(receiver)
+                .isDeleted(isDeleted)
+                .build());
+    }
+
+    private void persistBlock(Member blocker, Member blocked, boolean isDeleted) {
+        entityManager.persist(Block.builder()
+                .blocker(blocker)
+                .blocked(blocked)
                 .isDeleted(isDeleted)
                 .build());
     }

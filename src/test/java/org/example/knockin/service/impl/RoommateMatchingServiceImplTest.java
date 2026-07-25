@@ -350,7 +350,7 @@ class RoommateMatchingServiceImplTest {
         LocalDate offerBirth = LocalDate.of(2000, 1, 1);
         LocalDate seekerBirth = LocalDate.of(1999, 5, 10);
 
-        when(memberRepository.findMatchingBasicRow(List.of(99L, viewerId), 3, null))
+        when(memberRepository.findMatchingBasicRow(List.of(99L, viewerId), 3, null, viewerId))
                 .thenReturn(List.of(
                         new MatchingBasicInfoRow(1L, "offer-profile.png", "오퍼", offerBirth, Gender.MALE, 101L, RoomProfileType.OFFER),
                         new MatchingBasicInfoRow(2L, "seeker-profile.png", "시커", seekerBirth, Gender.FEMALE, 102L, RoomProfileType.SEEKER),
@@ -414,7 +414,7 @@ class RoommateMatchingServiceImplTest {
         assertThat(seeker.getConditions()).extracting(MatchListDto.Condition::getName).containsExactly("소음");
         assertThat(seeker.getConditionWeights()).extracting(MatchListDto.ConditionWeight::getName).containsExactly("흡연");
 
-        verify(memberRepository).findMatchingBasicRow(List.of(99L, viewerId), 3, null);
+        verify(memberRepository).findMatchingBasicRow(List.of(99L, viewerId), 3, null, viewerId);
         verify(roomOfferProfileRepository).findAllOfferProfileByMemberIdIn(List.of(1L, 2L));
         verify(roomSeekerProfileRepository).findAllSeekerProfileByMemberIdIn(List.of(1L, 2L));
     }
@@ -426,7 +426,8 @@ class RoommateMatchingServiceImplTest {
         Long viewerId = 10L;
         MatchListDto.Request request = new MatchListDto.Request();
         request.setSize(20);
-        when(memberRepository.findMatchingBasicRow(List.of(viewerId), 21, null)).thenReturn(List.of());
+        when(memberRepository.findMatchingBasicRow(List.of(viewerId), 21, null, viewerId))
+                .thenReturn(List.of());
 
         // When
         Slice<MatchListDto.Response> response = roommateMatchingService.findMatchingList(viewerId, request);
@@ -434,7 +435,7 @@ class RoommateMatchingServiceImplTest {
         // Then
         assertThat(response.getContent()).isEmpty();
         assertThat(response.hasNext()).isFalse();
-        verify(memberRepository).findMatchingBasicRow(List.of(viewerId), 21, null);
+        verify(memberRepository).findMatchingBasicRow(List.of(viewerId), 21, null, viewerId);
         verifyNoInteractions(
                 roomOfferProfileRepository,
                 roomSeekerProfileRepository,
@@ -452,7 +453,7 @@ class RoommateMatchingServiceImplTest {
         MatchListDto.Request request = new MatchListDto.Request();
         request.setSize(1);
 
-        when(memberRepository.findMatchingBasicRow(List.of(), 2, null))
+        when(memberRepository.findMatchingBasicRow(List.of(), 2, null, null))
                 .thenReturn(List.of(new MatchingBasicInfoRow(
                         1L,
                         "offer-profile.png",
@@ -488,14 +489,16 @@ class RoommateMatchingServiceImplTest {
         MatchListDto.Request request = new MatchListDto.Request();
         request.setLikedOnly(true);
         request.setSize(20);
-        when(memberRepository.findMatchingBasicRow(List.of(requesterId), 21, requesterId))
+        when(memberRepository.findMatchingBasicRow(
+                List.of(requesterId), 21, requesterId, requesterId))
                 .thenReturn(List.of());
 
         Slice<MatchListDto.Response> response =
                 roommateMatchingService.findMatchingList(requesterId, request);
 
         assertThat(response).isEmpty();
-        verify(memberRepository).findMatchingBasicRow(List.of(requesterId), 21, requesterId);
+        verify(memberRepository).findMatchingBasicRow(
+                List.of(requesterId), 21, requesterId, requesterId);
     }
 
     @Test

@@ -28,6 +28,7 @@ import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.PreferenceCondition;
 import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.member.BasicInformation;
+import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
@@ -308,6 +309,44 @@ class RoommateBoardRepositoryTest {
                 requester.getId(),
                 List.of(activeBoard.getId(), deletedBoard.getId())
         )).containsExactly(activeBoard.getId());
+    }
+
+    @Test
+    @DisplayName("게시글 목록은 요청자와 양방향 활성 차단 관계인 작성자의 게시글을 제외한다")
+    void searchExcludesBoardsWrittenByBlockedMembersInBothDirections() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member requester = persistMember("provider-block-requester");
+        Member blockedByRequester = persistMember("provider-blocked-by-requester");
+        Member requesterBlockedBy = persistMember("provider-requester-blocked-by");
+        Member deletedBlockOwner = persistMember("provider-deleted-block-owner");
+        Member visibleOwner = persistMember("provider-visible-owner");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        persistBoard("내가 차단한 작성자 게시글", blockedByRequester, roomType, region, visibleEndDate.plusDays(1));
+        persistBoard("나를 차단한 작성자 게시글", requesterBlockedBy, roomType, region, visibleEndDate.plusDays(2));
+        persistBoard("차단 해제 작성자 게시글", deletedBlockOwner, roomType, region, visibleEndDate.plusDays(3));
+        persistBoard("노출 작성자 게시글", visibleOwner, roomType, region, visibleEndDate.plusDays(4));
+        persistBlock(requester, blockedByRequester, false);
+        persistBlock(requesterBlockedBy, requester, false);
+        persistBlock(requester, deletedBlockOwner, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Page<BoardBaseRow> result = roommateBoardRepository.search(
+                defaultRequest(),
+                PageRequest.of(0, 20),
+                visibleEndDate,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactlyInAnyOrder("차단 해제 작성자 게시글", "노출 작성자 게시글")
+                .doesNotContain("내가 차단한 작성자 게시글", "나를 차단한 작성자 게시글");
     }
 
     @Test
@@ -733,6 +772,14 @@ class RoommateBoardRepositoryTest {
                 .build();
         entityManager.persist(member);
         return member;
+    }
+
+    private void persistBlock(Member blocker, Member blocked, boolean isDeleted) {
+        entityManager.persist(Block.builder()
+                .blocker(blocker)
+                .blocked(blocked)
+                .isDeleted(isDeleted)
+                .build());
     }
 
     private BasicInformation persistBasicInformation(Member member, String name, Gender gender, String email) {

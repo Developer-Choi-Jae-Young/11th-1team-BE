@@ -62,6 +62,7 @@ public class ChatServiceImpl {
     private final MemberServiceImpl memberService;
     private final RoommateScoreService roommateScoreService;
     private final ChattingScoreServiceImpl chattingScoreService;
+    private final BlockServiceImpl blockService;
     @Value("${policy.chat.room-limit-per-member}")
     private long chatRoomLimitPerMember;
 
@@ -72,7 +73,7 @@ public class ChatServiceImpl {
     @Transactional
     public ChatRoomImageDto.Response uploadImage(Long chatRoomId, Long memberId, MultipartFile multipartFile) {
         validateImageFile(multipartFile);
-        chatRoomMemberService.checkCanSendMessage(chatRoomId, memberId);
+        validateCanSendMessage(chatRoomId, memberId);
 
         try {
             File savedFile = fileService.save(multipartFile, FileType.CHAT_ROOM_IMAGE);
@@ -98,7 +99,7 @@ public class ChatServiceImpl {
     @Transactional
     public void sendUserMessage(Long chatRoomId, ChatMessageDto.Request request, Long senderId) {
         validateMessageRequest(request);
-        ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, senderId);
+        ChatRoomMember chatRoomMember = validateCanSendMessage(chatRoomId, senderId);
         ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
         Member member = chatRoomMember.getMember();
         MessageType type = request.getType();
@@ -170,19 +171,21 @@ public class ChatServiceImpl {
         ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
         ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
 
-        ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chatRoomMember, chatRoomId);
+        Member opponentMember = chatRoomMemberService.findPartnerMember(chatRoomMember, chatRoomId);
+        ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chatRoomMember, opponentMember);
         List<ChatRoomDetailDto.ChatMessage> messages = chatRoomMessageService.findChatMessageDto(chatRoomId);
         List<RoommateMatchingRequiredInfo> matchingRequiredList = roommateMatchingRequiredService.findRequiredDto(chattingRoom);
+        boolean blocked = blockService.isBlockedBetween(memberId, opponentMember.getId());
 
         return ChatRoomDetailDto.Response.builder()
                 .opponentProfile(opponentProfile)
                 .messages(messages)
                 .matchingRequiredList(matchingRequiredList)
+                .blocked(blocked)
                 .build();
     }
 
-    private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChatRoomMember me, Long chatRoomId) {
-        Member opponentMember = chatRoomMemberService.findPartnerMember(me, chatRoomId);
+    private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChatRoomMember me, Member opponentMember) {
         ChattingRoomBasicInfoRow row = basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentMember.getId());
         Integer score = roommateScoreService.calculateSimpleScore(me.getMember().getId(), opponentMember.getId());
 
@@ -201,6 +204,7 @@ public class ChatServiceImpl {
         Member requester = memberService.findByIdOrThrow(requesterId);
         Member requestee = memberService.findByIdOrThrow(request.getRequesteeId());
 
+        validateNotBlocked(requesterId, request.getRequesteeId());
         validateActiveRoomDoesNotExist(requesterId, request.getRequesteeId());
         validateChatRoomLimit(requesterId, request.getRequesteeId());
 
@@ -216,6 +220,20 @@ public class ChatServiceImpl {
                 .chatRoomId(chattingRoom.getId())
                 .updatedAt(chatRoomMessage.getCreatedAt())
                 .build();
+    }
+
+    private ChatRoomMember validateCanSendMessage(Long chatRoomId, Long senderId) {
+        ChatRoomMember sender =
+                chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, senderId);
+        Member opponent = chatRoomMemberService.findPartnerMember(sender, chatRoomId);
+        validateNotBlocked(senderId, opponent.getId());
+        return sender;
+    }
+
+    private void validateNotBlocked(Long firstMemberId, Long secondMemberId) {
+        if (blockService.isBlockedBetween(firstMemberId, secondMemberId)) {
+            throw new BusinessException(ChattingErrorCode.MESSAGE_BLOCKED);
+        }
     }
 
     private void validateActiveRoomDoesNotExist(Long requesterId, Long requesteeId) {

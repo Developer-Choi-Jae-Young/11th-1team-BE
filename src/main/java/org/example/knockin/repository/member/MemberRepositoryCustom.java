@@ -30,11 +30,7 @@ public interface MemberRepositoryCustom {
     List<Region> findSeekerRegionEntities(RoomSeekerProfile seeker);
     List<MyPreferencesAllDto.Response.Lifestyle> findPreferenceLifeStyle(Member member);
     List<MyPreferencesAllDto.Response.Condition> findPreferenceCondition(Member member);
-    List<MatchingBasicInfoRow> findMatchingBasicRow(
-            List<Long> excludeMemberIds,
-            Integer size,
-            @Nullable Long likedByMemberId
-    );
+    List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size, @Nullable Long likedByMemberId, @Nullable Long requesterId);
     Optional<MatchingBasicInfoRow> findMatchingBasicRowById(Long memberId);
     List<BoMemberListDto.Response.MemberInfo> findBackOfficeMemberList(Pageable pageable, BoMemberListDto.Request request);
     BoMemberDetailDto.Response findBackOfficeMember(Long id);
