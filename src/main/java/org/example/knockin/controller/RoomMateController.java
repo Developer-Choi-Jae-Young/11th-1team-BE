@@ -55,9 +55,12 @@ public class RoomMateController {
     @GetMapping("/boards")
     @Operation(summary = "게시글 목록 조회")
     public CommonResponse<Page<BoardListDto.Response>> findBoardList(
+            @AuthenticationPrincipal PrincipalDetails details,
             @ParameterObject @Validated @ModelAttribute BoardListDto.Request request,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<BoardListDto.Response> responses = roommateBoardService.getBoardList(request, pageable);
+
+        Long memberId = details == null || details.getMember() == null ? null : details.getMember().getId();
+        Page<BoardListDto.Response> responses = roommateBoardService.getBoardList(request, pageable, memberId);
         return CommonResponse.status(HttpStatus.OK).body(responses);
     }
 

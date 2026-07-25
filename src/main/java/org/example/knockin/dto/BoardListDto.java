@@ -36,6 +36,9 @@ public class BoardListDto {
 
         @Schema(description = "최대 월세")
         Integer maxMounthRent;
+
+        @Schema(description = "검색 키워드 (제목/위치/룸형태)")
+        String keyword;
     }
 
     @Data

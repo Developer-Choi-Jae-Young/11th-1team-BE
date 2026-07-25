@@ -51,8 +51,10 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
         QBasicInformation latestBasicInformation = new QBasicInformation("searchLatestBasicInformation");
+        String keyword = request.getKeyword();
 
         Predicate[] searchCondition = {
+                keywordContains(keyword, boardRegion, parentRegion, grandParentRegion),
                 regionIn(request.getRegionIds(), boardRegion, parentRegion, grandParentRegion),
                 roomTypeIn(request.getRoomTypeIds()),
                 genderEq(request.getGender()),
@@ -96,6 +98,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         Long total = jpaQueryFactory
                 .select(roommateBoard.count())
                 .from(roommateBoard)
+                .join(roommateBoard.roomType, roomType)
                 .join(roommateBoard.region, boardRegion)
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
@@ -318,6 +321,21 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         List<Long> uniqueIds = regionIds.stream().filter(Objects::nonNull).distinct().toList();
         if (uniqueIds.isEmpty()) return null;
         return boardRegion.id.in(uniqueIds).or(parentRegion.id.in(uniqueIds)).or(grandParentRegion.id.in(uniqueIds));
+    }
+
+    private BooleanExpression keywordContains(
+            String keyword,
+            QRegion boardRegion,
+            QRegion parentRegion,
+            QRegion grandParentRegion
+    ) {
+        if (!StringUtils.hasText(keyword)) return null;
+        String normalizedKeyword = keyword.trim();
+        return roommateBoard.title.containsIgnoreCase(normalizedKeyword)
+                .or(roomType.name.containsIgnoreCase(normalizedKeyword))
+                .or(boardRegion.name.containsIgnoreCase(normalizedKeyword))
+                .or(parentRegion.name.containsIgnoreCase(normalizedKeyword))
+                .or(grandParentRegion.name.containsIgnoreCase(normalizedKeyword));
     }
 
     private BooleanExpression roomTypeIn(List<Long> roomTypeIds) {

@@ -210,6 +210,54 @@ class RoommateBoardRepositoryTest {
     }
 
     @Test
+    @DisplayName("키워드는 게시글 제목, 지역 계층, 방 유형을 기준으로 검색한다")
+    void searchFiltersBoardsByKeyword() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member member = persistMember("provider-keyword");
+        Region seoul = persistRegion("서울", 1, null);
+        Region gangnam = persistRegion("강남구", 2, seoul);
+        Region yeoksam = persistRegion("역삼동", 3, gangnam);
+        Region busan = persistRegion("부산", 1, null);
+        Region haeundae = persistRegion("해운대구", 2, busan);
+        Region jungdong = persistRegion("중동", 3, haeundae);
+        RoomType oneRoom = persistRoomType("원룸");
+        RoomType officetel = persistRoomType("오피스텔");
+        persistBoard("햇살 좋은 집", member, oneRoom, yeoksam, visibleEndDate.plusDays(1));
+        persistBoard("조용한 방", member, officetel, jungdong, visibleEndDate.plusDays(1));
+        entityManager.flush();
+        entityManager.clear();
+
+        BoardListDto.Request request = defaultRequest();
+        PageRequest pageable = PageRequest.of(0, 20);
+
+        // When & Then
+        request.setKeyword("햇살");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("햇살 좋은 집");
+
+        request.setKeyword("강남구");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("햇살 좋은 집");
+
+        request.setKeyword("오피스");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("조용한 방");
+
+        request.setKeyword("  해운대  ");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("조용한 방");
+
+        request.setKeyword("   ");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getTotalElements())
+                .isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("상세 기본 정보 조회는 응답 가공 전 원천 데이터를 반환한다")
     void getBasicInfoReturnsRawBasicInfoRow() {
         // Given

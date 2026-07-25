@@ -151,6 +151,7 @@ class ChatServiceImplTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 

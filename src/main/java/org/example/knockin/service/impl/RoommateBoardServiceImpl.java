@@ -77,6 +77,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardInterestServiceImpl roommateBoardInterestService;
     private final RoommateBoardDeclarationServiceImpl roommateBoardDeclarationService;
     private final RoommateBoardPolicy roommateBoardPolicy;
+    private final SearchServiceImpl searchServiceImpl;
 
     public RoommateBoard findById(Long id) {
         return roommateBoardRepository.findById(id)
@@ -153,8 +154,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
+    @Transactional
+    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
+        saveSearchKeyword(requesterId, request.getKeyword());
+
         LocalDateTime endDate = LocalDateTime.now().minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
         Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate);
 
@@ -184,6 +187,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         ));
 
         return baseRows.map(row -> toResponse(row, thumbnailByBoardId, authenticationsByMemberId));
+    }
+
+    private void saveSearchKeyword(@Nullable Long requesterId, @Nullable String keyword) {
+        if (requesterId == null || keyword == null || keyword.isBlank()) return;
+
+        Member member = memberService.findByIdOrThrow(requesterId);
+        searchServiceImpl.save(member, keyword);
     }
 
     private BoardListDto.Response toResponse(
