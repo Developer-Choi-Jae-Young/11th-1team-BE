@@ -532,7 +532,7 @@ class BackOfficeServiceImplTest {
                 .writer("작성자")
                 .build();
 
-        given(notificationService.findNotificationList(pageable)).willReturn(List.of(item));
+        given(notificationService.findBoNotificationList(pageable)).willReturn(List.of(item));
 
         // when
         BoNoticeListDto.Response response = backOfficeService.findNoticeList(pageable);

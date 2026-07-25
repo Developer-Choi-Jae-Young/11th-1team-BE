@@ -168,7 +168,7 @@ public class BackOfficeServiceImpl {
     }
 
     public BoNoticeListDto.Response findNoticeList(Pageable pageable) {
-        return BoNoticeListDto.Response.builder().notices(notificationService.findNotificationList(pageable)).build();
+        return BoNoticeListDto.Response.builder().notices(notificationService.findBoNotificationList(pageable)).build();
     }
 
     public BoNoticeDetailDto.Response findNotice(Long id) {

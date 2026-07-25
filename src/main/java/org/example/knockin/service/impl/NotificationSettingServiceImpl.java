@@ -2,12 +2,15 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.AlarmSettingDto;
+import org.example.knockin.dto.BoNoticeListDto;
 import org.example.knockin.dto.MyNotificationSettingsDto;
+import org.example.knockin.dto.NoticeListDto;
 import org.example.knockin.entity.alarm.AlarmSetting;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.repository.alarm.AlarmSettingRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +22,7 @@ import java.util.List;
 public class NotificationSettingServiceImpl {
     private final MemberServiceImpl memberService;
     private final AlarmSettingRepository alarmSettingRepository;
+    private final NotificationServiceImpl notificationService;
 
     public MyNotificationSettingsDto.Response findAlaramSettingList(Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
@@ -32,5 +36,9 @@ public class NotificationSettingServiceImpl {
         AlarmSetting alarmSetting = alarmSettingRepository.findByIdAndMember(request.getSettingId(), member);
         alarmSetting.updateEnable(request.getEnabled());
         return AlarmSettingDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    public NoticeListDto.Response findNoticeList(Pageable pageable) {
+        return NoticeListDto.Response.builder().notices(notificationService.findNotificationList(pageable)).build();
     }
 }
