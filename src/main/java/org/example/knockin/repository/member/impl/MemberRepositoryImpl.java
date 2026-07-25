@@ -412,7 +412,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         return JPAExpressions
                 .selectOne()
                 .from(block)
-                .where(block.member.id.eq(member.id), block.isDeleted.isFalse())
+                .where(block.blocked.id.eq(member.id), block.isDeleted.isFalse())
                 .notExists();
     }
 

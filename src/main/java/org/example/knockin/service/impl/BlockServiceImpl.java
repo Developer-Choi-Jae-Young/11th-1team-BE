@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BlockDto;
 import org.example.knockin.dto.BlockListDto;
 import org.example.knockin.dto.BlockListDto.Response;
+import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.BlockErrorCode;
@@ -14,14 +15,17 @@ import org.example.knockin.repository.member.BlockRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class BlockServiceImpl {
 
     private final MemberServiceImpl memberService;
+    private final BasicInformationServiceImpl basicInformationService;
     private final BlockRepository blockRepository;
 
+    @Transactional
     public BlockDto.Response saveBlock(Long blockerId, Long blockedId) {
         Member blocker = memberService.findByIdOrThrow(blockerId);
         Member blocked = memberService.findByIdOrThrow(blockedId);
@@ -34,22 +38,14 @@ public class BlockServiceImpl {
         return BlockDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
+    @Transactional(readOnly = true)
     public BlockListDto.Response findMyList(Long memberId, Pageable pageable) {
         Member blocker = memberService.findByIdOrThrow(memberId);
-        Page<Block> page = blockRepository.findByBlocker(blocker, pageable);
-        List<Response.Block> blocks = page.getContent().stream().map(this::toDto).toList();
-        return BlockListDto.Response.builder().blocks(blocks).build();
+        List<Response.Block> myList = blockRepository.findMyList(blocker.getId());
+        return BlockListDto.Response.builder().blocks(myList).build();
     }
 
-    private BlockListDto.Response.Block toDto(Block block) {
-        return BlockListDto.Response.Block.builder()
-                .userId(block.getBlocked().getId())
-                // 이름 fetch: blocked -> basicInfo
-                // .name()
-                .createAt(block.getBlocked().getCreatedAt())
-                .build();
-    }
-
+    @Transactional
     public BlockDto.Response deleteBlock(Long blockerId, Long blockedId) {
         Member blocker = memberService.findByIdOrThrow(blockerId);
         Member blocked = memberService.findByIdOrThrow(blockedId);
