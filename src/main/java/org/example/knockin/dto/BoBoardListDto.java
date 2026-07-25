@@ -46,11 +46,11 @@ public class BoBoardListDto {
             @Schema(description = "지역")
             private String region;
             @Schema(description = "입주가능일")
-            private LocalDate comeableDate;
+            private LocalDateTime comeableDate;
             @Schema(description = "삭제 여부")
             private boolean isDeleted;
             @Schema(description = "등록일")
-            private LocalDate createdAt;
+            private LocalDateTime createdAt;
             @Schema(description = "즉시 입주 여부")
             private boolean comeableDateNegotiable;
         }
