@@ -92,7 +92,7 @@ public class BackOfficeController {
 
     @GetMapping("/room-types")
     @Operation(summary = "방 유형 목록 조회")
-    public CommonResponse<BoRoomTypeListDto.Response> findRoomTypeList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public CommonResponse<BoRoomTypeListDto.Response> findRoomTypeList(@PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomTypeList(pageable));
     }
 
