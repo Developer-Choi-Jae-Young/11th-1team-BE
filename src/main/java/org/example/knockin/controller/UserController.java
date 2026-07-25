@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
+import org.example.knockin.dto.FcmDto.Response;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.dto.PrincipalDetails;
 import org.example.knockin.service.impl.MemberServiceImpl;
@@ -162,5 +163,11 @@ public class UserController {
     @Operation(summary = "공지사항 목록 조회")
     public CommonResponse<NoticeListDto.Response> findNoticeList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNoticeList(pageable));
+    }
+
+    @PostMapping("/devices")
+    public CommonResponse<?> upsertDeviceProps(@AuthenticationPrincipal PrincipalDetails details, @Valid FcmDto.Request request) {
+        Response response = memberService.upsertFcmProps(details.getMember().getId(), request);
+        return CommonResponse.status(HttpStatus.OK).body(response);
     }
 }

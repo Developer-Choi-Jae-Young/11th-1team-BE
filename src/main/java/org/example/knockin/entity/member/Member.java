@@ -71,8 +71,15 @@ public class Member extends CreatedAtEntity {
     @Column(name = "is_delete", nullable = false, length = 5, comment = "삭제 여부")
     private boolean isDelete;
 
-    @Column(name = "uuid", nullable = false, length = 100, comment = "FCM uuid")
-    private String uuid;
+    @Column(name = "device_id", length = 50, comment = "기기 UUID")
+    private String deviceId;
+
+    @Column(name = "fcm_token", length = 100, comment = "Firebase Messaging이 생성한 실제 토큰")
+    private String fcmToken;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "platform", length = 50, comment = "디바이스 플랫폼")
+    private DevicePlatform platform;
 
     @Column(name = "deleted_at", comment = "삭제 일시")
     private LocalDateTime deletedAt;
@@ -167,6 +174,12 @@ public class Member extends CreatedAtEntity {
     }
 
     public void setFcmToken(String fcmToken) {
-        this.uuid = fcmToken;
+        this.fcmToken = fcmToken;
+    }
+
+    public void setFcmProps(String deviceId, String fcmToken, DevicePlatform platform) {
+        this.deviceId = deviceId;
+        this.fcmToken = fcmToken;
+        this.platform = platform;
     }
 }
