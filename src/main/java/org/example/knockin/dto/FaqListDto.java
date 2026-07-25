@@ -31,7 +31,7 @@ public class FaqListDto {
             @Schema(description = "제목")
             private String title;
             @Schema(description = "정렬 순서")
-            private Long sort;
+            private Integer sort;
         }
     }
 }
