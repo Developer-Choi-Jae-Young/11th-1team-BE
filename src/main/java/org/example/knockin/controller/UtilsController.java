@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
+import org.example.knockin.service.FcmService;
 import org.example.knockin.service.impl.AppVersionServiceImpl;
 import org.example.knockin.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.service.impl.FaqServiceImpl;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +27,7 @@ public class UtilsController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
     private final AuthEmailServiceImpl authEmailService;
+    private final FcmService fcmService;
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
@@ -101,6 +104,15 @@ public class UtilsController {
     @GetMapping("/auth/success")
     public CommonResponse<String> authSuccess() {
         return CommonResponse.status(HttpStatus.OK).body("로그인에 성공하였습니다.");
+    }
+
+    @GetMapping("/test/fcm")
+    public CommonResponse<?> testFcm(
+            @AuthenticationPrincipal PrincipalDetails details
+    ) {
+        Long memberId = details.getMember().getId();
+        fcmService.sendByMember(memberId);
+        return CommonResponse.status(200).body(null);
     }
 }
 
