@@ -66,21 +66,43 @@ public class SeedDataConfig implements CommandLineRunner {
         AgreementLog privacyLog = AgreementLog.builder().agreement(privacyPolicy).isCurrent(true).build();
         agreementLogRepository.saveAll(List.of(termsLog1, termsLog2, termsLog3, privacyLog));
 
-        LifePattern cleanScale = LifePattern.builder().name("청소 깔끔도").dtype(LifePatternType.SCALE).isDeleted(false).sort(1).build();
-        LifePattern smokeYn = LifePattern.builder().name("흡연 여부").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(2).build();
-        LifePattern mbtiChoice = LifePattern.builder().name("MBTI 성향").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(3).build();
-        lifePatternRepository.saveAll(List.of(cleanScale, smokeYn, mbtiChoice));
+        LifePattern bedtime = LifePattern.builder().name("취침시간").dtype(LifePatternType.SCALE).isDeleted(false).sort(1).build();
+        LifePattern visitorFrequency = LifePattern.builder().name("방문객 빈도").dtype(LifePatternType.SCALE).isDeleted(false).sort(2).build();
+        LifePattern smoking = LifePattern.builder().name("흡연여부").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(3).build();
+        LifePattern pet = LifePattern.builder().name("반려동물 여부").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(4).build();
+        LifePattern cleanlinessSensitivity = LifePattern.builder().name("청결 민감도").dtype(LifePatternType.SCALE).isDeleted(false).sort(5).build();
+        LifePattern noiseSensitivity = LifePattern.builder().name("소음 민감도").dtype(LifePatternType.SCALE).isDeleted(false).sort(6).build();
+        LifePattern personalSpaceImportance = LifePattern.builder().name("개인 공간 중요도").dtype(LifePatternType.SCALE).isDeleted(false).sort(7).build();
+        LifePattern personalityStyle = LifePattern.builder().name("성격 스타일").dtype(LifePatternType.SCALE).isDeleted(false).sort(8).build();
+        lifePatternRepository.saveAll(List.of(
+                bedtime,
+                visitorFrequency,
+                smoking,
+                pet,
+                cleanlinessSensitivity,
+                noiseSensitivity,
+                personalSpaceImportance,
+                personalityStyle
+        ));
 
-        LifePatternInformation scale1 = LifePatternInformation.builder().lifePattern(cleanScale).dvalue("1").description("자주 안함").build();
-        LifePatternInformation scale2 = LifePatternInformation.builder().lifePattern(cleanScale).dvalue("2").description("종종 안함").build();
-        LifePatternInformation scale3 = LifePatternInformation.builder().lifePattern(cleanScale).dvalue("3").description("보통").build();
-        LifePatternInformation scale4 = LifePatternInformation.builder().lifePattern(cleanScale).dvalue("4").description("깔끔함").build();
-        LifePatternInformation scale5 = LifePatternInformation.builder().lifePattern(cleanScale).dvalue("5").description("매우 깔끔함").build();
-        LifePatternInformation smokeTrue = LifePatternInformation.builder().lifePattern(smokeYn).dvalue("1").description("흡연자").build();
-        LifePatternInformation smokeFalse = LifePatternInformation.builder().lifePattern(smokeYn).dvalue("2").description("비흡연자").build();
-        LifePatternInformation mbtiI = LifePatternInformation.builder().lifePattern(mbtiChoice).dvalue("1").description("내향형").build();
-        LifePatternInformation mbtiE = LifePatternInformation.builder().lifePattern(mbtiChoice).dvalue("2").description("외향형").build();
-        lifePatternInformationRepository.saveAll(List.of(scale1, scale2, scale3, scale4, scale5, smokeTrue, smokeFalse, mbtiI, mbtiE));
+        List<LifePatternInformation> lifePatternInformationList = new ArrayList<>();
+        lifePatternInformationList.addAll(createLifePatternInformation(bedtime,
+                "매우 일찍", "일찍", "보통", "늦게", "매우 늦게"));
+        lifePatternInformationList.addAll(createLifePatternInformation(visitorFrequency,
+                "거의 안 옴", "가끔", "보통", "자주", "매우 자주"));
+        lifePatternInformationList.addAll(createLifePatternInformation(smoking,
+                "하지 않아요", "하고 있어요"));
+        lifePatternInformationList.addAll(createLifePatternInformation(pet,
+                "키우지 않아요", "키우고 있어요"));
+        lifePatternInformationList.addAll(createLifePatternInformation(cleanlinessSensitivity,
+                "전혀 민감하지 않음", "민감하지 않음", "보통", "민감함", "매우 민감함"));
+        lifePatternInformationList.addAll(createLifePatternInformation(noiseSensitivity,
+                "전혀 민감하지 않음", "민감하지 않음", "보통", "민감함", "매우 민감함"));
+        lifePatternInformationList.addAll(createLifePatternInformation(personalSpaceImportance,
+                "전혀 중요하지 않음", "중요하지 않음", "보통", "중요함", "매우 중요함"));
+        lifePatternInformationList.addAll(createLifePatternInformation(personalityStyle,
+                "매우 내향적", "내향적", "보통", "외향적", "매우 외향적"));
+        lifePatternInformationRepository.saveAll(lifePatternInformationList);
 
         Region seoul = Region.builder().name("서울특별시").scope(1).parent(null).build();
         Region gyeonggi = Region.builder().name("경기도").scope(1).parent(null).build();
@@ -160,5 +182,20 @@ public class SeedDataConfig implements CommandLineRunner {
         InquiryCategory catEtc = InquiryCategory.builder().title("기타 문의").isDeleted(false).build();
 
         inquiryCategoryRepository.saveAll(List.of(catAccount, catRoom, catAbuse, catEtc));
+    }
+
+    private List<LifePatternInformation> createLifePatternInformation(
+            LifePattern lifePattern,
+            String... descriptions
+    ) {
+        List<LifePatternInformation> informationList = new ArrayList<>();
+        for (int i = 0; i < descriptions.length; i++) {
+            informationList.add(LifePatternInformation.builder()
+                    .lifePattern(lifePattern)
+                    .dvalue(String.valueOf(i + 1))
+                    .description(descriptions[i])
+                    .build());
+        }
+        return informationList;
     }
 }
