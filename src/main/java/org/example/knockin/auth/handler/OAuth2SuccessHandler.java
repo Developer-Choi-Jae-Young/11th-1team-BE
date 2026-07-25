@@ -47,6 +47,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         if(ObjectUtils.isEmpty(principalDetails)) throw new BusinessException(AuthErrorCode.ILLEGAL_LOGIN_ACCESS);
         Member member = principalDetails.getMember();
         AuthResponse authResponse = memberService.findMemberForLogin(member, accessToken);
+
+        if (authResponse != null) {
+            String fcmToken = (String) request.getAttribute("fcmToken");
+            memberService.setFcmToken(member.getId(), fcmToken);
+        }
+
         CommonResponse<AuthResponse> commonResponse = CommonResponse.status(HttpStatus.OK).body(authResponse);
 
         if (request.getAttribute("isSdkLogin") != null) {

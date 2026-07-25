@@ -48,7 +48,7 @@ import java.util.List;
         name = "member",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_member_provider",
-                columnNames = {"provider_type", "provider_id"}
+                columnNames = {"provider_type", "provider_id", "uuid"}
         )
 )
 public class Member extends CreatedAtEntity {
@@ -70,6 +70,9 @@ public class Member extends CreatedAtEntity {
 
     @Column(name = "is_delete", nullable = false, length = 5, comment = "삭제 여부")
     private boolean isDelete;
+
+    @Column(name = "uuid", nullable = false, length = 100, comment = "FCM uuid")
+    private String uuid;
 
     @Column(name = "deleted_at", comment = "삭제 일시")
     private LocalDateTime deletedAt;
@@ -161,5 +164,9 @@ public class Member extends CreatedAtEntity {
 
     public void changeRole(MemberRole memberRole) {
         this.role = memberRole;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.uuid = fcmToken;
     }
 }

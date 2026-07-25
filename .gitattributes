@@ -7,3 +7,4 @@ src/main/resources/application-secret-*.properties filter=git-crypt diff=git-cry
 *.p12 filter=git-crypt diff=git-crypt -text
 *.pem filter=git-crypt diff=git-crypt -text
 *.p8 filter=git-crypt diff=git-crypt -text
+service-account.json filter=git-crypt diff=git-crypt -text

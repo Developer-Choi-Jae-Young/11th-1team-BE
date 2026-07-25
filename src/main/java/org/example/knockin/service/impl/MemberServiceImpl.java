@@ -244,4 +244,11 @@ public class MemberServiceImpl {
         member.changeRole(memberRole);
         return member;
     }
+
+    @Transactional
+    public Member setFcmToken(Long memberId, String fcmToken) {
+        Member member = findByIdOrThrow(memberId);
+        member.setFcmToken(fcmToken);
+        return member;
+    }
 }
