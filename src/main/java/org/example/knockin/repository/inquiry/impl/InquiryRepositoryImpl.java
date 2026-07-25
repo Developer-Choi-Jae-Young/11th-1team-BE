@@ -77,7 +77,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                 )).from(inquiry).leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
-                .where(inquiry.isDeleted.eq(false), searchTitle(request.getSearchKeyword()).or(searchMemberName(request.getSearchKeyword()).or(searchState(request.getIsReply()).or(searchType(request.getCategoryId())))))
+                .where(inquiry.isDeleted.eq(false), searchKeyword(request.getSearchKeyword()), searchState(request.getIsReply()), searchType(request.getCategoryId()))
                 .offset(pageable.getOffset()).limit(pageable.getPageSize()).fetch();
     }
 
@@ -112,12 +112,9 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                 .fetch();
     }
 
-    private BooleanExpression searchMemberName(String name) {
-        return name != null ? basicInformation.name.contains(name) : null;
-    }
-
-    private BooleanExpression searchTitle(String title) {
-        return title != null ? inquiry.title.contains(title) : null;
+    private BooleanExpression searchKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) return null;
+        return inquiry.title.contains(keyword).or(basicInformation.name.contains(keyword));
     }
 
     private BooleanExpression searchState(Boolean isReplied) {
