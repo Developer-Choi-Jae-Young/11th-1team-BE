@@ -246,9 +246,9 @@ public class MemberServiceImpl {
     }
 
     @Transactional
-    public Member setFcmToken(Long memberId, String fcmToken) {
+    public FcmDto.Response upsertFcmProps(Long memberId, FcmDto.Request request) {
         Member member = findByIdOrThrow(memberId);
-        member.setFcmToken(fcmToken);
-        return member;
+        member.setFcmProps(request.getDeviceId(), request.getFcmToken(), request.getPlatform());
+        return FcmDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 }

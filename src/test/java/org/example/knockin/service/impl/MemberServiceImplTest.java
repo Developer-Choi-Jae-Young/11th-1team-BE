@@ -2,9 +2,12 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.DevicePlatform;
 import org.example.knockin.entity.member.MemberRole;
 import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.member.State;
+import org.example.knockin.exception.BusinessException;
+import org.example.knockin.exception.MemberErrorCode;
 import org.example.knockin.repository.alarm.AlarmSettingRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
@@ -22,8 +25,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -133,5 +138,45 @@ class MemberServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getRole()).isEqualTo(MemberRole.ADMIN);
         verify(member).changeRole(MemberRole.ADMIN);
+    }
+
+    @Test
+    @DisplayName("FCM 디바이스 정보를 모두 저장한다")
+    void upsertFcmPropsSuccessTest() {
+        // given
+        Long memberId = 1L;
+        Member member = Member.builder().id(memberId).build();
+        FcmDto.Request request = new FcmDto.Request();
+        request.setDeviceId("550e8400-e29b-41d4-a716-446655440000");
+        request.setFcmToken("fcm-token");
+        request.setPlatform(DevicePlatform.ANDROID);
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
+
+        // when
+        FcmDto.Response response = memberService.upsertFcmProps(memberId, request);
+
+        // then
+        assertThat(response.getUpdatedAt()).isNotNull();
+        assertThat(member.getDeviceId()).isEqualTo(request.getDeviceId());
+        assertThat(member.getFcmToken()).isEqualTo(request.getFcmToken());
+        assertThat(member.getPlatform()).isEqualTo(DevicePlatform.ANDROID);
+        verify(memberRepository).findById(memberId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 회원의 FCM 디바이스 정보는 저장할 수 없다")
+    void upsertFcmPropsFailsWhenMemberDoesNotExist() {
+        // given
+        Long memberId = 1L;
+        FcmDto.Request request = new FcmDto.Request();
+        request.setDeviceId("550e8400-e29b-41d4-a716-446655440000");
+        request.setFcmToken("fcm-token");
+        request.setPlatform(DevicePlatform.IOS);
+        given(memberRepository.findById(memberId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> memberService.upsertFcmProps(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
     }
 }
