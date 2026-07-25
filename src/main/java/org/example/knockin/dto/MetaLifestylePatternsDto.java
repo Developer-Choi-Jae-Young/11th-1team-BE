@@ -40,6 +40,8 @@ public class MetaLifestylePatternsDto {
             @AllArgsConstructor
             @NoArgsConstructor
             public static class DetailItem {
+                @Schema(description = "고유 식별 ID")
+                private Long id;
                 @Schema(description = "values")
                 private String values;
                 @Schema(description = "설명")

@@ -43,6 +43,7 @@ public class LifePattern extends CreatedAtEntity {
         this.name = name;
         this.dtype = type;
         this.sort = sort;
+        this.isDeleted = false;
     }
 
     public void deleteLifePattern() {
