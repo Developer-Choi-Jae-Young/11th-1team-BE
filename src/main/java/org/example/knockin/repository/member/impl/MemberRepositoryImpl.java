@@ -332,7 +332,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                     member.createdAt,
                     member.role,
                     state.states.as("state"),
-                    authenticationApprove.status.as("authenticationType")
+                    authentication.type.as("authenticationType")
                 )).from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(state).on(state.member.eq(member))
