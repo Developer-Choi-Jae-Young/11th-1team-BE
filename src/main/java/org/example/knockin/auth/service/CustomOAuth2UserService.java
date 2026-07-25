@@ -28,7 +28,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> oAuth2UserAttributes;
 
-        if ("apple".equalsIgnoreCase(registrationId)) {
+        if (OAuth2UserInfoProvider.APPLE.getRegistrationId().equalsIgnoreCase(registrationId)) {
             String idToken = (String) userRequest.getAdditionalParameters().get("id_token");
             if (idToken == null || idToken.isEmpty()) {
                 idToken = userRequest.getAccessToken().getTokenValue();
