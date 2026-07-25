@@ -16,6 +16,7 @@ import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.file.BasicInformationFile;
 import org.example.knockin.entity.file.File;
@@ -68,6 +69,9 @@ class RoommateBoardRepositoryTest {
     private RoommateBoardOptionRepository roommateBoardOptionRepository;
 
     @Autowired
+    private RoommateBoardInterestRepository roommateBoardInterestRepository;
+
+    @Autowired
     private MemberLifePatternRepository memberLifePatternRepository;
 
     @Autowired
@@ -100,7 +104,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -128,7 +132,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent())
@@ -154,7 +158,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(1, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent()).isEmpty();
@@ -196,8 +200,8 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate);
-        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate);
+        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate, null);
+        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate, null);
 
         // Then
         assertThat(femaleResult.getContent())
@@ -233,28 +237,77 @@ class RoommateBoardRepositoryTest {
 
         // When & Then
         request.setKeyword("햇살");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("햇살 좋은 집");
 
         request.setKeyword("강남구");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("햇살 좋은 집");
 
         request.setKeyword("오피스");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("조용한 방");
 
         request.setKeyword("  해운대  ");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getContent())
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("조용한 방");
 
         request.setKeyword("   ");
-        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate).getTotalElements())
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getTotalElements())
                 .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("관심 게시글 필터는 요청 회원이 활성화한 게시글만 조회한다")
+    void searchFiltersOnlyActiveInterestedBoards() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member requester = persistMember("provider-liked-requester");
+        Member owner = persistMember("provider-liked-owner");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        RoommateBoard activeBoard = persistBoard(
+                "활성 관심 게시글", owner, roomType, region, visibleEndDate.plusDays(1));
+        RoommateBoard deletedBoard = persistBoard(
+                "해제한 관심 게시글", owner, roomType, region, visibleEndDate.plusDays(2));
+        persistBoard("관심하지 않은 게시글", owner, roomType, region, visibleEndDate.plusDays(3));
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(requester)
+                .roommateBoard(activeBoard)
+                .isDeleted(false)
+                .build());
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(requester)
+                .roommateBoard(deletedBoard)
+                .isDeleted(true)
+                .build());
+        entityManager.flush();
+        entityManager.clear();
+
+        BoardListDto.Request request = defaultRequest();
+        request.setLikedOnly(true);
+
+        // When
+        Page<BoardBaseRow> result = roommateBoardRepository.search(
+                request,
+                PageRequest.of(0, 20),
+                visibleEndDate,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("활성 관심 게시글");
+        assertThat(roommateBoardInterestRepository.findActiveBoardIdsByMemberIdAndBoardIds(
+                requester.getId(),
+                List.of(activeBoard.getId(), deletedBoard.getId())
+        )).containsExactly(activeBoard.getId());
     }
 
     @Test

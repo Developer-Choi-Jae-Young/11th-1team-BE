@@ -109,8 +109,12 @@ public class MemberServiceImpl {
         return memberRepository.findAllWithNameRowById(ids);
     }
 
-    public List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, int limit) {
-        return memberRepository.findMatchingBasicRow(excludeMemberIds, limit);
+    public List<MatchingBasicInfoRow> findMatchingBasicRow(
+            List<Long> excludeMemberIds,
+            int limit,
+            Long likedByMemberId
+    ) {
+        return memberRepository.findMatchingBasicRow(excludeMemberIds, limit, likedByMemberId);
     }
 
     public MatchingBasicInfoRow findMatchingBasicRowById(Long memberId) {

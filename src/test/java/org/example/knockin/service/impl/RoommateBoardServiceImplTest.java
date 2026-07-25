@@ -921,14 +921,14 @@ class RoommateBoardServiceImplTest {
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime beforeEndDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         roommateBoardService.getBoardList(request, pageable, null);
 
         LocalDateTime afterEndDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
-        verify(roommateBoardRepository).search(eq(request), eq(pageable), endDateCaptor.capture());
+        verify(roommateBoardRepository).search(eq(request), eq(pageable), endDateCaptor.capture(), eq(null));
         assertThat(endDateCaptor.getValue()).isBetween(beforeEndDate, afterEndDate);
         verifyNoInteractions(roommateBoardFileService, authenticationService);
     }
@@ -943,7 +943,7 @@ class RoommateBoardServiceImplTest {
         request.setKeyword("  원룸  ");
         Pageable pageable = PageRequest.of(0, 20);
         when(memberService.findByIdOrThrow(requesterId)).thenReturn(member);
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         // When
@@ -961,7 +961,7 @@ class RoommateBoardServiceImplTest {
         BoardListDto.Request request = new BoardListDto.Request();
         request.setKeyword("원룸");
         Pageable pageable = PageRequest.of(0, 20);
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         // When
@@ -978,7 +978,7 @@ class RoommateBoardServiceImplTest {
         Long requesterId = 42L;
         BoardListDto.Request request = new BoardListDto.Request();
         Pageable pageable = PageRequest.of(0, 20);
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         // When
@@ -998,6 +998,7 @@ class RoommateBoardServiceImplTest {
         BoardListDto.Request request = new BoardListDto.Request();
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime comeableDate = LocalDateTime.of(2026, 8, 1, 9, 0);
+        LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 9, 0);
         BoardBaseRow baseRow = new BoardBaseRow(
                 1L,
                 "룸메이트를 구합니다",
@@ -1011,9 +1012,10 @@ class RoommateBoardServiceImplTest {
                 "강남구",
                 "서울",
                 11L,
-                "작성자"
+                "작성자",
+                createdAt
         );
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
                 .thenReturn(new PageImpl<>(List.of(baseRow), pageable, 1));
         when(roommateBoardFileService.findThumbnailsByBoardIds(List.of(1L)))
                 .thenReturn(List.of(new BoardThumbnailRow(1L, "thumbnail.jpg")));
@@ -1035,7 +1037,10 @@ class RoommateBoardServiceImplTest {
             assertThat(response.getRoomTypes()).containsExactly("원룸");
             assertThat(response.getComeableDate()).isEqualTo(comeableDate);
             assertThat(response.getRegionFullName()).isEqualTo("서울 강남구 역삼동");
+            assertThat(response.getMemberId()).isEqualTo(11L);
             assertThat(response.getMemberName()).isEqualTo("작성자");
+            assertThat(response.isInterested()).isFalse();
+            assertThat(response.getCreatedAt()).isEqualTo(createdAt);
             assertThat(response.getAuthentications())
                     .containsExactly(AuthenticationType.STUDENT, AuthenticationType.COMPANY);
             assertThat(response.getBadges()).isEmpty();
@@ -1050,17 +1055,20 @@ class RoommateBoardServiceImplTest {
         // Given
         BoardListDto.Request request = new BoardListDto.Request();
         request.setKeyword("원룸");
+        Long requesterId = 42L;
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime comeableDate = LocalDateTime.of(2026, 8, 1, 9, 0);
+        LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 9, 0);
         BoardBaseRow firstRow = new BoardBaseRow(
                 1L, "첫 게시글", 1_000, 50, 10, comeableDate, 7L,
-                "원룸", "역삼동", "강남구", "서울", 11L, "첫 작성자"
+                "원룸", "역삼동", "강남구", "서울", 11L, "첫 작성자", createdAt
         );
         BoardBaseRow secondRow = new BoardBaseRow(
                 2L, "두 번째 게시글", 2_000, 60, 20, comeableDate, 3L,
-                "원룸", "서초동", "서초구", "서울", 12L, "두 번째 작성자"
+                "원룸", "서초동", "서초구", "서울", 12L, "두 번째 작성자", createdAt.minusHours(1)
         );
-        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class)))
+        when(roommateBoardRepository.search(
+                eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
                 .thenReturn(new PageImpl<>(List.of(firstRow, secondRow), pageable, 2));
         when(roommateBoardFileService.findThumbnailsByBoardIds(List.of(1L, 2L)))
                 .thenReturn(List.of(
@@ -1072,16 +1080,42 @@ class RoommateBoardServiceImplTest {
                         new MemberAuthenticationRow(11L, AuthenticationType.STUDENT),
                         new MemberAuthenticationRow(12L, AuthenticationType.COMPANY)
                 ));
+        when(roommateBoardInterestService.findActiveBoardIdsByMemberIdAndBoardIds(
+                requesterId, List.of(1L, 2L)))
+                .thenReturn(List.of(2L));
 
         // When
-        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
+        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, requesterId);
 
         // Then
         assertThat(result.getContent())
                 .extracting(BoardListDto.Response::getId)
                 .containsExactly(1L, 2L);
+        assertThat(result.getContent())
+                .extracting(BoardListDto.Response::isInterested)
+                .containsExactly(false, true);
         verify(roommateBoardFileService).findThumbnailsByBoardIds(List.of(1L, 2L));
         verify(authenticationService).findAcceptedByMemberIds(List.of(11L, 12L));
+        verify(roommateBoardInterestService)
+                .findActiveBoardIdsByMemberIdAndBoardIds(requesterId, List.of(1L, 2L));
+    }
+
+    @Test
+    @DisplayName("비로그인 사용자의 관심 게시글 필터 요청은 인증 예외를 던진다")
+    void getBoardListRejectsAnonymousLikedOnlyRequest() {
+        BoardListDto.Request request = new BoardListDto.Request();
+        request.setLikedOnly(true);
+
+        assertThatThrownBy(() -> roommateBoardService.getBoardList(
+                request,
+                PageRequest.of(0, 20),
+                null
+        )).isInstanceOfSatisfying(
+                BusinessException.class,
+                exception -> assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.UNAUTHORIZED)
+        );
+
+        verifyNoInteractions(roommateBoardRepository);
     }
 
     @Test

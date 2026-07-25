@@ -19,6 +19,8 @@ import org.example.knockin.dto.MemberReportDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.room.RoomProfileType;
+import org.example.knockin.exception.BusinessException;
+import org.example.knockin.exception.CommonErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.HasMemberId;
 import org.example.knockin.global.util.StringUtils;
@@ -54,10 +56,12 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     @Override
     @Transactional(readOnly = true)
     public Slice<MatchListDto.Response> findMatchingList(Long memberId, MatchListDto.Request request) {
+        validateLikedOnlyRequest(request.getLikedOnly(), memberId);
         int size = request.getSize();
         List<Long> excludeMemberIds = resolveExcludeMemberIds(memberId, request);
+        Long likedByMemberId = Boolean.TRUE.equals(request.getLikedOnly()) ? memberId : null;
 
-        List<MatchingBasicInfoRow> rawRows = memberService.findMatchingBasicRow(excludeMemberIds, size + 1);
+        List<MatchingBasicInfoRow> rawRows = memberService.findMatchingBasicRow(excludeMemberIds, size + 1, likedByMemberId);
         boolean hasNext = rawRows.size() > size;
         List<MatchingBasicInfoRow> matchingListBasicRow = rawRows.stream().limit(size).toList();
         List<Long> memberIds = matchingListBasicRow.stream().map(MatchingBasicInfoRow::memberId).toList();
@@ -132,6 +136,12 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 PageRequest.of(0, size),
                 hasNext
         );
+    }
+
+    private void validateLikedOnlyRequest(Boolean likedOnly, Long memberId) {
+        if (Boolean.TRUE.equals(likedOnly) && memberId == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
     }
 
     private List<Long> resolveExcludeMemberIds(Long memberId, MatchListDto.Request request) {
@@ -300,7 +310,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<MatchingPreferenceConditionWeightRow> preferenceConditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(List.of(targetMemberId));
         Compatibility compatibility = roommateScoreService.calculateScore(requesterId, targetMemberId);
 
-        boolean interested = requesterId != null && memberInterestService.existsBySenderIdAndReceiverId(requesterId, targetMemberId);
+        boolean interested = requesterId != null && memberInterestService.existsActiveBySenderIdAndReceiverId(requesterId, targetMemberId);
 
         List<String> roomTypeNames = seekerRoomTypeRows.stream().map(MatchingSeekerRoomTypeRow::roomTypeName).toList();
         List<String> regionFullNames = seekerRegionRows.stream()

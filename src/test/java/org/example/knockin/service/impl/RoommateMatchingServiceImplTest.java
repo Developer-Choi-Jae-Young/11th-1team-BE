@@ -27,6 +27,7 @@ import org.example.knockin.entity.member.MemberDeclaration;
 import org.example.knockin.entity.member.MemberInterest;
 import org.example.knockin.entity.room.RoomProfileType;
 import org.example.knockin.exception.BusinessException;
+import org.example.knockin.exception.CommonErrorCode;
 import org.example.knockin.exception.MemberErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.auth.AuthenticationRepository;
@@ -349,7 +350,7 @@ class RoommateMatchingServiceImplTest {
         LocalDate offerBirth = LocalDate.of(2000, 1, 1);
         LocalDate seekerBirth = LocalDate.of(1999, 5, 10);
 
-        when(memberRepository.findMatchingBasicRow(List.of(99L, viewerId), 3))
+        when(memberRepository.findMatchingBasicRow(List.of(99L, viewerId), 3, null))
                 .thenReturn(List.of(
                         new MatchingBasicInfoRow(1L, "offer-profile.png", "오퍼", offerBirth, Gender.MALE, 101L, RoomProfileType.OFFER),
                         new MatchingBasicInfoRow(2L, "seeker-profile.png", "시커", seekerBirth, Gender.FEMALE, 102L, RoomProfileType.SEEKER),
@@ -413,7 +414,7 @@ class RoommateMatchingServiceImplTest {
         assertThat(seeker.getConditions()).extracting(MatchListDto.Condition::getName).containsExactly("소음");
         assertThat(seeker.getConditionWeights()).extracting(MatchListDto.ConditionWeight::getName).containsExactly("흡연");
 
-        verify(memberRepository).findMatchingBasicRow(List.of(99L, viewerId), 3);
+        verify(memberRepository).findMatchingBasicRow(List.of(99L, viewerId), 3, null);
         verify(roomOfferProfileRepository).findAllOfferProfileByMemberIdIn(List.of(1L, 2L));
         verify(roomSeekerProfileRepository).findAllSeekerProfileByMemberIdIn(List.of(1L, 2L));
     }
@@ -425,7 +426,7 @@ class RoommateMatchingServiceImplTest {
         Long viewerId = 10L;
         MatchListDto.Request request = new MatchListDto.Request();
         request.setSize(20);
-        when(memberRepository.findMatchingBasicRow(List.of(viewerId), 21)).thenReturn(List.of());
+        when(memberRepository.findMatchingBasicRow(List.of(viewerId), 21, null)).thenReturn(List.of());
 
         // When
         Slice<MatchListDto.Response> response = roommateMatchingService.findMatchingList(viewerId, request);
@@ -433,7 +434,7 @@ class RoommateMatchingServiceImplTest {
         // Then
         assertThat(response.getContent()).isEmpty();
         assertThat(response.hasNext()).isFalse();
-        verify(memberRepository).findMatchingBasicRow(List.of(viewerId), 21);
+        verify(memberRepository).findMatchingBasicRow(List.of(viewerId), 21, null);
         verifyNoInteractions(
                 roomOfferProfileRepository,
                 roomSeekerProfileRepository,
@@ -451,7 +452,7 @@ class RoommateMatchingServiceImplTest {
         MatchListDto.Request request = new MatchListDto.Request();
         request.setSize(1);
 
-        when(memberRepository.findMatchingBasicRow(List.of(), 2))
+        when(memberRepository.findMatchingBasicRow(List.of(), 2, null))
                 .thenReturn(List.of(new MatchingBasicInfoRow(
                         1L,
                         "offer-profile.png",
@@ -478,6 +479,37 @@ class RoommateMatchingServiceImplTest {
         assertThat(response.getContent().getFirst().getInterested()).isFalse();
         assertThat(response.hasNext()).isFalse();
         verify(memberInterestRepository, never()).findActiveReceiverIdsBySenderIdAndReceiverIds(any(), anyList());
+    }
+
+    @Test
+    @DisplayName("관심 회원 필터는 로그인 회원 ID를 후보 조회 조건으로 전달한다")
+    void findMatchingListPassesRequesterIdForLikedOnlyFilter() {
+        Long requesterId = 10L;
+        MatchListDto.Request request = new MatchListDto.Request();
+        request.setLikedOnly(true);
+        request.setSize(20);
+        when(memberRepository.findMatchingBasicRow(List.of(requesterId), 21, requesterId))
+                .thenReturn(List.of());
+
+        Slice<MatchListDto.Response> response =
+                roommateMatchingService.findMatchingList(requesterId, request);
+
+        assertThat(response).isEmpty();
+        verify(memberRepository).findMatchingBasicRow(List.of(requesterId), 21, requesterId);
+    }
+
+    @Test
+    @DisplayName("비로그인 사용자의 관심 회원 필터 요청은 인증 예외를 던진다")
+    void findMatchingListRejectsAnonymousLikedOnlyRequest() {
+        MatchListDto.Request request = new MatchListDto.Request();
+        request.setLikedOnly(true);
+
+        assertThatThrownBy(() -> roommateMatchingService.findMatchingList(null, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.UNAUTHORIZED)
+                );
+        verifyNoInteractions(memberRepository);
     }
 
     @Test
@@ -508,7 +540,8 @@ class RoommateMatchingServiceImplTest {
                 .thenReturn(List.of(new MatchingPreferenceConditionRow(targetMemberId, 21L, 103L, 1003L, "소음", "1", "조용함", LifePatternType.SCALE)));
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(targetMemberId)))
                 .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(targetMemberId, 31L, 102L, "흡연")));
-        when(memberInterestRepository.existsBySenderIdAndReceiverId(requesterId, targetMemberId)).thenReturn(true);
+        when(memberInterestRepository.existsBySenderIdAndReceiverIdAndIsDeletedIsFalse(
+                requesterId, targetMemberId)).thenReturn(true);
         when(roommateScoreService.calculateScore(any(), any()))
                 .thenReturn(new Compatibility(87, List.of()));
 
@@ -582,7 +615,8 @@ class RoommateMatchingServiceImplTest {
         assertThat(response.getSeekerProfile().getRegionFullNames()).containsExactly("서울특별시 성동구 성수동");
         assertThat(response.getAuthentications()).isEmpty();
         verifyNoInteractions(roomOfferProfileRepository);
-        verify(memberInterestRepository, never()).existsBySenderIdAndReceiverId(any(), any());
+        verify(memberInterestRepository, never())
+                .existsBySenderIdAndReceiverIdAndIsDeletedIsFalse(any(), any());
     }
 
     @Test

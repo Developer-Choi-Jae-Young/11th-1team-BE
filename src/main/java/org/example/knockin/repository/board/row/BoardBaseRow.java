@@ -15,6 +15,7 @@ public record BoardBaseRow(
         String parentRegionName,
         String grandParentRegionName,
         Long memberId,
-        String memberName
+        String memberName,
+        LocalDateTime createdAt
 ) {
 }

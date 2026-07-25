@@ -2,6 +2,7 @@ package org.example.knockin.repository.board.impl;
 
 import static org.example.knockin.entity.board.QRoommateBoard.roommateBoard;
 import static org.example.knockin.entity.board.QRoommateBoardFile.roommateBoardFile;
+import static org.example.knockin.entity.board.QRoommateBoardInterest.roommateBoardInterest;
 import static org.example.knockin.entity.file.QBasicInformationFile.basicInformationFile;
 import static org.example.knockin.entity.file.QFile.file;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
@@ -33,6 +34,7 @@ import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.BoardBaseRow;
 import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.board.row.MyRoommateBoardRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -46,7 +48,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate) {
+    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId) {
         QRegion boardRegion = new QRegion("searchBoardRegion");
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
@@ -61,7 +63,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 depositBetween(request.getMinDeposit(), request.getMaxDeposit()),
                 monthlyRentBetween(request.getMinMounthRent(), request.getMaxMounthRent()),
                 isNotDeleted(),
-                comeableDateNotExpired(endDate)
+                comeableDateNotExpired(endDate),
+                likedOnly(request.getLikedOnly(), requesterId)
         };
 
         List<BoardBaseRow> content = jpaQueryFactory
@@ -79,7 +82,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         parentRegion.name,
                         grandParentRegion.name,
                         member.id,
-                        latestBasicInformation.name
+                        latestBasicInformation.name,
+                        roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
                 .join(roommateBoard.roomType, roomType)
@@ -106,6 +110,22 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    private BooleanExpression likedOnly(Boolean likedOnly, Long requesterId) {
+        if (!Boolean.TRUE.equals(likedOnly)) {
+            return null;
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(roommateBoardInterest)
+                .where(
+                        roommateBoardInterest.roommateBoard.id.eq(roommateBoard.id),
+                        roommateBoardInterest.member.id.eq(requesterId),
+                        roommateBoardInterest.isDeleted.isFalse()
+                )
+                .exists();
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {

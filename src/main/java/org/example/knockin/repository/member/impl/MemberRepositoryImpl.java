@@ -27,6 +27,7 @@ import org.example.knockin.dto.AuthResponse;
 import org.example.knockin.repository.member.MemberRepositoryCustom;
 import org.example.knockin.repository.member.row.MatchingBasicInfoRow;
 import org.example.knockin.repository.member.row.MemberWithNameRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -37,6 +38,7 @@ import java.util.Optional;
 
 import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
+import static org.example.knockin.entity.member.QMemberInterest.memberInterest;
 import static org.example.knockin.entity.life.QPreferenceCondition.preferenceCondition;
 import static org.example.knockin.entity.life.QMemberLifePattern.memberLifePattern;
 import static org.example.knockin.entity.life.QPreferenceConditionWeight.preferenceConditionWeight;
@@ -224,7 +226,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size) {
+    public List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size, @Nullable Long likedByMemberId) {
         if (size <= 0) return List.of();
 
         NumberExpression<Double> randomOrder = Expressions.numberTemplate(Double.class, "function('random')");
@@ -245,6 +247,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         member.isDelete.isFalse(),
                         memberPrivacy.type.eq(MemberPrivacyType.PUBLIC),
                         memberIdNotIn(excludeMemberIds),
+                        likedBy(likedByMemberId),
                         notBlocked()
                 )
                 .join(member.memberPrivacy, memberPrivacy)
@@ -274,6 +277,22 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .orderBy(randomOrder.asc())
                 .limit(size)
                 .fetch();
+    }
+
+    private BooleanExpression likedBy(Long likedByMemberId) {
+        if (likedByMemberId == null) {
+            return null;
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(memberInterest)
+                .where(
+                        memberInterest.sender.id.eq(likedByMemberId),
+                        memberInterest.receiver.id.eq(member.id),
+                        memberInterest.isDeleted.isFalse()
+                )
+                .exists();
     }
 
     @Override

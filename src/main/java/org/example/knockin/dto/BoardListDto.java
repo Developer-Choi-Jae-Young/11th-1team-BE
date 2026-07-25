@@ -39,6 +39,9 @@ public class BoardListDto {
 
         @Schema(description = "검색 키워드 (제목/위치/룸형태)")
         String keyword;
+
+        @Schema(description = "관심 게시글만 조회")
+        Boolean likedOnly;
     }
 
     @Data
@@ -73,6 +76,9 @@ public class BoardListDto {
         @Schema(description = "위치")
         String regionFullName;
 
+        @Schema(description = "작성자 고유 식별 ID")
+        Long memberId;
+
         @Schema(description = "작성자 이름")
         String memberName;
 
@@ -84,5 +90,11 @@ public class BoardListDto {
 
         @Schema(description = "인증배지")
         List<RoommateBoardBadgeType> badges;
+
+        @Schema(description = "관심 여부")
+        private boolean interested;
+
+        @Schema(description = "생성일자")
+        LocalDateTime createdAt;
     }
 }
