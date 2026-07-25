@@ -176,7 +176,7 @@ class FaqServiceImplTest {
         FaqListDto.Response.FaqInfo info = new FaqListDto.Response.FaqInfo();
         info.setId(100L);
         info.setTitle("Title");
-        info.setSort(1L);
+        info.setSort(1);
 
         given(faqRepository.findFaqList(pageable)).willReturn(List.of(info));
 
