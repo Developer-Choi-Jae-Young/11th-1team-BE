@@ -36,6 +36,7 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                                         lifePattern.name,
                                         lifePattern.dtype.as("type"),
                                         list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.DetailItem.class,
+                                                lifePatternInformation.id,
                                                 lifePatternInformation.dvalue.as("values"),
                                                 lifePatternInformation.description
                                         )).as("details"))));
