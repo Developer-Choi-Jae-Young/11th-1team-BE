@@ -47,8 +47,8 @@ public class KakaoUserInfo implements OAuth2UserInfo {
     }
 
     @Override
-    public Long getId() {
-        return id;
+    public String getId() {
+        return String.valueOf(id);
     }
 
     @Override
