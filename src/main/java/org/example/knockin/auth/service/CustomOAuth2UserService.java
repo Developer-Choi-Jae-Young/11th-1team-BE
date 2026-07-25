@@ -25,19 +25,49 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        Map<String, Object> oAuth2UserAttributes = super.loadUser(userRequest).getAttributes();
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        Map<String, Object> oAuth2UserAttributes;
 
-        String userNameAttributeName = userRequest.getClientRegistration().getProviderDetails()
-                .getUserInfoEndpoint().getUserNameAttributeName();
+        if (OAuth2UserInfoProvider.APPLE.getRegistrationId().equalsIgnoreCase(registrationId)) {
+            String idToken = (String) userRequest.getAdditionalParameters().get("id_token");
+            if (idToken == null || idToken.isEmpty()) {
+                throw new OAuth2AuthenticationException("Apple id_token이 누락되었습니다.");
+            }
+            oAuth2UserAttributes = decodeJwtPayload(idToken);
+        } else {
+            oAuth2UserAttributes = super.loadUser(userRequest).getAttributes();
+        }
 
-        Class<? extends OAuth2UserInfo> infoClass = OAuth2UserInfoProvider
-                .findByRegistrationId(registrationId)
-                .getInfoClass();
+        String userNameAttributeName = userRequest.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
+        if (userNameAttributeName == null || userNameAttributeName.isEmpty()) {
+            userNameAttributeName = "sub";
+        }
 
+        Class<? extends OAuth2UserInfo> infoClass = OAuth2UserInfoProvider.findByRegistrationId(registrationId).getInfoClass();
         OAuth2UserInfo oAuth2UserInfo = objectMapper.convertValue(oAuth2UserAttributes, infoClass);
         Member member = memberService.getOrSave(oAuth2UserInfo);
 
         return new PrincipalDetails(member, oAuth2UserAttributes, userNameAttributeName);
+    }
+
+    private Map<String, Object> decodeJwtPayload(String jwtToken) {
+        try {
+            String[] parts = jwtToken.split("\\.");
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("올바르지 않은 JWT 토큰입니다.");
+            }
+            String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]), java.nio.charset.StandardCharsets.UTF_8);
+            Map<String, Object> claims = objectMapper.readValue(payloadJson, Map.class);
+            if (claims.containsKey("sub")) {
+                Object subObj = claims.get("sub");
+                try {
+                    claims.put("id", Math.abs(subObj.hashCode()));
+                } catch (Exception ignored) {
+                }
+            }
+            return claims;
+        } catch (Exception e) {
+            throw new OAuth2AuthenticationException("Apple id_token 파싱 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 }
