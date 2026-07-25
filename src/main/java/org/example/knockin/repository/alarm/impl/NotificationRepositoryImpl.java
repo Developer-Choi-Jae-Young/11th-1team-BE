@@ -5,6 +5,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoNoticeDetailDto;
 import org.example.knockin.dto.BoNoticeListDto;
+import org.example.knockin.dto.NoticeListDto;
 import org.example.knockin.repository.alarm.NotificationRepositoryCustom;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -21,10 +22,29 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<BoNoticeListDto.Response.NoticeItem> findNotificationsByIsDeleted(Boolean isDeleted, Pageable pageable) {
+    public List<BoNoticeListDto.Response.NoticeItem> findBoNotificationsByIsDeleted(Boolean isDeleted, Pageable pageable) {
         return jpaQueryFactory
                 .select(Projections.fields(
                         BoNoticeListDto.Response.NoticeItem.class,
+                        notification.id,
+                        notification.title,
+                        notification.createdAt.as("createAt"),
+                        basicInformation.name.as("writer")
+                ))
+                .from(notification)
+                .join(notification.member, member)
+                .leftJoin(basicInformation).on(basicInformation.member.eq(member))
+                .where(notification.isDeleted.eq(isDeleted))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    @Override
+    public List<NoticeListDto.Response.NoticeItem> findNotificationsByIsDeleted(Boolean isDeleted, Pageable pageable) {
+        return jpaQueryFactory
+                .select(Projections.fields(
+                        NoticeListDto.Response.NoticeItem.class,
                         notification.id,
                         notification.title,
                         notification.createdAt.as("createAt"),

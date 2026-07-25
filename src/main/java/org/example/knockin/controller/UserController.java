@@ -157,4 +157,10 @@ public class UserController {
     public CommonResponse<AlarmSettingDto.Response> modifyAlaramSetting(@RequestBody AlarmSettingDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
         return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.modifyAlaramSetting(request, principalDetails.getMember().getId()));
     }
+
+    @GetMapping("/notices")
+    @Operation(summary = "공지사항 목록 조회")
+    public CommonResponse<NoticeListDto.Response> findNoticeList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNoticeList(pageable));
+    }
 }

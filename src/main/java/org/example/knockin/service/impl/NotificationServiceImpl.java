@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoNoticeDetailDto;
 import org.example.knockin.dto.BoNoticeListDto;
+import org.example.knockin.dto.NoticeListDto;
 import org.example.knockin.entity.alarm.Notification;
 import org.example.knockin.repository.alarm.NotificationRepository;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +22,11 @@ public class NotificationServiceImpl {
         return notificationRepository.save(notification);
     }
 
-    public List<BoNoticeListDto.Response.NoticeItem> findNotificationList(Pageable pageable) {
+    public List<BoNoticeListDto.Response.NoticeItem> findBoNotificationList(Pageable pageable) {
+        return notificationRepository.findBoNotificationsByIsDeleted(false, pageable);
+    }
+
+    public List<NoticeListDto.Response.NoticeItem> findNotificationList(Pageable pageable) {
         return notificationRepository.findNotificationsByIsDeleted(false, pageable);
     }
 
