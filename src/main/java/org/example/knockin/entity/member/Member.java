@@ -48,7 +48,7 @@ import java.util.List;
         name = "member",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_member_provider",
-                columnNames = {"provider_type", "provider_id", "uuid"}
+                columnNames = {"provider_type", "provider_id"}
         )
 )
 public class Member extends CreatedAtEntity {
@@ -171,10 +171,6 @@ public class Member extends CreatedAtEntity {
 
     public void changeRole(MemberRole memberRole) {
         this.role = memberRole;
-    }
-
-    public void setFcmToken(String fcmToken) {
-        this.fcmToken = fcmToken;
     }
 
     public void setFcmProps(String deviceId, String fcmToken, DevicePlatform platform) {

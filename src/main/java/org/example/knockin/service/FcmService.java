@@ -18,7 +18,7 @@ public class FcmService {
 
     public void sendByMember(Long memberId) {
         Member member = memberServiceImpl.findByIdOrThrow(memberId);
-        String fcmToken = member.getUuid();
+        String fcmToken = member.getFcmToken();
         sendNotification("테스트", "테스트",  fcmToken);
     }
 

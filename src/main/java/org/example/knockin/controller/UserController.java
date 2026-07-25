@@ -166,7 +166,11 @@ public class UserController {
     }
 
     @PostMapping("/devices")
-    public CommonResponse<?> upsertDeviceProps(@AuthenticationPrincipal PrincipalDetails details, @Valid FcmDto.Request request) {
+    @Operation(summary = "FCM 디바이스 정보 저장 (로그인 직후 호출)")
+    public CommonResponse<FcmDto.Response> upsertDeviceProps(
+            @AuthenticationPrincipal PrincipalDetails details,
+            @Valid @RequestBody FcmDto.Request request
+    ) {
         Response response = memberService.upsertFcmProps(details.getMember().getId(), request);
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
