@@ -26,8 +26,12 @@ public class Block extends CreatedAtEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @JoinColumn(name = "blocker_id", nullable = false)
+    private Member blocker;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "blocked_id", nullable = false)
+    private Member blocked;
 
     @Builder.Default
     @ColumnDefault("false")
