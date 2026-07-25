@@ -133,7 +133,7 @@ public class MemberServiceImpl {
     public MyProfileAllDto.Response findProfileAll(Member member) {
         MyProfileAllDto.Response.UserInfo userInfo = memberRepository.findByProfile(member);
         if (userInfo.getBirth() != null) {
-            userInfo.setAge(Period.between(userInfo.getBirth().toLocalDate(), LocalDate.now()).getYears());
+            userInfo.setAge(Period.between(userInfo.getBirth(), LocalDate.now()).getYears());
         }
         List<MyProfileAllDto.Response.Lifestyle> lifestyles = memberRepository.findByLifePattern(member);
         List<MyProfileAllDto.Response.Region> regions = new ArrayList<>();

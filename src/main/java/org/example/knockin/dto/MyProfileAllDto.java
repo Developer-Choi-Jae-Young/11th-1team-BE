@@ -7,6 +7,8 @@ import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.MemberPrivacyType;
 import org.example.knockin.entity.room.RoomProfileType;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,7 +55,7 @@ public class MyProfileAllDto {
             @Schema(description = "이메일")
             private String email;
             @Schema(description = "생년월일")
-            private LocalDateTime birth;
+            private LocalDate birth;
             @Schema(description = "이름")
             private String name;
             @Schema(description = "프로필 공개 여부")
