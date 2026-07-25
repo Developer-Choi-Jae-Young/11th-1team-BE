@@ -31,8 +31,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if (OAuth2UserInfoProvider.APPLE.getRegistrationId().equalsIgnoreCase(registrationId)) {
             String idToken = (String) userRequest.getAdditionalParameters().get("id_token");
             if (idToken == null || idToken.isEmpty()) {
-                throw new OAuth2AuthenticationException("Apple id_token이 누락되었습니다.");
+                idToken = userRequest.getAccessToken().getTokenValue();
             }
+
             oAuth2UserAttributes = decodeJwtPayload(idToken);
         } else {
             oAuth2UserAttributes = super.loadUser(userRequest).getAttributes();
