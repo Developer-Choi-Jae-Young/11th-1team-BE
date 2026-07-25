@@ -147,8 +147,9 @@ class MemberServiceImplTest {
         Long memberId = 1L;
         Member member = Member.builder().id(memberId).build();
         FcmDto.Request request = new FcmDto.Request();
+        String maxLengthFcmToken = "t".repeat(512);
         request.setDeviceId("550e8400-e29b-41d4-a716-446655440000");
-        request.setFcmToken("fcm-token");
+        request.setFcmToken(maxLengthFcmToken);
         request.setPlatform(DevicePlatform.ANDROID);
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
 
@@ -158,7 +159,7 @@ class MemberServiceImplTest {
         // then
         assertThat(response.getUpdatedAt()).isNotNull();
         assertThat(member.getDeviceId()).isEqualTo(request.getDeviceId());
-        assertThat(member.getFcmToken()).isEqualTo(request.getFcmToken());
+        assertThat(member.getFcmToken()).hasSize(512).isEqualTo(maxLengthFcmToken);
         assertThat(member.getPlatform()).isEqualTo(DevicePlatform.ANDROID);
         verify(memberRepository).findById(memberId);
     }
