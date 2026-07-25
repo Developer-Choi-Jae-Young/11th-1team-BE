@@ -74,7 +74,7 @@ public class Member extends CreatedAtEntity {
     @Column(name = "device_id", length = 50, comment = "기기 UUID")
     private String deviceId;
 
-    @Column(name = "fcm_token", length = 100, comment = "Firebase Messaging이 생성한 실제 토큰")
+    @Column(name = "fcm_token", length = 512, comment = "Firebase Messaging이 생성한 실제 토큰")
     private String fcmToken;
 
     @Enumerated(EnumType.STRING)

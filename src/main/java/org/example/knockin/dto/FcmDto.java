@@ -23,7 +23,7 @@ public class FcmDto {
 
         @Schema(description = "Firebase Messaging이 생성한 실제 토큰")
         @NotBlank
-        @Size(max = 100)
+        @Size(max = 512)
         private String fcmToken;
 
         @Schema(description = "ANDROID / IOS")
