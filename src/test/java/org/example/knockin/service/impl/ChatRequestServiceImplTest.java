@@ -117,6 +117,7 @@ class ChatRequestServiceImplTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
         ChattingRequiredAlarmServiceImpl chattingRequiredAlarmService =

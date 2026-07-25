@@ -1,5 +1,7 @@
 package org.example.knockin.service.impl;
 
+import java.util.Collection;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardInterest;
@@ -14,6 +16,13 @@ public class RoommateBoardInterestServiceImpl {
 
     public boolean existsActiveByBoardIdAndMemberId(Long boardId, Long memberId) {
         return roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, memberId);
+    }
+
+    public List<Long> findActiveBoardIdsByMemberIdAndBoardIds(Long memberId, Collection<Long> boardIds) {
+        if (boardIds.isEmpty()) {
+            return List.of();
+        }
+        return roommateBoardInterestRepository.findActiveBoardIdsByMemberIdAndBoardIds(memberId, boardIds);
     }
 
     public void toggle(Member member, RoommateBoard roommateBoard) {

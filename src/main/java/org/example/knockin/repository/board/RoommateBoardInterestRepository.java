@@ -7,7 +7,7 @@ import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.member.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface RoommateBoardInterestRepository extends JpaRepository<RoommateBoardInterest, Long> {
+public interface RoommateBoardInterestRepository extends JpaRepository<RoommateBoardInterest, Long>, RoommateBoardInterestRepositoryCustom {
     Optional<RoommateBoardInterest> findByRoommateBoardAndMember(RoommateBoard roommateBoard, Member member);
 
     List<RoommateBoardInterest> findAllByRoommateBoardIdAndMemberId(Long roommateBoardId, Long memberId);

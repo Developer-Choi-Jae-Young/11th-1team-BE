@@ -27,6 +27,7 @@ import org.example.knockin.dto.AuthResponse;
 import org.example.knockin.repository.member.MemberRepositoryCustom;
 import org.example.knockin.repository.member.row.MatchingBasicInfoRow;
 import org.example.knockin.repository.member.row.MemberWithNameRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -37,6 +38,7 @@ import java.util.Optional;
 
 import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
+import static org.example.knockin.entity.member.QMemberInterest.memberInterest;
 import static org.example.knockin.entity.life.QPreferenceCondition.preferenceCondition;
 import static org.example.knockin.entity.life.QMemberLifePattern.memberLifePattern;
 import static org.example.knockin.entity.life.QPreferenceConditionWeight.preferenceConditionWeight;
@@ -232,7 +234,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size) {
+    public List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size, @Nullable Long likedByMemberId, @Nullable Long requesterId) {
         if (size <= 0) return List.of();
 
         NumberExpression<Double> randomOrder = Expressions.numberTemplate(Double.class, "function('random')");
@@ -253,7 +255,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         member.isDelete.isFalse(),
                         memberPrivacy.type.eq(MemberPrivacyType.PUBLIC),
                         memberIdNotIn(excludeMemberIds),
-                        notBlocked()
+                        likedBy(likedByMemberId),
+                        notBlockedBetween(requesterId)
                 )
                 .join(member.memberPrivacy, memberPrivacy)
                 .leftJoin(basicInformation)
@@ -284,6 +287,22 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .fetch();
     }
 
+    private BooleanExpression likedBy(Long likedByMemberId) {
+        if (likedByMemberId == null) {
+            return null;
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(memberInterest)
+                .where(
+                        memberInterest.sender.id.eq(likedByMemberId),
+                        memberInterest.receiver.id.eq(member.id),
+                        memberInterest.isDeleted.isFalse()
+                )
+                .exists();
+    }
+
     @Override
     public Optional<MatchingBasicInfoRow> findMatchingBasicRowById(Long memberId) {
         return Optional.ofNullable(jpaQueryFactory
@@ -301,8 +320,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .where(
                         member.id.eq(memberId),
                         member.isDelete.isFalse(),
-                        memberPrivacy.type.eq(MemberPrivacyType.PUBLIC),
-                        notBlocked()
+                        memberPrivacy.type.eq(MemberPrivacyType.PUBLIC)
                 )
                 .join(member.memberPrivacy, memberPrivacy)
                 .leftJoin(basicInformation)
@@ -416,11 +434,21 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         return filteredIds.isEmpty() ? null : member.id.notIn(filteredIds);
     }
 
-    private BooleanExpression notBlocked() {
+    private BooleanExpression notBlockedBetween(@Nullable Long requesterId) {
+        if (requesterId == null) {
+            return null;
+        }
+
         return JPAExpressions
                 .selectOne()
                 .from(block)
-                .where(block.blocked.id.eq(member.id), block.isDeleted.isFalse())
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocker.id.eq(requesterId)
+                                .and(block.blocked.id.eq(member.id))
+                                .or(block.blocker.id.eq(member.id)
+                                        .and(block.blocked.id.eq(requesterId)))
+                )
                 .notExists();
     }
 

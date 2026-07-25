@@ -18,8 +18,8 @@ public class MemberInterestServiceImpl {
         return memberInterestRepository.findActiveReceiverIdsBySenderIdAndReceiverIds(senderId, receiverIds);
     }
 
-    public boolean existsBySenderIdAndReceiverId(Long senderId, Long receiverId) {
-        return memberInterestRepository.existsBySenderIdAndReceiverId(senderId, receiverId);
+    public boolean existsActiveBySenderIdAndReceiverId(Long senderId, Long receiverId) {
+        return memberInterestRepository.existsBySenderIdAndReceiverIdAndIsDeletedIsFalse(senderId, receiverId);
     }
 
     public MemberInterest toggle(Member sender, Member receiver) {

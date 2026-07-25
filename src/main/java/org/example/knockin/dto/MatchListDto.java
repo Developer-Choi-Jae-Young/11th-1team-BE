@@ -24,6 +24,9 @@ public class MatchListDto {
 
         @Schema(description = "이미 조회한 회원 ID 목록")
         private List<Long> excludeMemberIds = new ArrayList<>();
+
+        @Schema(description = "관심 회원만 조회")
+        private Boolean likedOnly;
     }
 
     @Data

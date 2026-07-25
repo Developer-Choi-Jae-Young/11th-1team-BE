@@ -124,6 +124,9 @@ class ChatServiceImplTest {
     @Mock
     private ChattingScoreRepository chattingScoreRepository;
 
+    @Mock
+    private BlockServiceImpl blockService;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -151,6 +154,7 @@ class ChatServiceImplTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -168,7 +172,8 @@ class ChatServiceImplTest {
                 new ChattingRequiredServiceImpl(chattingRequiredRepository),
                 memberService,
                 roommateScoreService,
-                new ChattingScoreServiceImpl(chattingScoreRepository)
+                new ChattingScoreServiceImpl(chattingScoreRepository),
+                blockService
         );
         ReflectionTestUtils.setField(chatService, "chatRoomLimitPerMember", 15L);
     }
@@ -216,7 +221,7 @@ class ChatServiceImplTest {
     }
 
     @Test
-    @DisplayName("채팅방 상세 조회 시 상대 프로필, 메시지 목록, 룸메이트 요청 목록을 반환한다")
+    @DisplayName("차단 관계여도 채팅방 상세와 기존 내역을 유지하고 차단 여부를 반환한다")
     void getChatRoomDetailReturnsProfileMessagesAndRoommateRequests() {
         // Given
         Long chatRoomId = 10L;
@@ -261,6 +266,7 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
+        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
 
         // When
         ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
@@ -274,6 +280,7 @@ class ChatServiceImplTest {
         assertThat(response.getOpponentProfile().getScore()).isEqualTo(100);
         assertThat(response.getMessages()).isSameAs(messages);
         assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
+        assertThat(response.isBlocked()).isTrue();
     }
 
     @Test
@@ -407,6 +414,32 @@ class ChatServiceImplTest {
     }
 
     @Test
+    @DisplayName("차단 관계인 두 회원은 새 채팅방을 생성할 수 없다")
+    void createChattingRoomRejectsBlockedMembers() {
+        // Given
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, null, "안녕하세요");
+        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
+        when(blockService.isBlockedBetween(requesterId, requesteeId)).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.MESSAGE_BLOCKED));
+        verifyNoInteractions(
+                roommateBoardRepository,
+                chattingRequiredRepository,
+                chatRoomMemberRepository,
+                chatRoomMessageRepository
+        );
+        verify(chattingRoomRepository, never()).existsActiveRoomBetweenMembers(any(), any());
+    }
+
+    @Test
     @DisplayName("요청자나 피요청자의 활성 채팅방이 15개 이상이면 채팅방을 생성하지 않는다")
     void createChattingRoomRejectsMemberOverRoomLimit() {
         // Given
@@ -460,9 +493,14 @@ class ChatServiceImplTest {
         // Given
         Long chatRoomId = 10L;
         Long memberId = 1L;
+        Member member = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom());
         MultipartFile multipartFile = multipartFile(false);
         File file = chatImage("chat-image.jpg");
-        when(chatRoomMemberRepository.existsActiveMember(chatRoomId, memberId)).thenReturn(true);
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
         when(fileService.save(multipartFile, FileType.CHAT_ROOM_IMAGE)).thenReturn(file);
 
         // When
@@ -474,10 +512,34 @@ class ChatServiceImplTest {
 
         // Then
         assertThat(response.getImageUrl()).isEqualTo("chat-image.jpg");
-        InOrder inOrder = inOrder(chatRoomMemberRepository, fileService);
-        inOrder.verify(chatRoomMemberRepository).existsActiveMember(chatRoomId, memberId);
+        InOrder inOrder = inOrder(chatRoomMemberRepository, blockService, fileService);
+        inOrder.verify(chatRoomMemberRepository).findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
+        inOrder.verify(chatRoomMemberRepository).findPartnerMember(roomMember, chatRoomId);
+        inOrder.verify(blockService).isBlockedBetween(memberId, opponent.getId());
         inOrder.verify(fileService).save(multipartFile, FileType.CHAT_ROOM_IMAGE);
         verifyNoInteractions(fileRepository);
+    }
+
+    @Test
+    @DisplayName("차단 관계에서는 채팅방 이미지도 업로드할 수 없다")
+    void uploadImageRejectsBlockedMembers() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        Member member = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom());
+        MultipartFile multipartFile = multipartFile(false);
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.uploadImage(chatRoomId, memberId, multipartFile))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.MESSAGE_BLOCKED));
+        verifyNoInteractions(fileService, fileRepository);
     }
 
     @Test
@@ -508,8 +570,13 @@ class ChatServiceImplTest {
         // Given
         Long chatRoomId = 10L;
         Long memberId = 1L;
+        Member member = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom());
         MultipartFile multipartFile = multipartFile(false);
-        when(chatRoomMemberRepository.existsActiveMember(chatRoomId, memberId)).thenReturn(true);
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
         when(fileService.save(multipartFile, FileType.CHAT_ROOM_IMAGE))
                 .thenThrow(new IOException("upload failed"));
 
@@ -526,12 +593,14 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
-        Member member = member();
+        Member member = member(senderId);
+        Member opponent = member(2L);
         ChattingRoom chattingRoom = chattingRoom();
         ChatRoomMember roomMember = activeRoomMember(member, chattingRoom);
         ChatMessageDto.Request request = textMessageRequest();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -565,7 +634,8 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
-        Member member = member();
+        Member member = member(senderId);
+        Member opponent = member(2L);
         ChattingRoom chattingRoom = chattingRoom();
         ChatRoomMember roomMember = activeRoomMember(member, chattingRoom);
         ChatMessageDto.Request request = imageMessageRequest("chat-image.jpg");
@@ -578,6 +648,7 @@ class ChatServiceImplTest {
                 .build();
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
                 .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileService.findBySavedFileNameAndType("chat-image.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenReturn(file);
@@ -615,11 +686,14 @@ class ChatServiceImplTest {
         // Given
         Long chatId = 10L;
         Long senderId = 1L;
-        Member member = member();
+        Member member = member(senderId);
+        Member opponent = member(2L);
         ChattingRoom chattingRoom = chattingRoom();
+        ChatRoomMember roomMember = activeRoomMember(member, chattingRoom);
         ChatMessageDto.Request request = imageMessageRequest("unknown.jpg");
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
-                .thenReturn(Optional.of(activeRoomMember(member, chattingRoom)));
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(fileService.findBySavedFileNameAndType("unknown.jpg", FileType.CHAT_ROOM_IMAGE))
                 .thenThrow(new BusinessException(FileErrorCode.FILE_NOT_FOUND));
@@ -634,6 +708,34 @@ class ChatServiceImplTest {
         assertThat(messageCaptor.getValue().getChattingRoom()).isSameAs(chattingRoom);
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.IMAGE);
         verifyNoInteractions(chatRoomFileRepository, publisher, messagingTemplate);
+    }
+
+    @Test
+    @DisplayName("차단 관계에서는 기존 채팅방에서도 메시지를 전송할 수 없다")
+    void sendUserMessageRejectsBlockedMembers() {
+        // Given
+        Long chatId = 10L;
+        Long senderId = 1L;
+        Member sender = member(senderId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(sender, chattingRoom());
+        ChatMessageDto.Request request = textMessageRequest();
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(opponent);
+        when(blockService.isBlockedBetween(senderId, opponent.getId())).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.sendUserMessage(chatId, request, senderId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.MESSAGE_BLOCKED));
+        verifyNoInteractions(
+                chattingRoomRepository,
+                chatRoomMessageRepository,
+                chatRoomFileRepository,
+                publisher,
+                messagingTemplate
+        );
     }
 
     @Test

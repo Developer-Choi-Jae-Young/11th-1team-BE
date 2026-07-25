@@ -106,6 +106,20 @@ class BlockServiceImplTest {
     }
 
     @Test
+    @DisplayName("두 회원의 양방향 활성 차단 여부를 조회한다")
+    void isBlockedBetweenDelegatesToRepository() {
+        // given
+        given(blockRepository.existsActiveBlockBetweenMembers(1L, 2L)).willReturn(true);
+
+        // when
+        boolean blocked = blockService.isBlockedBetween(1L, 2L);
+
+        // then
+        assertThat(blocked).isTrue();
+        verify(blockRepository).existsActiveBlockBetweenMembers(1L, 2L);
+    }
+
+    @Test
     @DisplayName("차단 이력이 있으면 차단을 해제한다")
     void deleteBlockSuccess() {
         // given

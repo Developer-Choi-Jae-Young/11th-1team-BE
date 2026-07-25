@@ -53,11 +53,17 @@ public class RoomMateController {
     private final RoommateMatchingService roommateMatchingService;
 
     @GetMapping("/boards")
-    @Operation(summary = "게시글 목록 조회")
+    @Operation(
+            summary = "게시글 목록 조회",
+            description = "likedOnly=true는 로그인 사용자만 사용할 수 있습니다."
+    )
     public CommonResponse<Page<BoardListDto.Response>> findBoardList(
+            @AuthenticationPrincipal PrincipalDetails details,
             @ParameterObject @Validated @ModelAttribute BoardListDto.Request request,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<BoardListDto.Response> responses = roommateBoardService.getBoardList(request, pageable);
+
+        Long memberId = details == null || details.getMember() == null ? null : details.getMember().getId();
+        Page<BoardListDto.Response> responses = roommateBoardService.getBoardList(request, pageable, memberId);
         return CommonResponse.status(HttpStatus.OK).body(responses);
     }
 
@@ -139,7 +145,10 @@ public class RoomMateController {
     }
 
     @GetMapping("/matches")
-    @Operation(summary = "매칭 목록 조회")
+    @Operation(
+            summary = "매칭 목록 조회",
+            description = "likedOnly=true는 로그인 사용자만 사용할 수 있습니다."
+    )
     public CommonResponse<Slice<MatchListDto.Response>> findMatchList(
             @AuthenticationPrincipal PrincipalDetails details,
             @ParameterObject @Validated @ModelAttribute MatchListDto.Request request

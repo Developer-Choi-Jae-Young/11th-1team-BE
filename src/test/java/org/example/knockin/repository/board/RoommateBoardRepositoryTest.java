@@ -16,6 +16,7 @@ import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
+import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.file.BasicInformationFile;
 import org.example.knockin.entity.file.File;
@@ -27,6 +28,7 @@ import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.PreferenceCondition;
 import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.member.BasicInformation;
+import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
@@ -68,6 +70,9 @@ class RoommateBoardRepositoryTest {
     private RoommateBoardOptionRepository roommateBoardOptionRepository;
 
     @Autowired
+    private RoommateBoardInterestRepository roommateBoardInterestRepository;
+
+    @Autowired
     private MemberLifePatternRepository memberLifePatternRepository;
 
     @Autowired
@@ -100,7 +105,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -128,7 +133,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent())
@@ -154,7 +159,7 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(1, 20);
 
         // When
-        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate);
+        Page<BoardBaseRow> result = roommateBoardRepository.search(request, pageable, visibleEndDate, null);
 
         // Then
         assertThat(result.getContent()).isEmpty();
@@ -196,8 +201,8 @@ class RoommateBoardRepositoryTest {
         PageRequest pageable = PageRequest.of(0, 20);
 
         // When
-        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate);
-        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate);
+        Page<BoardBaseRow> femaleResult = roommateBoardRepository.search(femaleRequest, pageable, visibleEndDate, null);
+        Page<BoardBaseRow> maleResult = roommateBoardRepository.search(maleRequest, pageable, visibleEndDate, null);
 
         // Then
         assertThat(femaleResult.getContent())
@@ -207,6 +212,141 @@ class RoommateBoardRepositoryTest {
                 .extracting(BoardBaseRow::memberName)
                 .containsExactly("최신정보");
         assertThat(maleResult.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("키워드는 게시글 제목, 지역 계층, 방 유형을 기준으로 검색한다")
+    void searchFiltersBoardsByKeyword() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member member = persistMember("provider-keyword");
+        Region seoul = persistRegion("서울", 1, null);
+        Region gangnam = persistRegion("강남구", 2, seoul);
+        Region yeoksam = persistRegion("역삼동", 3, gangnam);
+        Region busan = persistRegion("부산", 1, null);
+        Region haeundae = persistRegion("해운대구", 2, busan);
+        Region jungdong = persistRegion("중동", 3, haeundae);
+        RoomType oneRoom = persistRoomType("원룸");
+        RoomType officetel = persistRoomType("오피스텔");
+        persistBoard("햇살 좋은 집", member, oneRoom, yeoksam, visibleEndDate.plusDays(1));
+        persistBoard("조용한 방", member, officetel, jungdong, visibleEndDate.plusDays(1));
+        entityManager.flush();
+        entityManager.clear();
+
+        BoardListDto.Request request = defaultRequest();
+        PageRequest pageable = PageRequest.of(0, 20);
+
+        // When & Then
+        request.setKeyword("햇살");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("햇살 좋은 집");
+
+        request.setKeyword("강남구");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("햇살 좋은 집");
+
+        request.setKeyword("오피스");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("조용한 방");
+
+        request.setKeyword("  해운대  ");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("조용한 방");
+
+        request.setKeyword("   ");
+        assertThat(roommateBoardRepository.search(request, pageable, visibleEndDate, null).getTotalElements())
+                .isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("관심 게시글 필터는 요청 회원이 활성화한 게시글만 조회한다")
+    void searchFiltersOnlyActiveInterestedBoards() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member requester = persistMember("provider-liked-requester");
+        Member owner = persistMember("provider-liked-owner");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        RoommateBoard activeBoard = persistBoard(
+                "활성 관심 게시글", owner, roomType, region, visibleEndDate.plusDays(1));
+        RoommateBoard deletedBoard = persistBoard(
+                "해제한 관심 게시글", owner, roomType, region, visibleEndDate.plusDays(2));
+        persistBoard("관심하지 않은 게시글", owner, roomType, region, visibleEndDate.plusDays(3));
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(requester)
+                .roommateBoard(activeBoard)
+                .isDeleted(false)
+                .build());
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(requester)
+                .roommateBoard(deletedBoard)
+                .isDeleted(true)
+                .build());
+        entityManager.flush();
+        entityManager.clear();
+
+        BoardListDto.Request request = defaultRequest();
+        request.setLikedOnly(true);
+
+        // When
+        Page<BoardBaseRow> result = roommateBoardRepository.search(
+                request,
+                PageRequest.of(0, 20),
+                visibleEndDate,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("활성 관심 게시글");
+        assertThat(roommateBoardInterestRepository.findActiveBoardIdsByMemberIdAndBoardIds(
+                requester.getId(),
+                List.of(activeBoard.getId(), deletedBoard.getId())
+        )).containsExactly(activeBoard.getId());
+    }
+
+    @Test
+    @DisplayName("게시글 목록은 요청자와 양방향 활성 차단 관계인 작성자의 게시글을 제외한다")
+    void searchExcludesBoardsWrittenByBlockedMembersInBothDirections() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member requester = persistMember("provider-block-requester");
+        Member blockedByRequester = persistMember("provider-blocked-by-requester");
+        Member requesterBlockedBy = persistMember("provider-requester-blocked-by");
+        Member deletedBlockOwner = persistMember("provider-deleted-block-owner");
+        Member visibleOwner = persistMember("provider-visible-owner");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        persistBoard("내가 차단한 작성자 게시글", blockedByRequester, roomType, region, visibleEndDate.plusDays(1));
+        persistBoard("나를 차단한 작성자 게시글", requesterBlockedBy, roomType, region, visibleEndDate.plusDays(2));
+        persistBoard("차단 해제 작성자 게시글", deletedBlockOwner, roomType, region, visibleEndDate.plusDays(3));
+        persistBoard("노출 작성자 게시글", visibleOwner, roomType, region, visibleEndDate.plusDays(4));
+        persistBlock(requester, blockedByRequester, false);
+        persistBlock(requesterBlockedBy, requester, false);
+        persistBlock(requester, deletedBlockOwner, true);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Page<BoardBaseRow> result = roommateBoardRepository.search(
+                defaultRequest(),
+                PageRequest.of(0, 20),
+                visibleEndDate,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactlyInAnyOrder("차단 해제 작성자 게시글", "노출 작성자 게시글")
+                .doesNotContain("내가 차단한 작성자 게시글", "나를 차단한 작성자 게시글");
     }
 
     @Test
@@ -632,6 +772,14 @@ class RoommateBoardRepositoryTest {
                 .build();
         entityManager.persist(member);
         return member;
+    }
+
+    private void persistBlock(Member blocker, Member blocked, boolean isDeleted) {
+        entityManager.persist(Block.builder()
+                .blocker(blocker)
+                .blocked(blocked)
+                .isDeleted(isDeleted)
+                .build());
     }
 
     private BasicInformation persistBasicInformation(Member member, String name, Gender gender, String email) {

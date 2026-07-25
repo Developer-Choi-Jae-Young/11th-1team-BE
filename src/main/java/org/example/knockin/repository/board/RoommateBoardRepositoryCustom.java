@@ -11,11 +11,17 @@ import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.BoardBaseRow;
 import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.board.row.MyRoommateBoardRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface RoommateBoardRepositoryCustom {
-    Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate);
+    Page<BoardBaseRow> search(
+            BoardListDto.Request request,
+            Pageable pageable,
+            LocalDateTime endDate,
+            @Nullable Long requesterId
+    );
     Optional<BasicInfoRow> getBasicInfo(Long boardId);
     Page<MyRoommateBoardRow> findMyBoardList(Pageable page, Member member);
     Optional<EditFormRow> getEditRow(Long boardId);

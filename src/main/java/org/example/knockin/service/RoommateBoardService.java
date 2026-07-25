@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface RoommateBoardService {
     BoardDto.Response save(BoardDto.Request request, Long memberId, @Nullable List<MultipartFile> files);
-    Page<Response> getBoardList(BoardListDto.Request request, Pageable pageable);
+    Page<Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId);
     BoardDetailDto.Response getBoardDetail(Long boardId, Long memberId);
     Page<MyBoardListDto.Response.BoardItem> getMyBoardList(Pageable page, Member member);
     BoardEditDto.Response getEditForm(Long memberId, Long boardId);

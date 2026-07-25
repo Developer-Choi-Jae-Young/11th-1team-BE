@@ -77,6 +77,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardInterestServiceImpl roommateBoardInterestService;
     private final RoommateBoardDeclarationServiceImpl roommateBoardDeclarationService;
     private final RoommateBoardPolicy roommateBoardPolicy;
+    private final SearchServiceImpl searchServiceImpl;
 
     public RoommateBoard findById(Long id) {
         return roommateBoardRepository.findById(id)
@@ -153,10 +154,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable) {
+    @Transactional
+    public Page<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
+        validateLikedOnlyRequest(request.getLikedOnly(), requesterId);
+        saveSearchKeyword(requesterId, request.getKeyword());
+
         LocalDateTime endDate = LocalDateTime.now().minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
-        Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate);
+        Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate, requesterId);
 
         if (baseRows.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, baseRows.getTotalElements());
@@ -182,14 +186,41 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                                 MemberAuthenticationRow::memberId,
                                 Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
                         ));
+        Set<Long> interestedBoardIds = findInterestedBoardIds(requesterId, boardIds);
 
-        return baseRows.map(row -> toResponse(row, thumbnailByBoardId, authenticationsByMemberId));
+        return baseRows.map(row -> toResponse(
+                row,
+                thumbnailByBoardId,
+                authenticationsByMemberId,
+                interestedBoardIds
+        ));
+    }
+
+    private void validateLikedOnlyRequest(Boolean likedOnly, @Nullable Long requesterId) {
+        if (Boolean.TRUE.equals(likedOnly) && requesterId == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    private Set<Long> findInterestedBoardIds(@Nullable Long requesterId, List<Long> boardIds) {
+        if (requesterId == null || boardIds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(roommateBoardInterestService.findActiveBoardIdsByMemberIdAndBoardIds(requesterId, boardIds));
+    }
+
+    private void saveSearchKeyword(@Nullable Long requesterId, @Nullable String keyword) {
+        if (requesterId == null || keyword == null || keyword.isBlank()) return;
+
+        Member member = memberService.findByIdOrThrow(requesterId);
+        searchServiceImpl.save(member, keyword);
     }
 
     private BoardListDto.Response toResponse(
             BoardBaseRow row,
             Map<Long, String> thumbnailByBoardId,
-            Map<Long, List<AuthenticationType>> authenticationsByMemberId
+            Map<Long, List<AuthenticationType>> authenticationsByMemberId,
+            Set<Long> interestedBoardIds
     ) {
         return BoardListDto.Response.builder()
                 .id(row.boardId())
@@ -205,10 +236,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         row.parentRegionName(),
                         row.regionName()
                 ))
+                .memberId(row.memberId())
                 .memberName(row.memberName())
                 .authentications(authenticationsByMemberId.getOrDefault(row.memberId(), List.of()))
                 .hits(row.hits())
                 .badges(List.of())
+                .interested(interestedBoardIds.contains(row.boardId()))
+                .createdAt(row.createdAt())
                 .build();
     }
 

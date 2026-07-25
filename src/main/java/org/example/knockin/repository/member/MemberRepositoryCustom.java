@@ -15,6 +15,7 @@ import org.example.knockin.entity.room.RoomSeekerProfile;
 import org.example.knockin.dto.AuthResponse;
 import org.example.knockin.repository.member.row.MatchingBasicInfoRow;
 import org.example.knockin.repository.member.row.MemberWithNameRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Pageable;
 
 public interface MemberRepositoryCustom {
@@ -29,7 +30,7 @@ public interface MemberRepositoryCustom {
     List<Region> findSeekerRegionEntities(RoomSeekerProfile seeker);
     List<MyPreferencesAllDto.Response.Lifestyle> findPreferenceLifeStyle(Member member);
     List<MyPreferencesAllDto.Response.Condition> findPreferenceCondition(Member member);
-    List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size);
+    List<MatchingBasicInfoRow> findMatchingBasicRow(List<Long> excludeMemberIds, Integer size, @Nullable Long likedByMemberId, @Nullable Long requesterId);
     Optional<MatchingBasicInfoRow> findMatchingBasicRowById(Long memberId);
     List<BoMemberListDto.Response.MemberInfo> findBackOfficeMemberList(Pageable pageable, BoMemberListDto.Request request);
     BoMemberDetailDto.Response findBackOfficeMember(Long id);

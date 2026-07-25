@@ -2,9 +2,11 @@ package org.example.knockin.repository.board.impl;
 
 import static org.example.knockin.entity.board.QRoommateBoard.roommateBoard;
 import static org.example.knockin.entity.board.QRoommateBoardFile.roommateBoardFile;
+import static org.example.knockin.entity.board.QRoommateBoardInterest.roommateBoardInterest;
 import static org.example.knockin.entity.file.QBasicInformationFile.basicInformationFile;
 import static org.example.knockin.entity.file.QFile.file;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
+import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
 import static org.example.knockin.entity.room.QRegion.region;
 import static org.example.knockin.entity.room.QRoomType.roomType;
@@ -33,6 +35,7 @@ import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.BoardBaseRow;
 import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.board.row.MyRoommateBoardRow;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -46,20 +49,24 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate) {
+    public Page<BoardBaseRow> search(BoardListDto.Request request, Pageable pageable, LocalDateTime endDate, @Nullable Long requesterId) {
         QRegion boardRegion = new QRegion("searchBoardRegion");
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
         QBasicInformation latestBasicInformation = new QBasicInformation("searchLatestBasicInformation");
+        String keyword = request.getKeyword();
 
         Predicate[] searchCondition = {
+                keywordContains(keyword, boardRegion, parentRegion, grandParentRegion),
                 regionIn(request.getRegionIds(), boardRegion, parentRegion, grandParentRegion),
                 roomTypeIn(request.getRoomTypeIds()),
                 genderEq(request.getGender()),
                 depositBetween(request.getMinDeposit(), request.getMaxDeposit()),
                 monthlyRentBetween(request.getMinMounthRent(), request.getMaxMounthRent()),
                 isNotDeleted(),
-                comeableDateNotExpired(endDate)
+                comeableDateNotExpired(endDate),
+                likedOnly(request.getLikedOnly(), requesterId),
+                notBlockedBetween(requesterId)
         };
 
         List<BoardBaseRow> content = jpaQueryFactory
@@ -77,7 +84,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         parentRegion.name,
                         grandParentRegion.name,
                         member.id,
-                        latestBasicInformation.name
+                        latestBasicInformation.name,
+                        roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
                 .join(roommateBoard.roomType, roomType)
@@ -96,6 +104,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         Long total = jpaQueryFactory
                 .select(roommateBoard.count())
                 .from(roommateBoard)
+                .join(roommateBoard.roomType, roomType)
                 .join(roommateBoard.region, boardRegion)
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
@@ -103,6 +112,38 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    private BooleanExpression likedOnly(Boolean likedOnly, Long requesterId) {
+        if (!Boolean.TRUE.equals(likedOnly)) {
+            return null;
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(roommateBoardInterest)
+                .where(
+                        roommateBoardInterest.roommateBoard.id.eq(roommateBoard.id),
+                        roommateBoardInterest.member.id.eq(requesterId),
+                        roommateBoardInterest.isDeleted.isFalse()
+                )
+                .exists();
+    }
+
+    private BooleanExpression notBlockedBetween(@Nullable Long requesterId) {
+        if (requesterId == null) return null;
+
+        return JPAExpressions
+                .selectOne()
+                .from(block)
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocker.id.eq(requesterId)
+                                .and(block.blocked.id.eq(roommateBoard.member.id))
+                                .or(block.blocker.id.eq(roommateBoard.member.id)
+                                        .and(block.blocked.id.eq(requesterId)))
+                )
+                .notExists();
     }
 
     private OrderSpecifier<?>[] toBoardOrderSpecifiers(Sort sort) {
@@ -318,6 +359,21 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         List<Long> uniqueIds = regionIds.stream().filter(Objects::nonNull).distinct().toList();
         if (uniqueIds.isEmpty()) return null;
         return boardRegion.id.in(uniqueIds).or(parentRegion.id.in(uniqueIds)).or(grandParentRegion.id.in(uniqueIds));
+    }
+
+    private BooleanExpression keywordContains(
+            String keyword,
+            QRegion boardRegion,
+            QRegion parentRegion,
+            QRegion grandParentRegion
+    ) {
+        if (!StringUtils.hasText(keyword)) return null;
+        String normalizedKeyword = keyword.trim();
+        return roommateBoard.title.containsIgnoreCase(normalizedKeyword)
+                .or(roomType.name.containsIgnoreCase(normalizedKeyword))
+                .or(boardRegion.name.containsIgnoreCase(normalizedKeyword))
+                .or(parentRegion.name.containsIgnoreCase(normalizedKeyword))
+                .or(grandParentRegion.name.containsIgnoreCase(normalizedKeyword));
     }
 
     private BooleanExpression roomTypeIn(List<Long> roomTypeIds) {
