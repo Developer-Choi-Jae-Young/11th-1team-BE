@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 import org.example.knockin.entity.life.LifePatternType;
+import org.example.knockin.entity.member.Gender;
+import org.example.knockin.entity.member.MemberPrivacyType;
 import org.example.knockin.entity.room.RoomProfileType;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +41,24 @@ public class MyProfileAllDto {
         private Integer deposit;
         @Schema(description = "월세")
         private Integer mounthRent;
+        @Schema(description = "사용자 정보")
+        private UserInfo userInfo;
+
+        @Data
+        public static class UserInfo {
+            @Schema(description = "성별")
+            private Gender gender;
+            @Schema(description = "나이")
+            private Integer age;
+            @Schema(description = "이메일")
+            private String email;
+            @Schema(description = "생년월일")
+            private LocalDateTime birth;
+            @Schema(description = "이름")
+            private String name;
+            @Schema(description = "프로필 공개 여부")
+            private MemberPrivacyType memberPrivacyType;
+        }
 
         @Data
         public static class Lifestyle {

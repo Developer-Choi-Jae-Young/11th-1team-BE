@@ -119,12 +119,20 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public List<Member> findByProfile(Member memberEntity) {
-        return jpaQueryFactory.selectFrom(member)
+    public MyProfileAllDto.Response.UserInfo findByProfile(Member memberEntity) {
+        return jpaQueryFactory.select(Projections.fields(MyProfileAllDto.Response.UserInfo.class,
+                        basicInformation.gender,
+                        basicInformation.name,
+                        basicInformation.email,
+                        basicInformation.birth,
+                        memberPrivacy.type.as("memberPrivacyType")
+                        ))
+                .from(member)
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .leftJoin(basicInformationFile).on(basicInformationFile.basicInformation.eq(basicInformation))
                 .leftJoin(basicInformationFile.file, file)
-                .where(member.eq(memberEntity)).fetch();
+                .leftJoin(memberPrivacy).on(memberPrivacy.member.eq(member))
+                .where(member.eq(memberEntity)).fetchOne();
     }
 
     @Override

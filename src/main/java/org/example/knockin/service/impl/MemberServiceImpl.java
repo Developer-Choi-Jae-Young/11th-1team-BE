@@ -28,7 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -119,6 +121,10 @@ public class MemberServiceImpl {
     }
 
     public MyProfileAllDto.Response findProfileAll(Member member) {
+        MyProfileAllDto.Response.UserInfo userInfo = memberRepository.findByProfile(member);
+        if (userInfo.getBirth() != null) {
+            userInfo.setAge(Period.between(userInfo.getBirth().toLocalDate(), LocalDate.now()).getYears());
+        }
         List<MyProfileAllDto.Response.Lifestyle> lifestyles = memberRepository.findByLifePattern(member);
         List<MyProfileAllDto.Response.Region> regions = new ArrayList<>();
         List<MyProfileAllDto.Response.RoomProfile> roomProfiles = new ArrayList<>();
@@ -177,6 +183,7 @@ public class MemberServiceImpl {
                 .maxMounthRent(maxMounthRent)
                 .region(regions)
                 .roomProfile(roomProfiles)
+                .userInfo(userInfo)
                 .build();
     }
 
