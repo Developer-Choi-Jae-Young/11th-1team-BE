@@ -7,6 +7,7 @@ import org.example.knockin.dto.RoommateRequestDto;
 import org.example.knockin.dto.RoommateRequestDto.Response;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.dto.RoommateRequestListDto;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.member.BasicInformation;
@@ -18,7 +19,6 @@ import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.RequiredErrorCode;
 import org.example.knockin.global.entity.RoommateRequiredMessageTemplate;
-import org.example.knockin.service.FcmService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -35,7 +35,7 @@ public class RoommateRequestServiceImpl {
     private final RoommateMatchingRequiredAlarmServiceImpl roommateMatchingRequiredAlarmService;
     private final MyRoomMateServiceImpl myRoomMateService;
     private final MemberPrivacyServiceImpl memberPrivacyService;
-    private final FcmService fcmService;
+    private final PushNotificationServiceImpl pushNotificationService;
     private final BasicInformationServiceImpl basicInformationService;
 
     @Transactional
@@ -72,7 +72,7 @@ public class RoommateRequestServiceImpl {
         String deepLink = template.formatDeepLink(required.getChattingRoom().getId());
 
         roommateMatchingRequiredAlarmService.send(receiver, title, contents, required);
-        fcmService.sendNotification(title, contents, receiver.getFcmToken(), deepLink);
+        pushNotificationService.send(receiver, AlarmSettingType.NOTIFICATION, title, contents, deepLink);
     }
 
     private RoommateRequestDto.Response toDto(RoommateMatchingRequired roommateMatchingRequired) {

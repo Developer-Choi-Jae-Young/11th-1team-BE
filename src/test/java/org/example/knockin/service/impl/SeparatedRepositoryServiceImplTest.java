@@ -317,9 +317,7 @@ class SeparatedRepositoryServiceImplTest {
     @DisplayName("룸메이트 확정 요청 알림 서비스는 대기 상태 문구로 알림을 저장하고 클라이언트에 전송한다")
     void roommateMatchingRequiredAlarmServiceSavesPendingAlarmAndSendsToClient() {
         // Given
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
         RoommateMatchingRequiredAlarmServiceImpl service = new RoommateMatchingRequiredAlarmServiceImpl(
-                basicInformationService,
                 alarmService
         );
         ReflectionTestUtils.setField(service, "requestAlarmExpireDays", 7);

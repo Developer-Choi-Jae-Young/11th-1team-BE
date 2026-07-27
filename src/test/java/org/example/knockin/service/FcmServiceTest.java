@@ -3,15 +3,12 @@ package org.example.knockin.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import java.util.Map;
-import org.example.knockin.entity.member.Member;
-import org.example.knockin.service.impl.MemberServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,29 +25,8 @@ class FcmServiceTest {
     @Mock
     private FirebaseMessaging firebaseMessaging;
 
-    @Mock
-    private MemberServiceImpl memberService;
-
     @InjectMocks
     private FcmService fcmService;
-
-    @Test
-    @DisplayName("회원에게 알림을 보낼 때 저장된 FCM 토큰을 사용한다")
-    void sendByMemberUsesStoredFcmToken() throws Exception {
-        // given
-        Long memberId = 1L;
-        Member member = mock(Member.class);
-        given(memberService.findByIdOrThrow(memberId)).willReturn(member);
-        given(member.getFcmToken()).willReturn("fcm-token");
-        given(firebaseMessaging.send(any(Message.class))).willReturn("message-id");
-
-        // when
-        fcmService.sendByMember(memberId);
-
-        // then
-        verify(member).getFcmToken();
-        verify(firebaseMessaging).send(any(Message.class));
-    }
 
     @Test
     @DisplayName("푸시 알림을 보낼 때 notification과 딥링크 데이터에 전달받은 값을 설정한다")

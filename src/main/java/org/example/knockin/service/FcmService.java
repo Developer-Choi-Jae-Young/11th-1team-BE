@@ -6,8 +6,6 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.knockin.entity.member.Member;
-import org.example.knockin.service.impl.MemberServiceImpl;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,13 +13,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class FcmService {
     private final FirebaseMessaging firebaseMessaging;
-    private final MemberServiceImpl memberServiceImpl;
-
-    public void sendByMember(Long memberId) {
-        Member member = memberServiceImpl.findByIdOrThrow(memberId);
-        String fcmToken = member.getFcmToken();
-        sendNotification("테스트", "테스트",  fcmToken, "");
-    }
 
     public void sendNotification(String title, String body, String fcmToken, String deepLink) {
         log.info("Attempting to send Notification (title: {}, body: {}, fcmToken: {})", title, body, fcmToken);

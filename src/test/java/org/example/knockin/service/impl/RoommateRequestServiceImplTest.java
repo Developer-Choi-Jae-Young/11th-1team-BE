@@ -18,6 +18,7 @@ import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.RoommateRequestDto;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.dto.RoommateRequestListDto;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChattingRoom;
@@ -38,7 +39,6 @@ import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.room.MyRoommateRepository;
 import org.example.knockin.repository.room.RoommateMatchingRequiredAlarmRepository;
 import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
-import org.example.knockin.service.FcmService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,7 +84,7 @@ class RoommateRequestServiceImplTest {
     private MemberPrivacyServiceImpl memberPrivacyService;
 
     @Mock
-    private FcmService fcmService;
+    private PushNotificationServiceImpl pushNotificationService;
 
     @InjectMocks
     private RoommateRequestServiceImpl roommateRequestService;
@@ -102,7 +102,7 @@ class RoommateRequestServiceImplTest {
                 null
         );
         RoommateMatchingRequiredAlarmServiceImpl roommateMatchingRequiredAlarmService =
-                new RoommateMatchingRequiredAlarmServiceImpl(basicInformationService, alarmService);
+                new RoommateMatchingRequiredAlarmServiceImpl(alarmService);
         ReflectionTestUtils.setField(roommateMatchingRequiredAlarmService, "requestAlarmExpireDays", 7);
         roommateRequestService = new RoommateRequestServiceImpl(
                 messagingTemplate,
@@ -111,7 +111,7 @@ class RoommateRequestServiceImplTest {
                 roommateMatchingRequiredAlarmService,
                 myRoomMateService,
                 memberPrivacyService,
-                fcmService,
+                pushNotificationService,
                 basicInformationService
         );
     }
@@ -165,10 +165,11 @@ class RoommateRequestServiceImplTest {
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("김중민님이 매칭을 요청했어요.");
         assertThat(alarmCaptor.getValue().getType()).isEqualTo(AlarmType.ROOM_MATCHING);
         assertThat(alarmCaptor.getValue().getRoommateMatchingRequired().getId()).isEqualTo(1000L);
-        verify(fcmService).sendNotification(
+        verify(pushNotificationService).send(
+                requestee,
+                AlarmSettingType.NOTIFICATION,
                 "김중민님의 매칭 요청",
                 "김중민님이 매칭을 요청했어요.",
-                "fcm-token-2",
                 "knockinrn://chat/10"
         );
 
@@ -181,12 +182,13 @@ class RoommateRequestServiceImplTest {
         assertThat(socketResponse.getPayload()).isSameAs(response);
         assertThat(socketResponse.getCreatedAt()).isNotNull();
 
-        InOrder inOrder = inOrder(alarmService, fcmService, messagingTemplate);
+        InOrder inOrder = inOrder(alarmService, pushNotificationService, messagingTemplate);
         inOrder.verify(alarmService).sendToClient(eq(requesteeId), eq(AlarmType.ROOM_MATCHING.name()), any(RoommateMatchingRequiredAlarm.class));
-        inOrder.verify(fcmService).sendNotification(
+        inOrder.verify(pushNotificationService).send(
+                requestee,
+                AlarmSettingType.NOTIFICATION,
                 "김중민님의 매칭 요청",
                 "김중민님이 매칭을 요청했어요.",
-                "fcm-token-2",
                 "knockinrn://chat/10"
         );
         inOrder.verify(messagingTemplate).convertAndSend(eq("/sub/chats/10"), any(ChatSocketResponse.class));
@@ -215,7 +217,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_DUPLICATE));
 
         verifyNoInteractions(basicInformationRepository, roommateMatchingRequiredAlarmRepository, alarmService,
-                fcmService, messagingTemplate);
+                pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -276,7 +278,8 @@ class RoommateRequestServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.BASIC_INFO_NOT_FOUND));
 
-        verifyNoInteractions(roommateMatchingRequiredAlarmRepository, alarmService, fcmService, messagingTemplate);
+        verifyNoInteractions(roommateMatchingRequiredAlarmRepository, alarmService, pushNotificationService,
+                messagingTemplate);
     }
 
     @Test
@@ -327,10 +330,11 @@ class RoommateRequestServiceImplTest {
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo("매칭 요청이 수락됐어요");
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("이수현님과의 룸메이트가 이뤄졌어요.");
         assertThat(alarmCaptor.getValue().getRoommateMatchingRequired()).isSameAs(roommateRequest);
-        verify(fcmService).sendNotification(
+        verify(pushNotificationService).send(
+                requester,
+                AlarmSettingType.NOTIFICATION,
                 "매칭 요청이 수락됐어요",
                 "이수현님과의 룸메이트가 이뤄졌어요.",
-                "fcm-token-1",
                 "knockinrn://chat/10"
         );
 
@@ -369,10 +373,11 @@ class RoommateRequestServiceImplTest {
         assertThat(alarmCaptor.getValue().getTitle()).isEqualTo("매칭 요청 거절");
         assertThat(alarmCaptor.getValue().getContents()).isEqualTo("이수현님이 매칭 요청을 거절했어요.");
         assertThat(alarmCaptor.getValue().getRoommateMatchingRequired()).isSameAs(roommateRequest);
-        verify(fcmService).sendNotification(
+        verify(pushNotificationService).send(
+                requester,
+                AlarmSettingType.NOTIFICATION,
                 "매칭 요청 거절",
                 "이수현님이 매칭 요청을 거절했어요.",
-                "fcm-token-1",
                 "knockinrn://chat/10"
         );
 
@@ -403,7 +408,7 @@ class RoommateRequestServiceImplTest {
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.CANCELED);
         assertSocketResponse(chatRoomId, response);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService);
+                alarmService, pushNotificationService);
     }
 
     @Test
@@ -425,7 +430,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_ACCESS_DENIED));
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -447,7 +452,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_ACCESS_DENIED));
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -462,7 +467,7 @@ class RoommateRequestServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_NOT_FOUND));
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -484,7 +489,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_INVALID_STATUS));
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.REJECTED);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -506,7 +511,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_INVALID_STATUS));
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.ACCEPTED);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -528,7 +533,7 @@ class RoommateRequestServiceImplTest {
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_INVALID_STATUS));
         assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.EXPIRED);
         verifyNoInteractions(myRoommateRepository, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
-                alarmService, fcmService, messagingTemplate);
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test
@@ -567,7 +572,7 @@ class RoommateRequestServiceImplTest {
 
         verify(roommateMatchingRequiredRepository).findMyRequiredList(memberId, pageable);
         verifyNoInteractions(chatRoomMemberRepository, basicInformationRepository, myRoommateRepository,
-                roommateMatchingRequiredAlarmRepository, alarmService, fcmService, messagingTemplate);
+                roommateMatchingRequiredAlarmRepository, alarmService, pushNotificationService, messagingTemplate);
     }
 
     private RoommateRequestDto.Request request(Long chatRoomId) {
