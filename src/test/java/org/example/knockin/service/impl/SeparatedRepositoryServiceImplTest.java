@@ -333,11 +333,13 @@ class SeparatedRepositoryServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(required, "id", 100L);
 
-        when(basicInformationRepository.findLatestBasicInformation(sender))
-                .thenReturn(Optional.of(basicInformation(sender, "이수현")));
-
         // When
-        service.send(receiver, sender, required);
+        service.send(
+                receiver,
+                "이수현님의 매칭 요청",
+                "이수현님이 매칭을 요청했어요.",
+                required
+        );
 
         // Then
         ArgumentCaptor<RoommateMatchingRequiredAlarm> captor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
