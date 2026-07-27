@@ -12,6 +12,9 @@ import org.example.knockin.dto.OAuth2SdkRequest;
 import org.example.knockin.auth.handler.OAuth2FailureHandler;
 import org.example.knockin.auth.handler.OAuth2SuccessHandler;
 import org.example.knockin.auth.util.OAuth2SdkProvider;
+import org.example.knockin.exception.AuthErrorCode;
+import org.example.knockin.exception.AuthException;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
@@ -41,7 +44,7 @@ public class CustomOAuth2Filter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String servletPath = request.getServletPath();
-        if (pathMatcher.match(LOGIN_PATTERN, servletPath) && "POST" .equalsIgnoreCase(request.getMethod())) {
+        if (pathMatcher.match(LOGIN_PATTERN, servletPath) && HttpMethod.POST.name().equalsIgnoreCase(request.getMethod())) {
             try {
                 Map<String, String> variables = pathMatcher.extractUriTemplateVariables(LOGIN_PATTERN, servletPath);
                 String registrationId = variables.get("registrationId");
@@ -54,12 +57,12 @@ public class CustomOAuth2Filter extends OncePerRequestFilter {
                 String accessToken = sdkRequest.getAccessToken();
 
                 if (accessToken == null || accessToken.isEmpty()) {
-                    throw new IllegalArgumentException("Access Token이 누락되었습니다.");
+                    throw new AuthException(AuthErrorCode.ACCESS_TOKEN_OMISSION);
                 }
 
                 ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(registrationId);
                 if (clientRegistration == null) {
-                    throw new IllegalArgumentException("지원하지 않는 소셜 로그인입니다: " + registrationId);
+                    throw new AuthException(AuthErrorCode.NOT_SUPPORT_SOCIAL_LOGIN);
                 }
 
                 OAuth2AccessToken oauth2Token = new OAuth2AccessToken(

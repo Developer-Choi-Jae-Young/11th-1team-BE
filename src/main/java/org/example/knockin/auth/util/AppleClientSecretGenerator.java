@@ -2,6 +2,8 @@ package org.example.knockin.auth.util;
 
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
+import org.example.knockin.exception.AuthErrorCode;
+import org.example.knockin.exception.AuthException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -25,17 +27,22 @@ public class AppleClientSecretGenerator {
     @Value("${apple.key.id}")
     private String KEY_ID;
 
+    private static final String JWT_TYPE = "JWT";
+    private static final String KEY_FACTORY_ALGORITHM = "EC";
+    private static final String PEM_BEGIN_HEADER = "-----BEGIN PRIVATE KEY-----";
+    private static final String PEM_END_HEADER = "-----END PRIVATE KEY-----";
+    private static final String REGEX_WHITESPACE = "\\s+";
+
     public String createClientSecret(String clientId) {
         try {
             Date now = new Date();
-            Date expiration = new Date(now.getTime() + 1000L * 60 * 5); // 5 minutes
-
+            Date expiration = new Date(now.getTime() + 1000L * 60 * 5);
             PrivateKey privateKey = getPrivateKey();
 
             return Jwts.builder()
                     .header()
                     .keyId(KEY_ID)
-                    .type("JWT")
+                    .type(JWT_TYPE)
                     .and()
                     .issuer(TEAM_ID)
                     .issuedAt(now)
@@ -46,7 +53,7 @@ public class AppleClientSecretGenerator {
                     .compact();
         } catch (Exception e) {
             log.error("Apple client_secret JWT 생성 중 오류가 발생했습니다.", e);
-            throw new IllegalStateException("Apple client_secret 생성 실패", e);
+            throw new AuthException(AuthErrorCode.APPLE_CLIENT_SECRET_MAKE_FAIL);
         }
     }
 
@@ -55,13 +62,13 @@ public class AppleClientSecretGenerator {
         try (InputStream is = resource.getInputStream()) {
             String content = new String(is.readAllBytes());
             String privateKeyPEM = content
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replaceAll("\\s+", "");
+                    .replace(PEM_BEGIN_HEADER, "")
+                    .replace(PEM_END_HEADER, "")
+                    .replaceAll(REGEX_WHITESPACE, "");
 
             byte[] decoded = Base64.getDecoder().decode(privateKeyPEM);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            KeyFactory keyFactory = KeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
             return keyFactory.generatePrivate(keySpec);
         }
     }
