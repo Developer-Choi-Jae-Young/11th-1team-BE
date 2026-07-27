@@ -25,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class RoommateRequestServiceImpl {
-    private static final String REQUEST_PENDING_TEMPLATE = "%s님이 룸메이트 확정을 제안했어요";
-    private static final String REQUEST_ACCEPTED_TEMPLATE = "%s님과 룸메이트가 확정되었어요";
 
     private final SimpMessageSendingOperations messagingTemplate;
     private final RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
@@ -53,13 +51,9 @@ public class RoommateRequestServiceImpl {
                 .orElseGet(() -> roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom));
 
         Response response = toDto(roommateMatchingRequired);
-        sendAlarm(requestee, requester, roommateMatchingRequired, REQUEST_PENDING_TEMPLATE);
+        roommateMatchingRequiredAlarmService.send(requestee, requester, roommateMatchingRequired);
         sendRequestMessage(chatRoomId, response);
         return response;
-    }
-
-    private void sendAlarm(Member requestee, Member requester, RoommateMatchingRequired roommateMatchingRequired, String alarmTemplate) {
-        roommateMatchingRequiredAlarmService.send(requestee, requester, roommateMatchingRequired, alarmTemplate);
     }
 
     private RoommateRequestDto.Response toDto(RoommateMatchingRequired roommateMatchingRequired) {
@@ -100,7 +94,7 @@ public class RoommateRequestServiceImpl {
 
         Member requester = roommateMatchingRequired.getRequester();
         Member requestee = roommateMatchingRequired.getRequestee();
-        sendAlarm(requester, requestee, roommateMatchingRequired, REQUEST_ACCEPTED_TEMPLATE);
+        roommateMatchingRequiredAlarmService.send(requester, requestee, roommateMatchingRequired);
 
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
@@ -121,6 +115,11 @@ public class RoommateRequestServiceImpl {
 
         validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.reject();
+
+        Member requester = roommateMatchingRequired.getRequester();
+        Member requestee = roommateMatchingRequired.getRequestee();
+        roommateMatchingRequiredAlarmService.send(requester, requestee, roommateMatchingRequired);
+
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
         return response;
