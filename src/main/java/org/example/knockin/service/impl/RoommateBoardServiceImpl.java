@@ -27,7 +27,11 @@ import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.MyBoardListDto;
 import org.example.knockin.dto.ReportDto;
+import org.example.knockin.entity.alarm.Alarm;
+import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.board.BoardAlarmTemplate;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardFile;
 import org.example.knockin.entity.board.RoommateBoardOption;
@@ -42,6 +46,7 @@ import org.example.knockin.exception.MetaErrorCode;
 import org.example.knockin.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.StringUtils;
+import org.example.knockin.repository.alarm.AlarmSettingRepository;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.board.row.BasicInfoRow;
@@ -78,6 +83,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardDeclarationServiceImpl roommateBoardDeclarationService;
     private final RoommateBoardPolicy roommateBoardPolicy;
     private final SearchServiceImpl searchServiceImpl;
+    private final AlarmServiceImpl alarmService;
+    private final PushNotificationServiceImpl pushNotificationService;
 
     public RoommateBoard findById(Long id) {
         return roommateBoardRepository.findById(id)
@@ -618,6 +625,42 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     public RoommateBoard deleteBackOfficeBoard(Long id, String rejectReason) {
         RoommateBoard roommateBoard = roommateBoardRepository.findById(id).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
         roommateBoard.softDelete(rejectReason);
+
+        Member member = roommateBoard.getMember();
+        Alarm alarm = Alarm.builder()
+                .title(BoardAlarmTemplate.DELETE_BOARD.formatTitle())
+                .contents(BoardAlarmTemplate.DELETE_BOARD.formatContents(rejectReason))
+                .isRead(false)
+                .member(member)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .type(AlarmType.DEFAULT)
+                .build();
+
+        alarmService.sendToClient(member.getId(), BoardAlarmTemplate.DELETE_BOARD.name(), alarm);
+        pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, BoardAlarmTemplate.DELETE_BOARD.formatTitle(), BoardAlarmTemplate.DELETE_BOARD.formatContents(rejectReason), BoardAlarmTemplate.DELETE_BOARD.formatDeepLink());
+
+        return roommateBoard;
+    }
+
+    @Transactional
+    @Override
+    public RoommateBoard recoverDeleteBoard(Long id) {
+        RoommateBoard roommateBoard = roommateBoardRepository.findById(id).orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
+        roommateBoard.recoverDelete();
+
+        Member member = roommateBoard.getMember();
+        Alarm alarm = Alarm.builder()
+                .title(BoardAlarmTemplate.RECOVER_BOARD.formatTitle())
+                .contents(BoardAlarmTemplate.RECOVER_BOARD.formatContents())
+                .isRead(false)
+                .member(member)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .type(AlarmType.DEFAULT)
+                .build();
+
+        alarmService.sendToClient(member.getId(), BoardAlarmTemplate.RECOVER_BOARD.name(), alarm);
+        pushNotificationService.send(member, AlarmSettingType.NOTIFICATION,BoardAlarmTemplate.RECOVER_BOARD.formatTitle(), BoardAlarmTemplate.RECOVER_BOARD.formatContents(), BoardAlarmTemplate.RECOVER_BOARD.formatDeepLink(roommateBoard.getId()));
+
         return roommateBoard;
     }
 

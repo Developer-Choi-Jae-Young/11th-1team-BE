@@ -312,6 +312,12 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteMember(id));
     }
 
+    @PatchMapping("/member/uncancel/{id}")
+    @Operation(summary = "회원 정지해제")
+    public CommonResponse<BoMemberCancelDto.Response> unDeleteMember(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.unDeleteMember(id));
+    }
+
     @PatchMapping("/member/auth/{id}")
     @Operation(summary = "회원 권한 수정")
     public CommonResponse<BoMemberAuthDto.Response> authMember(@PathVariable Long id, @RequestBody BoMemberAuthDto.Request request) {
@@ -364,6 +370,12 @@ public class BackOfficeController {
     @Operation(summary = "게시글 삭제")
     public CommonResponse<BoBoardDeleteDto.Response> deleteBoard(@PathVariable Long id, @RequestBody BoBoardDeleteDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteBoard(id, request));
+    }
+
+    @PatchMapping("/board/recover/{id}")
+    @Operation(summary = "게시글 삭제 복구")
+    public CommonResponse<BoBoardDeleteDto.Response> recoverDeleteBoard(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.recoverDeleteBoard(id));
     }
 }
 

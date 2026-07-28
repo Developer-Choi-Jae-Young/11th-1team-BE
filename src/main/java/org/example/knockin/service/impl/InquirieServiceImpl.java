@@ -2,13 +2,18 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
+import org.example.knockin.entity.alarm.Alarm;
+import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.inquiry.Inquiry;
+import org.example.knockin.entity.inquiry.InquiryAlarmTemplate;
 import org.example.knockin.entity.inquiry.InquiryCategory;
 import org.example.knockin.entity.inquiry.InquiryComment;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.InquiryErrorCode;
+import org.example.knockin.repository.alarm.AlarmSettingRepository;
 import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
 import org.example.knockin.repository.inquiry.InquiryCommentRepository;
 import org.example.knockin.repository.inquiry.InquiryRepository;
@@ -26,6 +31,8 @@ public class InquirieServiceImpl {
     private final InquiryCategoryRepository inquiryCategoryRepository;
     private final InquiryRepository inquiryRepository;
     private final InquiryCommentRepository inquiryCommentRepository;
+    private final AlarmServiceImpl alarmService;
+    private final PushNotificationServiceImpl pushNotificationService;
 
     @Transactional
     public void saveInquiry(InquiryDto.Request request, Member member) {
@@ -58,7 +65,22 @@ public class InquirieServiceImpl {
 
     @Transactional
     public InquiryComment saveInquirieReply(InquiryComment inquiryComment) {
-        return inquiryCommentRepository.save(inquiryComment);
+        InquiryComment inquiryCommentEntity = inquiryCommentRepository.save(inquiryComment);
+
+        Member member = inquiryCommentEntity.getInquiry().getMember();
+        Alarm alarm = Alarm.builder()
+                .title(InquiryAlarmTemplate.INQUIRIE_REPLY.formatTitle())
+                .contents(InquiryAlarmTemplate.INQUIRIE_REPLY.formatContents())
+                .isRead(false)
+                .member(member)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .type(AlarmType.DEFAULT)
+                .build();
+
+        alarmService.sendToClient(member.getId(), InquiryAlarmTemplate.INQUIRIE_REPLY.name(), alarm);
+        pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, InquiryAlarmTemplate.INQUIRIE_REPLY.formatTitle(), InquiryAlarmTemplate.INQUIRIE_REPLY.formatContents(),InquiryAlarmTemplate.INQUIRIE_REPLY.formatDeepLink());
+
+        return inquiryCommentEntity;
     }
 
     public Inquiry findInquiryById(Long inquiryId) {

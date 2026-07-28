@@ -45,6 +45,12 @@ class InquirieServiceImplTest {
     @Mock
     private InquiryCommentRepository inquiryCommentRepository;
 
+    @Mock
+    private AlarmServiceImpl alarmService;
+
+    @Mock
+    private PushNotificationServiceImpl pushNotificationService;
+
     @InjectMocks
     private InquirieServiceImpl inquiriesService;
 
@@ -201,7 +207,10 @@ class InquirieServiceImplTest {
     @DisplayName("문의 답변 저장 성공 테스트 (saveInquirieReply)")
     void saveInquirieReplySuccessTest() {
         // given
+        Member member = Member.builder().id(10L).fcmToken("token").build();
+        Inquiry inquiry = Inquiry.builder().member(member).build();
         InquiryComment comment = InquiryComment.builder()
+                .inquiry(inquiry)
                 .contents("답변 내용")
                 .build();
         given(inquiryCommentRepository.save(any(InquiryComment.class))).willReturn(comment);

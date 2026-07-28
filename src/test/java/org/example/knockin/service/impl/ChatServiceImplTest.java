@@ -144,6 +144,8 @@ class ChatServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
@@ -152,6 +154,8 @@ class ChatServiceImplTest {
                 memberService,
                 null,
                 roommateScoreService,
+                null,
+                null,
                 null,
                 null,
                 null,

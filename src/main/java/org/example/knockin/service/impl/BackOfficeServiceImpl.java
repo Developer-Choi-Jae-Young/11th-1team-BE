@@ -225,6 +225,13 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
+    public BoMemberCancelDto.Response unDeleteMember(Long id) {
+        Member member = memberService.findById(id).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        memberService.setMemberState(member, MemberState.ACTIVE);
+        return BoMemberCancelDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
     public BoMemberAuthDto.Response authMember(Long id, BoMemberAuthDto.Request request) {
         Member member = memberService.findById(id).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         memberService.setMemberAuth(member, request.getMemberRole());
@@ -268,6 +275,12 @@ public class BackOfficeServiceImpl {
     @Transactional
     public BoBoardDeleteDto.Response deleteBoard(Long id, BoBoardDeleteDto.Request request) {
         roommateBoardService.deleteBackOfficeBoard(id, request.getRejectReason());
+        return BoBoardDeleteDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoBoardDeleteDto.Response recoverDeleteBoard(Long id) {
+        roommateBoardService.recoverDeleteBoard(id);
         return BoBoardDeleteDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

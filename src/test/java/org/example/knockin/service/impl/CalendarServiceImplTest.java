@@ -88,6 +88,8 @@ class CalendarServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
         calendarService = new CalendarServiceImpl(

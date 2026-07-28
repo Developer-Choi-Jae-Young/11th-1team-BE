@@ -2,15 +2,16 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
-import org.example.knockin.entity.auth.ApproveType;
-import org.example.knockin.entity.auth.Authentication;
-import org.example.knockin.entity.auth.AuthenticationApprove;
-import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.alarm.Alarm;
+import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.alarm.AlarmType;
+import org.example.knockin.entity.auth.*;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.AuthenticationErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.EmailErrorCode;
 import org.example.knockin.exception.MemberErrorCode;
+import org.example.knockin.repository.alarm.AlarmSettingRepository;
 import org.example.knockin.repository.auth.AuthenticationApproveRepository;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
@@ -38,6 +39,8 @@ public class AuthenticationServiceImpl {
     private final MemberServiceImpl memberService;
     private final MailSendService mailSendService;
     private final ResourceLoader resourceLoader;
+    private final AlarmServiceImpl alarmService;
+    private final PushNotificationServiceImpl pushNotificationService;
 
     private final String mailSubject = "[노크인] 신원 인증을 완료해 주세요.";
     private final int validTime = 3;
@@ -147,12 +150,38 @@ public class AuthenticationServiceImpl {
     public void saveVerifications(Long id) {
         AuthenticationApprove approve = authenticationApproveRepository.findById(id).orElseThrow(() -> new BusinessException(AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT));
         approve.approve();
+
+        Member member = approve.getAuthentication().getMember();
+        Alarm alarm = Alarm.builder()
+                .title(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatTitle())
+                .contents(AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatContents())
+                .isRead(false)
+                .member(member)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .type(AlarmType.DEFAULT)
+                .build();
+
+        alarmService.sendToClient(member.getId(), AuthenticateAlarmTemplate.SAVE_VERIFICATION.name(), alarm);
+        pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatTitle(), AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatContents(), AuthenticateAlarmTemplate.SAVE_VERIFICATION.formatDeepLink());
     }
 
     @Transactional
     public void deleteVerifications(Long id, String rejectReason) {
         AuthenticationApprove approve = authenticationApproveRepository.findById(id).orElseThrow(() -> new BusinessException(AuthenticationErrorCode.AUTHENTICATION_NOT_FOUNT));
         approve.reject(rejectReason);
+
+        Member member = approve.getAuthentication().getMember();
+        Alarm alarm = Alarm.builder()
+                .title(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatTitle())
+                .contents(AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatContents(rejectReason))
+                .isRead(false)
+                .member(member)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .type(AlarmType.DEFAULT)
+                .build();
+
+        alarmService.sendToClient(member.getId(), AuthenticateAlarmTemplate.DELETE_VERIFICATION.name(), alarm);
+        pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatTitle(), AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatContents(rejectReason), AuthenticateAlarmTemplate.DELETE_VERIFICATION.formatDeepLink());
     }
 
     public List<AuthenticationType> findTypesByMemberId(Long memberId) {

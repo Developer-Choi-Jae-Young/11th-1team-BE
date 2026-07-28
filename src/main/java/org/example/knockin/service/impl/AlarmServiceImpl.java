@@ -12,6 +12,7 @@ import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.AlarmErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.repository.alarm.AlarmRepository;
+import org.example.knockin.repository.member.MemberRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,12 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @RequiredArgsConstructor
 public class AlarmServiceImpl {
-    private final MemberServiceImpl memberService;
+    private final MemberRepository memberRepository;
     private final Map<Long, SseEmitter> sseEmitterMap = new ConcurrentHashMap<>();
     private final AlarmRepository alarmRepository;
 
     public SseEmitter subscribe(Long memberId) {
-        memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         long timeout = 1000L * 60 * 60;
         SseEmitter sseEmitter = new SseEmitter(timeout);
         sseEmitterMap.put(memberId, sseEmitter);
@@ -64,7 +65,7 @@ public class AlarmServiceImpl {
     }
 
     public AlarmListDto.Response findAlarmList(Pageable pageable, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         List<AlarmListDto.Response.Alarm> alarmList = alarmRepository.findByMember(member, pageable).stream().map(item ->
                 AlarmListDto.Response.Alarm.builder().id(item.getId()).title(item.getTitle()).contents(item.getContents()).isRead(item.getIsRead()).expiredAt(item.getExpiredAt()).createAt(item.getCreatedAt()).build()).toList();
         return AlarmListDto.Response.builder().alarms(alarmList).build();
@@ -72,15 +73,15 @@ public class AlarmServiceImpl {
 
     @Transactional
     public AlarmReadDto.Response modifyAlarmRead(Long id, Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        Alarm alarm = alarmRepository.findByIdAndMember(id, member).orElseThrow(() -> new BusinessException(AlarmErrorCode.ALARM_NOT_FOUND));;
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        Alarm alarm = alarmRepository.findByIdAndMember(id, member).orElseThrow(() -> new BusinessException(AlarmErrorCode.ALARM_NOT_FOUND));
         alarm.readAlarm();
         return AlarmReadDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
     public AlarmReadAllDto.Response modifyAllAlarmRead(Long memberId) {
-        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         List<Alarm> alarmList = alarmRepository.findByMemberAndIsRead(member, false);
         alarmList.forEach(Alarm::readAlarm);
         return AlarmReadAllDto.Response.builder().updatedAt(LocalDateTime.now()).build();

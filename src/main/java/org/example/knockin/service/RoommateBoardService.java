@@ -34,4 +34,5 @@ public interface RoommateBoardService {
     BoBoardDetailDto.Response findBackOffcieBoard(Long id);
 
     RoommateBoard deleteBackOfficeBoard(Long id, String rejectReason);
+    RoommateBoard recoverDeleteBoard(Long id);
 }
