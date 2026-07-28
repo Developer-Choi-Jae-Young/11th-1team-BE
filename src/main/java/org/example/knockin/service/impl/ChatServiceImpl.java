@@ -17,6 +17,7 @@ import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
@@ -28,6 +29,7 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.ChattingErrorCode;
 import org.example.knockin.exception.FileErrorCode;
+import org.example.knockin.global.entity.ChatAlarmTemplate;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.service.FileService;
@@ -63,6 +65,7 @@ public class ChatServiceImpl {
     private final RoommateScoreService roommateScoreService;
     private final ChattingScoreServiceImpl chattingScoreService;
     private final BlockServiceImpl blockService;
+    private final PushNotificationServiceImpl pushNotificationService;
     @Value("${policy.chat.room-limit-per-member}")
     private long chatRoomLimitPerMember;
 
@@ -99,24 +102,42 @@ public class ChatServiceImpl {
     @Transactional
     public void sendUserMessage(Long chatRoomId, ChatMessageDto.Request request, Long senderId) {
         validateMessageRequest(request);
-        ChatRoomMember chatRoomMember = validateCanSendMessage(chatRoomId, senderId);
-        ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
-        Member member = chatRoomMember.getMember();
-        MessageType type = request.getType();
+        ChatRoomMember senderChatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, senderId);
+        Member sender = senderChatRoomMember.getMember();
+        Member receiver = chatRoomMemberService.findPartnerMember(senderChatRoomMember, chatRoomId);
+        validateNotBlocked(senderId, receiver.getId());
 
-        switch (request.getType()) {
+        ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
+        MessageType type = request.getType();
+        String notificationContents;
+
+        switch (type) {
             case TEXT -> {
-                chatRoomMessageService.save(request.getMessage(), member, chattingRoom, type);
+                chatRoomMessageService.save(request.getMessage(), sender, chattingRoom, type);
                 publishMessageEvent(chatRoomId, senderId, request);
+                notificationContents = request.getMessage();
             }
             case IMAGE -> {
-                ChatRoomMessage chatRoomMessage = chatRoomMessageService.save(IMAGE_MESSAGE_CONTENTS, member, chattingRoom, type);
+                ChatRoomMessage chatRoomMessage = chatRoomMessageService.save(IMAGE_MESSAGE_CONTENTS, sender, chattingRoom, type);
                 File file = fileService.findBySavedFileNameAndType(request.getImageUrl(), FileType.CHAT_ROOM_IMAGE);
                 chatRoomFileService.save(file, chatRoomMessage);
                 publishMessageEvent(chatRoomId, senderId, request);
+                notificationContents = IMAGE_MESSAGE_CONTENTS;
             }
             default -> throw new BusinessException(ChattingErrorCode.MESSAGE_PAYLOAD_INVALID);
         }
+
+        sendPushNotification(receiver, sender, chatRoomId, notificationContents);
+    }
+
+    private void sendPushNotification(Member receiver, Member sender, Long chatRoomId, String messageContents) {
+        String senderName = basicInformationService.findLatestBasicInformation(sender).getName();
+        ChatAlarmTemplate template = ChatAlarmTemplate.MESSAGE;
+        String title = template.formatTitle(senderName);
+        String contents = template.formatContents(messageContents);
+        String deepLink = template.formatDeepLink(chatRoomId);
+
+        pushNotificationService.send(receiver, AlarmSettingType.NOTIFICATION, title, contents, deepLink);
     }
 
     private void publishMessageEvent(Long chatRoomId, Long senderId, ChatMessageDto.Request request) {

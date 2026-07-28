@@ -28,6 +28,7 @@ import org.example.knockin.dto.ChatSocketResponse;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
@@ -38,6 +39,7 @@ import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
+import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
@@ -127,6 +129,9 @@ class ChatServiceImplTest {
     @Mock
     private BlockServiceImpl blockService;
 
+    @Mock
+    private PushNotificationServiceImpl pushNotificationService;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -173,7 +178,8 @@ class ChatServiceImplTest {
                 memberService,
                 roommateScoreService,
                 new ChattingScoreServiceImpl(chattingScoreRepository),
-                blockService
+                blockService,
+                pushNotificationService
         );
         ReflectionTestUtils.setField(chatService, "chatRoomLimitPerMember", 15L);
     }
@@ -604,6 +610,8 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findById(chatId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(basicInformationRepository.findLatestBasicInformation(member))
+                .thenReturn(Optional.of(basicInformation(member, "김중민")));
 
         // When
         chatService.sendUserMessage(chatId, request, senderId);
@@ -625,6 +633,13 @@ class ChatServiceImplTest {
         assertThat(event.messageType()).isEqualTo(MessageType.TEXT);
         assertThat(event.message()).isEqualTo("안녕하세요");
         assertThat(event.imageUrl()).isNull();
+        verify(pushNotificationService).send(
+                opponent,
+                AlarmSettingType.NOTIFICATION,
+                "김중민",
+                "안녕하세요",
+                "knockinrn://chat/10"
+        );
         verifyNoInteractions(messagingTemplate);
     }
 
@@ -655,6 +670,8 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class))).thenReturn(savedMessage);
         when(chatRoomFileRepository.save(any(ChatRoomFile.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(basicInformationRepository.findLatestBasicInformation(member))
+                .thenReturn(Optional.of(basicInformation(member, "김중민")));
 
         // When
         chatService.sendUserMessage(chatId, request, senderId);
@@ -677,6 +694,13 @@ class ChatServiceImplTest {
         ChatRoomMessageEvent event = (ChatRoomMessageEvent) eventCaptor.getValue();
         assertThat(event.messageType()).isEqualTo(MessageType.IMAGE);
         assertThat(event.imageUrl()).isEqualTo("chat-image.jpg");
+        verify(pushNotificationService).send(
+                opponent,
+                AlarmSettingType.NOTIFICATION,
+                "김중민",
+                "사진을 보냈습니다.",
+                "knockinrn://chat/10"
+        );
         verifyNoInteractions(messagingTemplate);
     }
 
@@ -951,6 +975,16 @@ class ChatServiceImplTest {
 
     private Member member(Long id) {
         return Member.builder().id(id).build();
+    }
+
+    private BasicInformation basicInformation(Member member, String name) {
+        return BasicInformation.builder()
+                .member(member)
+                .name(name)
+                .birth(LocalDate.of(1998, 1, 1))
+                .gender(Gender.MALE)
+                .email(name + "@example.com")
+                .build();
     }
 
     private ChattingRoom chattingRoom() {
