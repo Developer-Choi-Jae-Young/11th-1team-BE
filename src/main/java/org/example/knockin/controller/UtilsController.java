@@ -4,8 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.global.api.CommonResponse;
-import org.example.knockin.service.FcmService;
+import org.example.knockin.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.service.impl.AppVersionServiceImpl;
 import org.example.knockin.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.service.impl.FaqServiceImpl;
@@ -27,7 +28,7 @@ public class UtilsController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
     private final AuthEmailServiceImpl authEmailService;
-    private final FcmService fcmService;
+    private final PushNotificationServiceImpl pushNotificationService;
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")
@@ -110,8 +111,13 @@ public class UtilsController {
     public CommonResponse<?> testFcm(
             @AuthenticationPrincipal PrincipalDetails details
     ) {
-        Long memberId = details.getMember().getId();
-        fcmService.sendByMember(memberId);
+        pushNotificationService.send(
+                details.getMember(),
+                AlarmSettingType.NOTIFICATION,
+                "테스트",
+                "테스트",
+                ""
+        );
         return CommonResponse.status(200).body(null);
     }
 }

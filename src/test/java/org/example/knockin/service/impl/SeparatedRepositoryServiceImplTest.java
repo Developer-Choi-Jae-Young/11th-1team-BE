@@ -314,38 +314,39 @@ class SeparatedRepositoryServiceImplTest {
     }
 
     @Test
-    @DisplayName("룸메이트 확정 알림 서비스는 행위자 이름으로 알림을 저장하고 클라이언트에 전송한다")
-    void roommateMatchingRequiredAlarmServiceSavesAlarmAndSendsToClient() {
+    @DisplayName("룸메이트 확정 요청 알림 서비스는 대기 상태 문구로 알림을 저장하고 클라이언트에 전송한다")
+    void roommateMatchingRequiredAlarmServiceSavesPendingAlarmAndSendsToClient() {
         // Given
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
         RoommateMatchingRequiredAlarmServiceImpl service = new RoommateMatchingRequiredAlarmServiceImpl(
-                basicInformationService,
                 alarmService
         );
         ReflectionTestUtils.setField(service, "requestAlarmExpireDays", 7);
         Member receiver = Member.builder().id(2L).build();
-        Member actor = Member.builder().id(1L).build();
+        Member sender = Member.builder().id(1L).build();
         RoommateMatchingRequired required = RoommateMatchingRequired.builder()
-                .requester(actor)
+                .requester(sender)
                 .requestee(receiver)
                 .chattingRoom(ChattingRoom.builder().id(10L).build())
                 .status(RoommateRequiredStatus.PENDING)
                 .build();
         ReflectionTestUtils.setField(required, "id", 100L);
 
-        when(basicInformationRepository.findLatestBasicInformation(actor))
-                .thenReturn(Optional.of(basicInformation(actor, "이수현")));
-
         // When
-        service.send(receiver, actor, required, "%s님이 룸메이트 확정을 제안했어요");
+        service.send(
+                receiver,
+                "이수현님의 매칭 요청",
+                "이수현님이 매칭을 요청했어요.",
+                required
+        );
 
         // Then
         ArgumentCaptor<RoommateMatchingRequiredAlarm> captor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);
         verify(alarmService).sendToClient(eq(receiver.getId()), eq(AlarmType.ROOM_MATCHING.name()), captor.capture());
         RoommateMatchingRequiredAlarm alarm = captor.getValue();
         assertThat(alarm.getMember()).isSameAs(receiver);
-        assertThat(alarm.getTitle()).isEqualTo("이수현님이 룸메이트 확정을 제안했어요");
-        assertThat(alarm.getContents()).isEqualTo("이수현님이 룸메이트 확정을 제안했어요");
+        assertThat(alarm.getTitle()).isEqualTo("이수현님의 매칭 요청");
+        assertThat(alarm.getContents()).isEqualTo("이수현님이 매칭을 요청했어요.");
+        assertThat(alarm.getIsRead()).isFalse();
         assertThat(alarm.getType()).isEqualTo(AlarmType.ROOM_MATCHING);
         assertThat(alarm.getRoommateMatchingRequired()).isSameAs(required);
         assertThat(alarm.getExpiredAt()).isAfter(LocalDateTime.now().plusDays(6));

@@ -7,8 +7,10 @@ import org.example.knockin.dto.RoommateRequestDto;
 import org.example.knockin.dto.RoommateRequestDto.Response;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.dto.RoommateRequestListDto;
+import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberPrivacy;
 import org.example.knockin.entity.member.MemberPrivacyType;
@@ -16,6 +18,7 @@ import org.example.knockin.entity.room.RoommateMatchingRequired;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.RequiredErrorCode;
+import org.example.knockin.global.entity.RoommateRequiredMessageTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -25,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class RoommateRequestServiceImpl {
-    private static final String REQUEST_PENDING_TEMPLATE = "%s님이 룸메이트 확정을 제안했어요";
-    private static final String REQUEST_ACCEPTED_TEMPLATE = "%s님과 룸메이트가 확정되었어요";
 
     private final SimpMessageSendingOperations messagingTemplate;
     private final RoommateMatchingRequiredServiceImpl roommateMatchingRequiredService;
@@ -34,6 +35,8 @@ public class RoommateRequestServiceImpl {
     private final RoommateMatchingRequiredAlarmServiceImpl roommateMatchingRequiredAlarmService;
     private final MyRoomMateServiceImpl myRoomMateService;
     private final MemberPrivacyServiceImpl memberPrivacyService;
+    private final PushNotificationServiceImpl pushNotificationService;
+    private final BasicInformationServiceImpl basicInformationService;
 
     @Transactional
     public RoommateRequestDto.Response saveRoommateRequest(Long requesterId, RoommateRequestDto.Request request) {
@@ -41,7 +44,8 @@ public class RoommateRequestServiceImpl {
         ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, requesterId);
         ChattingRoom chattingRoom = chatRoomMember.getChattingRoom();
         Member requester = chatRoomMember.getMember();
-        Member requestee = chatRoomMemberService.findPartnerMember(chatRoomMember, chattingRoom.getId());
+        Long chattingRoomId = chattingRoom.getId();
+        Member requestee = chatRoomMemberService.findPartnerMember(chatRoomMember, chattingRoomId);
 
         RoommateMatchingRequired roommateMatchingRequired = roommateMatchingRequiredService.findLatest(chatRoomId)
                 .map(previous -> {
@@ -53,13 +57,22 @@ public class RoommateRequestServiceImpl {
                 .orElseGet(() -> roommateMatchingRequiredService.savePending(requester, requestee, chattingRoom));
 
         Response response = toDto(roommateMatchingRequired);
-        sendAlarm(requestee, requester, roommateMatchingRequired, REQUEST_PENDING_TEMPLATE);
+        sendAlarms(requestee, requester, roommateMatchingRequired);
         sendRequestMessage(chatRoomId, response);
         return response;
     }
 
-    private void sendAlarm(Member requestee, Member requester, RoommateMatchingRequired roommateMatchingRequired, String alarmTemplate) {
-        roommateMatchingRequiredAlarmService.send(requestee, requester, roommateMatchingRequired, alarmTemplate);
+    private void sendAlarms(Member receiver, Member sender, RoommateMatchingRequired required) {
+        BasicInformation basicInformation = basicInformationService.findLatestBasicInformation(sender);
+        String senderName = basicInformation.getName();
+
+        RoommateRequiredMessageTemplate template = RoommateRequiredMessageTemplate.of(required.getStatus());
+        String title = template.formatTitle(senderName);
+        String contents = template.formatContents(senderName);
+        String deepLink = template.formatDeepLink(required.getChattingRoom().getId());
+
+        roommateMatchingRequiredAlarmService.send(receiver, title, contents, required);
+        pushNotificationService.send(receiver, AlarmSettingType.NOTIFICATION, title, contents, deepLink);
     }
 
     private RoommateRequestDto.Response toDto(RoommateMatchingRequired roommateMatchingRequired) {
@@ -100,7 +113,7 @@ public class RoommateRequestServiceImpl {
 
         Member requester = roommateMatchingRequired.getRequester();
         Member requestee = roommateMatchingRequired.getRequestee();
-        sendAlarm(requester, requestee, roommateMatchingRequired, REQUEST_ACCEPTED_TEMPLATE);
+        sendAlarms(requester, requestee, roommateMatchingRequired);
 
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
@@ -121,6 +134,11 @@ public class RoommateRequestServiceImpl {
 
         validateRequired(roommateMatchingRequired);
         roommateMatchingRequired.reject();
+
+        Member requester = roommateMatchingRequired.getRequester();
+        Member requestee = roommateMatchingRequired.getRequestee();
+        sendAlarms(requester, requestee, roommateMatchingRequired);
+
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
         return response;
