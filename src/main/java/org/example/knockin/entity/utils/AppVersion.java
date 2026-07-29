@@ -18,6 +18,15 @@ public class AppVersion extends BaseEntity {
     @Column(nullable = false, length = 30)
     private String version;
 
+    @Enumerated(EnumType.STRING)
+    private PlatformType platformType;
+
+    @Enumerated(EnumType.STRING)
+    private UpdateType updateType;
+
+    @Column(nullable = false, length = 30)
+    private String minVersion;
+
     @Builder.Default
     @ColumnDefault(value = "false")
     private Boolean isDeleted = false;
@@ -26,7 +35,10 @@ public class AppVersion extends BaseEntity {
         this.isDeleted = true;
     }
 
-    public void modifyVersion(String version) {
+    public void modifyVersion(String version, String minVersion, UpdateType updateType, PlatformType platformType) {
         this.version = version;
+        this.minVersion = minVersion;
+        this.updateType = updateType;
+        this.platformType = platformType;
     }
 }

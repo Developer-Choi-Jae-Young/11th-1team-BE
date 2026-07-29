@@ -86,10 +86,16 @@ public class UtilsController {
         return CommonResponse.status(HttpStatus.OK).body(faqService.findFaq(id));
     }
 
-    @GetMapping("/meta/app-version")
-    @Operation(summary = "현재 앱버전 조회")
-    public CommonResponse<AppVersionDto.Response> findAppVersion() {
-        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion());
+    @GetMapping("/meta/app-version/android")
+    @Operation(summary = "현재 앱버전 android 조회")
+    public CommonResponse<AppVersionDto.Response> findAppAndroidVersionLatest() {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppAndroidVersionLatest());
+    }
+
+    @GetMapping("/meta/app-version/ios")
+    @Operation(summary = "현재 앱버전 ios 조회")
+    public CommonResponse<AppVersionDto.Response> findAppIosVersionLatest() {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppIosVersionLatest());
     }
 
     @GetMapping("/meta/auth-email")

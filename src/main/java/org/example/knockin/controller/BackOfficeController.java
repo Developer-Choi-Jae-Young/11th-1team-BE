@@ -259,9 +259,21 @@ public class BackOfficeController {
     }
 
     @GetMapping("/app-version")
-    @Operation(summary = "현재 앱버전 조회")
-    public CommonResponse<AppVersionDto.Response> findAppVersion() {
-        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion());
+    @Operation(summary = "현재 앱버전 전체 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion(pageable));
+    }
+
+    @GetMapping("/app-version/ios")
+    @Operation(summary = "현재 앱버전 ios 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppIosVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppIosVersion(pageable));
+    }
+
+    @GetMapping("/app-version/android")
+    @Operation(summary = "현재 앱버전 android 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppAndroidVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppAndroidVersion(pageable));
     }
 
     @PostMapping("/app-version")
