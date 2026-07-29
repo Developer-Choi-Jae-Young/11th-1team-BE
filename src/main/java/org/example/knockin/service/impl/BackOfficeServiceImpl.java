@@ -11,6 +11,7 @@ import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberState;
+import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomType;
 import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.BusinessException;
@@ -33,6 +34,7 @@ public class BackOfficeServiceImpl {
     private final InquirieServiceImpl inquirieService;
     private final DeclarationServiceImpl declarationService;
     private final RoommateBoardServiceImpl roommateBoardService;
+    private final RoomExtraOptionServiceImpl roomExtraOptionService;
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
@@ -304,5 +306,34 @@ public class BackOfficeServiceImpl {
     public BoTypeTermsDto.Response deleteTermType(Long termTypeId) {
         agreementService.deleteTermType(termTypeId);
         return BoTypeTermsDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoRoomAddOptionDto.Response saveRoomAddOptions(BoRoomAddOptionDto.Request request) {
+        roomExtraOptionService.saveRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build());
+        return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    public BoRoomAddOptionListDto.Response findRoomAddOptionsList(Pageable pageable) {
+        List<BoRoomAddOptionListDto.Response.RoomAddOptionItem> roomAddOptionItemList = roomExtraOptionService.findRoomExtraOptionList(pageable).stream().map(item ->
+                BoRoomAddOptionListDto.Response.RoomAddOptionItem.builder().id(item.getId()).name(item.getName()).build()).toList();
+        return BoRoomAddOptionListDto.Response.builder().roomAddOptionItem(roomAddOptionItemList).build();
+    }
+
+    @Transactional
+    public BoRoomAddOptionDto.Response modifyRoomAddOptions(BoRoomAddOptionDto.Request request, Long id) {
+        roomExtraOptionService.modifyRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build(), id);
+        return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    @Transactional
+    public BoRoomAddOptionDto.Response deleteRoomAddOptions(Long id) {
+        roomExtraOptionService.deleteRoomExtraOption(id);
+        return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
+
+    public BoRoomAddOptionDetailDto.Response findRoomAddOptions(Long id) {
+        RoomExtraOption roomExtraOption = roomExtraOptionService.findRoomAddOptions(id);
+        return BoRoomAddOptionDetailDto.Response.builder().id(roomExtraOption.getId()).name(roomExtraOption.getName()).build();
     }
 }
