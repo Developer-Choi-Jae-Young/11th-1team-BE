@@ -84,6 +84,36 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLastTerms(request, termsId));
     }
 
+    @PostMapping("/room-add-options")
+    @Operation(summary = "방 추가 옵션 저장")
+    public CommonResponse<BoRoomAddOptionDto.Response> saveRoomAddOptions(@RequestBody BoRoomAddOptionDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomAddOptions(request));
+    }
+
+    @GetMapping("/room-add-options")
+    @Operation(summary = "방 추가 옵션 목록 조회")
+    public CommonResponse<BoRoomAddOptionListDto.Response> findRoomAddOptionsList(@PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomAddOptionsList(pageable));
+    }
+
+    @PutMapping("/room-add-options/{id}")
+    @Operation(summary = "방 추가 옵션 수정")
+    public CommonResponse<BoRoomAddOptionDto.Response> modifyRoomAddOptions(@PathVariable Long id, @RequestBody BoRoomAddOptionDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomAddOptions(request, id));
+    }
+
+    @DeleteMapping("/room-add-options/{id}")
+    @Operation(summary = "방 추가 옵션 삭제")
+    public CommonResponse<BoRoomAddOptionDto.Response> deleteRoomAddOptions(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteRoomAddOptions(id));
+    }
+
+    @GetMapping("/room-add-options/{id}")
+    @Operation(summary = "방 추가 옵션 상세 조회")
+    public CommonResponse<BoRoomAddOptionDetailDto.Response> findRoomAddOptions(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomAddOptions(id));
+    }
+
     @PostMapping("/room-types")
     @Operation(summary = "방 유형 저장")
     public CommonResponse<BoRoomTypeDto.Response> saveRoomType(@RequestBody BoRoomTypeDto.Request request) {
@@ -259,9 +289,21 @@ public class BackOfficeController {
     }
 
     @GetMapping("/app-version")
-    @Operation(summary = "현재 앱버전 조회")
-    public CommonResponse<AppVersionDto.Response> findAppVersion() {
-        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion());
+    @Operation(summary = "현재 앱버전 전체 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppVersion(pageable));
+    }
+
+    @GetMapping("/app-version/ios")
+    @Operation(summary = "현재 앱버전 ios 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppIosVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppIosVersion(pageable));
+    }
+
+    @GetMapping("/app-version/android")
+    @Operation(summary = "현재 앱버전 android 조회")
+    public CommonResponse<AppVersionListDto.Response> findAppAndroidVersion(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return CommonResponse.status(HttpStatus.OK).body(appVersionService.findAppAndroidVersion(pageable));
     }
 
     @PostMapping("/app-version")

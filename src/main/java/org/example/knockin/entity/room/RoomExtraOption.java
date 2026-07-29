@@ -28,4 +28,12 @@ public class RoomExtraOption {
     @ColumnDefault("false")
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
+
+    public void modifyRoomExtraOption(RoomExtraOption roomExtraOption) {
+        this.name = roomExtraOption.getName();
+    }
+
+    public void deleteRoomExtraOption() {
+        this.isDeleted = true;
+    }
 }

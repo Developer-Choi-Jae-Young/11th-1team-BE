@@ -5,6 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.knockin.entity.utils.PlatformType;
+import org.example.knockin.entity.utils.UpdateType;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class AppVersionDto {
@@ -22,5 +27,13 @@ public class AppVersionDto {
         private Long id;
         @Schema(description = "앱 버전")
         private String version;
+        @Schema(description = "플랫폼")
+        private PlatformType platformType;
+        @Schema(description = "업데이트 유형")
+        private UpdateType updateType;
+        @Schema(description = "최소 지원")
+        private String minVersion;
+        @Schema(description = "출시일")
+        private LocalDateTime createdAt;
     }
 }

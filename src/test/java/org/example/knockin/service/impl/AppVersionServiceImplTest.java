@@ -1,9 +1,11 @@
 package org.example.knockin.service.impl;
 
-import org.example.knockin.dto.AppVersionDto;
+import org.example.knockin.dto.AppVersionListDto;
 import org.example.knockin.dto.AppVersionModifyDto;
 import org.example.knockin.dto.AppVersionSaveDto;
 import org.example.knockin.entity.utils.AppVersion;
+import org.example.knockin.entity.utils.PlatformType;
+import org.example.knockin.entity.utils.UpdateType;
 import org.example.knockin.exception.AppVersionErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.repository.utils.AppVersionRepository;
@@ -13,6 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,31 +42,36 @@ class AppVersionServiceImplTest {
     @DisplayName("앱 버전 조회 성공 테스트")
     void findAppVersionSuccessTest() {
         // given
+        Pageable pageable = PageRequest.of(0, 10);
         AppVersion appVersion = AppVersion.builder()
                 .id(1L)
                 .version("1.0.0")
+                .minVersion("1.0.0")
+                .platformType(PlatformType.IOS)
+                .updateType(UpdateType.SELECT)
                 .isDeleted(false)
                 .build();
-        given(appVersionRepository.findAll()).willReturn(List.of(appVersion));
+        given(appVersionRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(appVersion)));
 
         // when
-        AppVersionDto.Response response = appVersionService.findAppVersion();
+        AppVersionListDto.Response response = appVersionService.findAppVersion(pageable);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getVersion()).isEqualTo("1.0.0");
+        assertThat(response.getVersionInfo()).hasSize(1);
+        assertThat(response.getVersionInfo().get(0).getId()).isEqualTo(1L);
+        assertThat(response.getVersionInfo().get(0).getVersion()).isEqualTo("1.0.0");
     }
 
     @Test
-    @DisplayName("앱 버전 등록 성공 테스트 (기존 버전 삭제 후 신규 버전 등록)")
+    @DisplayName("앱 버전 등록 성공 테스트")
     void saveAppVersionSuccessTest() {
         // given
         AppVersionSaveDto.Request request = new AppVersionSaveDto.Request();
         request.setVersion("2.0.0");
-
-        AppVersion oldVersion = spy(AppVersion.builder().id(1L).version("1.0.0").isDeleted(false).build());
-        given(appVersionRepository.findAll()).willReturn(List.of(oldVersion));
+        request.setMinVersion("1.0.0");
+        request.setPlatformType(PlatformType.IOS);
+        request.setUpdateType(UpdateType.SELECT);
 
         // when
         AppVersionSaveDto.Response response = appVersionService.saveAppVersion(request);
@@ -69,7 +79,6 @@ class AppVersionServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(oldVersion).deleteAppVersion();
         verify(appVersionRepository).save(any(AppVersion.class));
     }
 
@@ -80,6 +89,9 @@ class AppVersionServiceImplTest {
         AppVersionModifyDto.Request request = new AppVersionModifyDto.Request();
         request.setId(1L);
         request.setVersion("1.0.1");
+        request.setMinVersion("1.0.0");
+        request.setPlatformType(PlatformType.IOS);
+        request.setUpdateType(UpdateType.SELECT);
 
         AppVersion appVersion = spy(AppVersion.builder().id(1L).version("1.0.0").isDeleted(false).build());
         given(appVersionRepository.findById(1L)).willReturn(Optional.of(appVersion));
@@ -90,7 +102,7 @@ class AppVersionServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(appVersion).modifyVersion("1.0.1");
+        verify(appVersion).modifyVersion("1.0.1", "1.0.0", UpdateType.SELECT, PlatformType.IOS);
     }
 
     @Test
