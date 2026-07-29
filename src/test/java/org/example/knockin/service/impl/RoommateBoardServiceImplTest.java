@@ -163,6 +163,12 @@ class RoommateBoardServiceImplTest {
     @Mock
     private SearchServiceImpl searchServiceImpl;
 
+    @Mock
+    private AlarmServiceImpl alarmService;
+
+    @Mock
+    private PushNotificationServiceImpl pushNotificationService;
+
     @InjectMocks
     private RoommateBoardServiceImpl roommateBoardService;
 

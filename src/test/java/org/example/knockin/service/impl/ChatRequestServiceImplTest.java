@@ -101,6 +101,8 @@ class ChatRequestServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
@@ -113,6 +115,8 @@ class ChatRequestServiceImplTest {
                 null,
                 null,
                 memberLifePatternService,
+                null,
+                null,
                 null,
                 null,
                 null,

@@ -2,13 +2,12 @@ package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
+import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.alarm.AlarmSetting;
 import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.auth.LoginProviderType;
-import org.example.knockin.entity.member.Member;
-import org.example.knockin.entity.member.MemberRole;
-import org.example.knockin.entity.member.MemberState;
-import org.example.knockin.entity.member.State;
+import org.example.knockin.entity.member.*;
 import org.example.knockin.entity.room.*;
 import org.example.knockin.dto.AuthResponse;
 import org.example.knockin.dto.OAuth2UserInfo;
@@ -46,6 +45,8 @@ public class MemberServiceImpl {
     private final RoomProfileRepository roomProfileRepository;
     private final StateRepository stateRepository;
     private final AlarmSettingRepository alarmSettingRepository;
+    private final AlarmServiceImpl alarmService;
+    private final PushNotificationServiceImpl pushNotificationService;
 
     @Transactional
     public Member getOrSave(OAuth2UserInfo oAuth2UserInfo) {
@@ -236,6 +237,21 @@ public class MemberServiceImpl {
     public State setMemberState(Member member, MemberState memberState) {
         State state = stateRepository.findByMember(member).getFirst();
         state.changeState(memberState);
+
+        if(memberState.equals(MemberState.ACTIVE)) {
+            Alarm alarm = Alarm.builder()
+                    .title(MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle())
+                    .contents(MemberAlarmTemplate.MEMBER_ACTIVE.formatContents())
+                    .isRead(false)
+                    .member(member)
+                    .expiredAt(LocalDateTime.now().plusDays(1))
+                    .type(AlarmType.DEFAULT)
+                    .build();
+
+            alarmService.sendToClient(member.getId(), MemberAlarmTemplate.MEMBER_ACTIVE.name(), alarm);
+            pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle(), MemberAlarmTemplate.MEMBER_ACTIVE.formatContents(), MemberAlarmTemplate.MEMBER_ACTIVE.formatDeepLink());
+        }
+
         return state;
     }
 

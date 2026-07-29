@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
-import org.example.knockin.service.impl.PushNotificationServiceImpl;
 import org.example.knockin.service.impl.AppVersionServiceImpl;
 import org.example.knockin.service.impl.AuthEmailServiceImpl;
 import org.example.knockin.service.impl.FaqServiceImpl;
@@ -26,7 +25,6 @@ public class UtilsController {
     private final FaqServiceImpl faqService;
     private final AppVersionServiceImpl appVersionService;
     private final AuthEmailServiceImpl authEmailService;
-    private final PushNotificationServiceImpl pushNotificationService;
 
     @GetMapping("/terms")
     @Operation(summary = "약관 목록 조회")

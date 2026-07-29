@@ -7,7 +7,7 @@ public enum AlarmType {
     DEFAULT(Values.DEFAULT),
     ROOM_MATCHING(Values.ROOM_MATCHING),
     CHATTING_REQUIRED(Values.CHATTING_REQUIRED),
-    ROOMMATE_CALENDAR(Values.ROOMMATE_CALENDAR)
+    ROOMMATE_CALENDAR(Values.ROOMMATE_CALENDAR),
     ;
 
     private final String value;

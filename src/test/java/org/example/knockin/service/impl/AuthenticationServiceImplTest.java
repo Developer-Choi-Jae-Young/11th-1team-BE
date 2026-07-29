@@ -59,6 +59,12 @@ class AuthenticationServiceImplTest {
     @Mock
     private ResourceLoader resourceLoader;
 
+    @Mock
+    private AlarmServiceImpl alarmService;
+
+    @Mock
+    private PushNotificationServiceImpl pushNotificationService;
+
     @InjectMocks
     private AuthenticationServiceImpl authenticationService;
 
@@ -351,8 +357,11 @@ class AuthenticationServiceImplTest {
     void saveVerificationsSuccessTest() {
         // given
         Long id = 1L;
+        Member member = Member.builder().id(10L).fcmToken("token").build();
+        Authentication authentication = Authentication.builder().member(member).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
                 .id(id)
+                .authentication(authentication)
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));
@@ -384,8 +393,11 @@ class AuthenticationServiceImplTest {
         // given
         Long id = 1L;
         String rejectReason = "반려사유";
+        Member member = Member.builder().id(10L).fcmToken("token").build();
+        Authentication authentication = Authentication.builder().member(member).build();
         AuthenticationApprove approve = AuthenticationApprove.builder()
                 .id(id)
+                .authentication(authentication)
                 .status(ApproveType.PENDING)
                 .build();
         given(authenticationApproveRepository.findById(id)).willReturn(Optional.of(approve));

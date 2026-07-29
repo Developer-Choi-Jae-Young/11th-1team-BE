@@ -107,4 +107,8 @@ public class RoommateBoard extends BaseEntity {
         this.isDeleted = true;
         this.rejectReason = rejectReason;
     }
+
+    public void recoverDelete() {
+        this.isDeleted = false;
+    }
 }

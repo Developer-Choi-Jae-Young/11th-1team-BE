@@ -10,6 +10,7 @@ import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.AlarmErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.repository.alarm.AlarmRepository;
+import org.example.knockin.repository.member.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +39,7 @@ import static org.mockito.Mockito.*;
 class AlarmServiceImplTest {
 
     @Mock
-    private MemberServiceImpl memberService;
+    private MemberRepository memberRepository;
 
     @Mock
     private AlarmRepository alarmRepository;
@@ -52,7 +53,7 @@ class AlarmServiceImplTest {
         // given
         Long memberId = 1L;
         Member member = mock(Member.class);
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
 
         // when
         SseEmitter emitter = alarmService.subscribe(memberId);
@@ -68,7 +69,7 @@ class AlarmServiceImplTest {
     void subscribeMemberNotFoundTest() {
         // given
         Long memberId = 1L;
-        given(memberService.findById(memberId)).willReturn(Optional.empty());
+        given(memberRepository.findById(memberId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> alarmService.subscribe(memberId))
@@ -174,7 +175,7 @@ class AlarmServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(alarm, "createdAt", LocalDateTime.now());
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
         given(alarmRepository.findByMember(member, pageable)).willReturn(List.of(alarm));
 
         // when
@@ -199,7 +200,7 @@ class AlarmServiceImplTest {
                 .isRead(false)
                 .build());
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
         given(alarmRepository.findByIdAndMember(alarmId, member)).willReturn(Optional.of(alarm));
 
         // when
@@ -219,7 +220,7 @@ class AlarmServiceImplTest {
         Long alarmId = 100L;
         Member member = mock(Member.class);
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
         given(alarmRepository.findByIdAndMember(alarmId, member)).willReturn(Optional.empty());
 
         // when & then
@@ -238,7 +239,7 @@ class AlarmServiceImplTest {
         Alarm alarm1 = spy(Alarm.builder().id(100L).isRead(false).build());
         Alarm alarm2 = spy(Alarm.builder().id(101L).isRead(false).build());
 
-        given(memberService.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
         given(alarmRepository.findByMemberAndIsRead(member, false)).willReturn(List.of(alarm1, alarm2));
 
         // when

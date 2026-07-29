@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.alarm.AlarmSettingRepository;
+import org.example.knockin.service.impl.FcmServiceImpl;
 import org.example.knockin.service.impl.PushNotificationServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ class PushNotificationServiceTest {
     private AlarmSettingRepository alarmSettingRepository;
 
     @Mock
-    private FcmService fcmService;
+    private FcmServiceImpl fcmService;
 
     @InjectMocks
     private PushNotificationServiceImpl pushNotificationService;
@@ -48,7 +49,7 @@ class PushNotificationServiceTest {
         );
 
         // then
-        verify(fcmService).sendNotification(
+        verify(fcmService).send(
                 "제목",
                 "본문",
                 "fcm-token",

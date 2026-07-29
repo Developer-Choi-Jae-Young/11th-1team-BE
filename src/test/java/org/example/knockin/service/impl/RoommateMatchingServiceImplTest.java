@@ -104,6 +104,8 @@ class RoommateMatchingServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
         MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null);
@@ -117,6 +119,8 @@ class RoommateMatchingServiceImplTest {
                 authenticationRepository,
                 null,
                 memberService,
+                null,
+                null,
                 null,
                 null
         );
