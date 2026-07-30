@@ -103,7 +103,7 @@ public class BackOfficeServiceImpl {
 
     @Transactional
     public BoLifeStylePatternDto.Response saveLifeStylePattern(BoLifeStylePatternDto.Request request) {
-        LifePattern lifePattern = lifeStyleService.saveLifePattern(LifePattern.builder().name(request.getName()).dtype(request.getType()).sort(request.getSort()).build());
+        LifePattern lifePattern = lifeStyleService.saveLifePattern(LifePattern.builder().name(request.getName()).lifePatternDescription(request.getLifePatternDescription()).preferenceDescription(request.getPreferenceDescription()).dtype(request.getType()).sort(request.getSort()).build());
         List<LifePatternInformation> lifePatternInformationList = request.getDetails().stream().map(item ->
                 LifePatternInformation.builder().lifePattern(lifePattern).dvalue(item.getValues()).description(item.getDescription()).build()).toList();
         lifeStyleService.saveLifePatternInformation(lifePatternInformationList);
@@ -124,7 +124,7 @@ public class BackOfficeServiceImpl {
         lifeStyleService.deleteLifeInformationByPattern(lifePattern);
         request.getDetails().forEach(detail ->
                 lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build()));
-        lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort());
+        lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
         return BoLifeStylePatternDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 

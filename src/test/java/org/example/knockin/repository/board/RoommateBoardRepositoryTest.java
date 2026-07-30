@@ -904,6 +904,8 @@ class RoommateBoardRepositoryTest {
         ReflectionTestUtils.setField(pattern, "dtype", type);
         ReflectionTestUtils.setField(pattern, "isDeleted", false);
         ReflectionTestUtils.setField(pattern, "sort", sort);
+        ReflectionTestUtils.setField(pattern, "lifePatternDescription", "생활패턴 설명");
+        ReflectionTestUtils.setField(pattern, "preferenceDescription", "선호조건 설명");
         entityManager.persist(pattern);
         return pattern;
     }

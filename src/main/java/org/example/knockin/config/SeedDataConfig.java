@@ -66,15 +66,14 @@ public class SeedDataConfig implements CommandLineRunner {
         AgreementLog privacyLog = AgreementLog.builder().agreement(privacyPolicy).isCurrent(true).build();
         agreementLogRepository.saveAll(List.of(termsLog1, termsLog2, termsLog3, privacyLog));
 
-        LifePattern bedtime = LifePattern.builder().name("취침시간").dtype(LifePatternType.SCALE).isDeleted(false).sort(1).build();
-        LifePattern cleanlinessSensitivity = LifePattern.builder().name("청결 민감도").dtype(LifePatternType.SCALE).isDeleted(false).sort(2).build();
-        LifePattern noiseSensitivity = LifePattern.builder().name("소음 민감도").dtype(LifePatternType.SCALE).isDeleted(false).sort(3).build();
-        LifePattern smoking = LifePattern.builder().name("흡연여부").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(4).build();
-        LifePattern visitorFrequency = LifePattern.builder().name("방문객 빈도").dtype(LifePatternType.SCALE).isDeleted(false).sort(5).build();
-        LifePattern pet = LifePattern.builder().name("반려동물 여부").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(6).build();
-        LifePattern personalSpaceImportance = LifePattern.builder().name("개인 공간 중요도").dtype(LifePatternType.SCALE).isDeleted(false).sort(7).build();
-        LifePattern personalityStyle = LifePattern.builder().name("성격 스타일").dtype(LifePatternType.SCALE).isDeleted(false).sort(8).build();
-        LifePattern preferredRoommateGender = LifePattern.builder().name("원하는 룸메이트 성별").dtype(LifePatternType.SINGLE_CHOICE).isDeleted(false).sort(9).build();
+        LifePattern bedtime = LifePattern.builder().name("취침시간").dtype(LifePatternType.SCALE).lifePatternDescription("평소 취침 시간은 어떤 편인가요?").preferenceDescription("평소 취침 시간은 어떤 편인가요?").isDeleted(false).sort(1).build();
+        LifePattern cleanlinessSensitivity = LifePattern.builder().name("청결 민감도").dtype(LifePatternType.SCALE).lifePatternDescription("청결에 얼마나 민감하시나요?").preferenceDescription("청결에 얼마나 민감하시나요?").isDeleted(false).sort(2).build();
+        LifePattern noiseSensitivity = LifePattern.builder().name("소음 민감도").dtype(LifePatternType.SCALE).lifePatternDescription("소음에 얼마나 민감하시나요?").preferenceDescription("소음에 얼마나 민감하시나요?").isDeleted(false).sort(3).build();
+        LifePattern smoking = LifePattern.builder().name("흡연여부").dtype(LifePatternType.SINGLE_CHOICE).lifePatternDescription("흡연을 하시나요?").preferenceDescription("원하는 룸메이트의 흡연여부를 선택해주세요.").isDeleted(false).sort(4).build();
+        LifePattern visitorFrequency = LifePattern.builder().name("방문객 빈도").dtype(LifePatternType.SCALE).lifePatternDescription("주로 얼마나 자주 방문객이 오시나요?").preferenceDescription("원하는 룸메이트의 방문객 빈도를 선택해주세요.").isDeleted(false).sort(5).build();
+        LifePattern pet = LifePattern.builder().name("반려동물 여부").dtype(LifePatternType.SINGLE_CHOICE).lifePatternDescription("반려동물을 키우고 있나요?").preferenceDescription("원하는 룸메이트의 반려동물 여부를 선택해주세요.").isDeleted(false).sort(6).build();
+        LifePattern personalSpaceImportance = LifePattern.builder().name("개인 공간 중요도").dtype(LifePatternType.SCALE).lifePatternDescription("개인 공간을 얼마나 중요하게 생각하시나요?").preferenceDescription("원하는 룸메이트의 개인 공간 중요도를 선택해주세요.").isDeleted(false).sort(7).build();
+        LifePattern personalityStyle = LifePattern.builder().name("성격 스타일").dtype(LifePatternType.SCALE).lifePatternDescription("나의 성격은 어떤 편인가요?").preferenceDescription("원하는 룸메이트의 성격을 선택해주세요.").isDeleted(false).sort(8).build();
         lifePatternRepository.saveAll(List.of(
                 bedtime,
                 visitorFrequency,
@@ -83,8 +82,7 @@ public class SeedDataConfig implements CommandLineRunner {
                 cleanlinessSensitivity,
                 noiseSensitivity,
                 personalSpaceImportance,
-                personalityStyle,
-                preferredRoommateGender
+                personalityStyle
         ));
 
         List<LifePatternInformation> lifePatternInformationList = new ArrayList<>();
@@ -104,8 +102,6 @@ public class SeedDataConfig implements CommandLineRunner {
                 "전혀 중요하지 않음", "중요하지 않음", "보통", "중요함", "매우 중요함"));
         lifePatternInformationList.addAll(createLifePatternInformation(personalityStyle,
                 "매우 내향적", "내향적", "보통", "외향적", "매우 외향적"));
-        lifePatternInformationList.addAll(createLifePatternInformation(preferredRoommateGender,
-                "동성만 원해요", "성별은 상관 없어요"));
         lifePatternInformationRepository.saveAll(lifePatternInformationList);
 
         Region seoul = Region.builder().name("서울특별시").scope(1).parent(null).build();

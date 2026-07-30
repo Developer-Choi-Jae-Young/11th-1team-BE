@@ -362,6 +362,8 @@ class BackOfficeServiceImplTest {
         request.setName("흡연 여부 변경");
         request.setType(LifePatternType.BOOLEAN);
         request.setSort(2);
+        request.setLifePatternDescription("생활패턴 설명");
+        request.setPreferenceDescription("선호조건 설명");
         request.setDetails(List.of(detail));
 
         LifePattern pattern = spy(LifePattern.builder().id(id).name("흡연 여부").dtype(LifePatternType.BOOLEAN).sort(1).build());
@@ -376,7 +378,7 @@ class BackOfficeServiceImplTest {
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(lifeStyleService).deleteLifeInformationByPattern(pattern);
         verify(lifeStyleService).saveLifeInformation(any(LifePatternInformation.class));
-        verify(pattern).modifyLifePattern("흡연 여부 변경", LifePatternType.BOOLEAN, 2);
+        verify(pattern).modifyLifePattern("흡연 여부 변경", LifePatternType.BOOLEAN, 2, "생활패턴 설명", "선호조건 설명");
     }
 
     @Test

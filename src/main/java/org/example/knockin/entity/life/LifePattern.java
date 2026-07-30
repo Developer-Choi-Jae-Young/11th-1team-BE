@@ -27,6 +27,12 @@ public class LifePattern extends CreatedAtEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Column(name = "life_pattern_description", nullable = false, length = 100)
+    private String lifePatternDescription;
+
+    @Column(name = "preference_description", nullable = false, length = 100)
+    private String preferenceDescription;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "dtype", nullable = false, length = 30)
     private LifePatternType dtype;
@@ -39,11 +45,13 @@ public class LifePattern extends CreatedAtEntity {
     @Column(name = "sort", nullable = false)
     private Integer sort;
 
-    public void modifyLifePattern(String name, LifePatternType type, Integer sort) {
+    public void modifyLifePattern(String name, LifePatternType type, Integer sort, String lifePatternDescription, String preferenceDescription) {
         this.name = name;
         this.dtype = type;
         this.sort = sort;
         this.isDeleted = false;
+        this.lifePatternDescription = lifePatternDescription;
+        this.preferenceDescription = preferenceDescription;
     }
 
     public void deleteLifePattern() {

@@ -26,6 +26,10 @@ public class BoLifeStylePatternDetailDto {
         private String name;
         @Schema(description = "유형")
         private LifePatternType type;
+        @Schema(description = "생활패턴 설명")
+        private String lifePatternDescription;
+        @Schema(description = "선호조건 설명")
+        private String preferenceDescription;
         @Schema(description = "details")
         private List<DetailItem> details;
 
