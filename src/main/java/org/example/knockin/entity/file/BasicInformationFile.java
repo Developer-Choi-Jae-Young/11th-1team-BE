@@ -9,14 +9,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.knockin.entity.member.BasicInformation;
 
 
 @Getter
 @Entity
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "basic_information_file")
 public class BasicInformationFile {
@@ -32,4 +32,8 @@ public class BasicInformationFile {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_id", nullable = false)
     private File file;
+
+    public void modifyFile(File file) {
+        this.file = file;
+    }
 }

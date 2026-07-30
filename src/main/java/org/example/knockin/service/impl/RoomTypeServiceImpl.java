@@ -28,14 +28,14 @@ public class RoomTypeServiceImpl {
 
     @Transactional
     public RoomType modifyRoomType(RoomType roomType, Long roomTypeId) {
-        RoomType roomTypeEntity = roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+        RoomType roomTypeEntity = roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND));
         roomTypeEntity.modifyRoomType(roomType);
         return roomTypeEntity;
     }
 
     @Transactional
     public RoomType deleteRoomType(Long roomTypeId) {
-        RoomType roomTypeEntity = roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+        RoomType roomTypeEntity = roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND));
         roomTypeEntity.deleteRoomType();
         return roomTypeEntity;
     }
@@ -45,7 +45,7 @@ public class RoomTypeServiceImpl {
     }
 
     public RoomType findRoomType(Long roomTypeId) {
-        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND));
     }
 
     public List<RoomType> findByRoomTypes(List<Long> roomTypes) {

@@ -91,7 +91,7 @@ class RoommateRequestServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
+        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         MyRoomMateServiceImpl myRoomMateService = new MyRoomMateServiceImpl(
                 myRoommateRepository,
                 null,

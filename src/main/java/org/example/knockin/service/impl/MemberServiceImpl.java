@@ -267,4 +267,8 @@ public class MemberServiceImpl {
         member.setFcmProps(request.getDeviceId(), request.getFcmToken(), request.getPlatform());
         return FcmDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
+
+    public MyProfileAllDto.Response.UserInfo findProfileInfo(Member member) {
+        return memberRepository.findByProfile(member);
+    }
 }

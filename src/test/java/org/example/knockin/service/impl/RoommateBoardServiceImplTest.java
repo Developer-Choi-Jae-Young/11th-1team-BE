@@ -742,11 +742,11 @@ class RoommateBoardServiceImplTest {
         Long memberId = 42L;
         Member member = org.mockito.Mockito.mock(Member.class);
         when(memberService.findById(memberId)).thenReturn(Optional.of(member));
-        when(metaService.findByRoomTypeId(1L)).thenThrow(new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+        when(metaService.findByRoomTypeId(1L)).thenThrow(new BusinessException(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND));
  
         assertThatThrownBy(() -> roommateBoardService.save(request, memberId, List.of(emptyMultipartFile())))
                 .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT));
+                        e -> assertThat(e.getErrorCode()).isEqualTo(RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND));
  
         verifyNoInteractions(fileService, roommateBoardRepository, roommateBoardFileRepository);
     }
