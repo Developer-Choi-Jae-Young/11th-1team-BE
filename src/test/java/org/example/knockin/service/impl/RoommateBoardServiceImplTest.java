@@ -1233,6 +1233,7 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getAuthentications()).isSameAs(authenticationTypes);
         assertThat(response.getCompatibility().getTotalScore()).isEqualTo(76);
         assertThat(response.isInterested()).isTrue();
+        assertThat(response.isMine()).isFalse();
         InOrder inOrder = inOrder(roommateBoardRepository);
         inOrder.verify(roommateBoardRepository).increaseHitsById(boardId);
         inOrder.verify(roommateBoardRepository).getBasicInfo(boardId);
@@ -1299,6 +1300,33 @@ class RoommateBoardServiceImplTest {
         // Then
         assertThat(response.isInterested()).isFalse();
         verify(roommateBoardInterestRepository).existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId);
+    }
+
+    @Test
+    @DisplayName("상세 조회는 작성자가 자신의 게시글을 조회하면 본인 여부를 true로 응답한다")
+    void getBoardDetailReturnsTrueWhenViewerIsOwner() {
+        // Given
+        Long boardId = 1L;
+        Long ownerId = 7L;
+        BasicInfoRow basicInfoRow = createBasicInfoRow(boardId, ownerId, LocalDate.of(1998, 1, 1));
+        when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
+        when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
+        when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(List.of());
+        when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(List.of());
+        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
+        when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
+        when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
+        when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(ownerId)).thenReturn(List.of());
+        when(roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, ownerId))
+                .thenReturn(false);
+
+        // When
+        BoardDetailDto.Response response = roommateBoardService.getBoardDetail(boardId, ownerId);
+
+        // Then
+        assertThat(response.isMine()).isTrue();
+        verify(roommateBoardInterestRepository)
+                .existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, ownerId);
     }
 
     @Test

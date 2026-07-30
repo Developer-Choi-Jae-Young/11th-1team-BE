@@ -99,6 +99,9 @@ public class BoardDetailDto {
         @Schema(description = "관심 여부")
         private boolean interested;
 
+        @Schema(description = "본인 여부")
+        private boolean mine;
+
         @Data
         @NoArgsConstructor
         @AllArgsConstructor

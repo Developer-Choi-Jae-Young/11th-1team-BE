@@ -47,7 +47,6 @@ import org.example.knockin.exception.MetaErrorCode;
 import org.example.knockin.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.StringUtils;
-import org.example.knockin.repository.alarm.AlarmSettingRepository;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.board.row.BasicInfoRow;
@@ -292,8 +291,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         List<Long> scoreLookupMemberIds = List.of(ownerId);
         List<MatchingLifestyleRow> lifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(scoreLookupMemberIds);
         List<MatchingPreferenceConditionRow> conditionRows = preferenceConditionService.findRowByMemberIdsIn(scoreLookupMemberIds);
-        List<MatchingPreferenceConditionWeightRow> conditionWeightRows =
-                preferenceConditionService.findWeightRowByMemberIdsIn(scoreLookupMemberIds);
+        List<MatchingPreferenceConditionWeightRow> conditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(scoreLookupMemberIds);
 
         List<Lifestyle> lifestyles = lifestyleRows.stream()
                 .filter(row -> Objects.equals(row.memberId(), ownerId))
@@ -311,6 +309,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         List<AuthenticationType> authenticationTypes = authenticationService.findTypesByMemberId(ownerId);
 
         boolean interested = roommateBoardInterestService.existsActiveByBoardIdAndMemberId(boardId, memberId);
+        boolean mine = ownerId.equals(memberId);
 
         return toResponse(
                 basicInfoRow,
@@ -321,7 +320,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 conditionWeights,
                 authenticationTypes,
                 compatibility,
-                interested
+                interested,
+                mine
         );
     }
 
@@ -346,7 +346,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             List<ConditionWeight> conditionWeights,
             List<AuthenticationType> authentications,
             Compatibility compatibility,
-            boolean interested
+            boolean interested,
+            boolean mine
     ) {
 
         String regionFullName = StringUtils.parseToRegionFullName(
@@ -382,6 +383,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .interested(interested)
                 .comeableDateNegotiable(basicInfoRow.comeableDateNegotiable())
                 .comeableDate(basicInfoRow.comeableDate())
+                .mine(mine)
                 .build();
     }
 
