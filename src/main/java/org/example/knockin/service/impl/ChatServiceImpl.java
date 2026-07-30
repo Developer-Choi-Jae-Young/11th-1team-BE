@@ -3,6 +3,8 @@ package org.example.knockin.service.impl;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.ChatMessageDto;
 import org.example.knockin.dto.ChatRoomCreateDto;
@@ -18,6 +20,7 @@ import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
@@ -32,6 +35,9 @@ import org.example.knockin.exception.FileErrorCode;
 import org.example.knockin.global.entity.ChatAlarmTemplate;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
+import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
+import org.example.knockin.repository.chat.row.ChatRoomListRow;
+import org.example.knockin.repository.chat.row.ChatRoomUnreadCountRow;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateScoreService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -66,11 +72,52 @@ public class ChatServiceImpl {
     private final ChattingScoreServiceImpl chattingScoreService;
     private final BlockServiceImpl blockService;
     private final PushNotificationServiceImpl pushNotificationService;
+    private final AuthenticationServiceImpl authenticationService;
+    private final MyRoomMateServiceImpl myRoomMateService;
     @Value("${policy.chat.room-limit-per-member}")
     private long chatRoomLimitPerMember;
 
+    @Transactional(readOnly = true)
     public List<ChatRoomListDto.Response> getChatRoomList(Long memberId) {
-        return chattingRoomService.findByMemberId(memberId);
+        List<ChatRoomListRow> rows = chattingRoomService.findListRowsByMemberId(memberId);
+        if (rows.isEmpty()) return List.of();
+
+        List<Long> chatRoomIds = rows.stream().map(ChatRoomListRow::chatRoomId).toList();
+        List<Long> opponentMemberIds = rows.stream().map(ChatRoomListRow::opponentMemberId).distinct().toList();
+
+        Map<Long, Long> unreadCountsByChatRoomId = chatRoomMessageService.findUnreadMessageCounts(memberId, chatRoomIds).stream()
+                .collect(Collectors.toMap(
+                        ChatRoomUnreadCountRow::chatRoomId,
+                        ChatRoomUnreadCountRow::messageCount
+                ));
+        Map<Long, List<AuthenticationType>> authenticationTypesByMemberId = authenticationService.findAcceptedByMemberIds(opponentMemberIds).stream()
+                .collect(Collectors.groupingBy(
+                        MemberAuthenticationRow::memberId,
+                        Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
+                ));
+
+        return rows.stream()
+                .map(row -> toChatRoomListResponse(
+                        row,
+                        unreadCountsByChatRoomId.getOrDefault(row.chatRoomId(), 0L),
+                        authenticationTypesByMemberId.getOrDefault(row.opponentMemberId(), List.of())
+                ))
+                .toList();
+    }
+
+    private ChatRoomListDto.Response toChatRoomListResponse(ChatRoomListRow row, Long unreadMessageCount, List<AuthenticationType> authenticationTypes) {
+        return ChatRoomListDto.Response.builder()
+                .chatRoomId(row.chatRoomId())
+                .memberName(row.memberName())
+                .memberProfileImageUrl(row.memberProfileImageUrl())
+                .createdAt(row.createdAt())
+                .roommateStatus(row.roommateStatus())
+                .isRoommate(row.isRoommate())
+                .authenticationTypes(authenticationTypes)
+                .lastMessage(row.lastMessage())
+                .messageCount(Math.toIntExact(unreadMessageCount))
+                .lastMessageAt(row.lastMessageAt())
+                .build();
     }
 
     @Transactional
@@ -191,18 +238,21 @@ public class ChatServiceImpl {
     public ChatRoomDetailDto.Response getChatRoomDetail(Long chatRoomId, Long memberId) {
         ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
         ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
+        chatRoomMessageService.markUnreadMessagesAsRead(chatRoomId, memberId);
 
         Member opponentMember = chatRoomMemberService.findPartnerMember(chatRoomMember, chatRoomId);
         ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chatRoomMember, opponentMember);
         List<ChatRoomDetailDto.ChatMessage> messages = chatRoomMessageService.findChatMessageDto(chatRoomId);
         List<RoommateMatchingRequiredInfo> matchingRequiredList = roommateMatchingRequiredService.findRequiredDto(chattingRoom);
         boolean blocked = blockService.isBlockedBetween(memberId, opponentMember.getId());
+        boolean opponentHasRoommate = myRoomMateService.isExistRoomMate(opponentMember);
 
         return ChatRoomDetailDto.Response.builder()
                 .opponentProfile(opponentProfile)
                 .messages(messages)
                 .matchingRequiredList(matchingRequiredList)
                 .blocked(blocked)
+                .opponentHasRoommate(opponentHasRoommate)
                 .build();
     }
 
@@ -268,7 +318,7 @@ public class ChatServiceImpl {
         long requesteeRoomCount = chattingRoomService.countActiveRoomsByMemberId(requesteeId);
 
         if (requesterRoomCount >= chatRoomLimitPerMember || requesteeRoomCount >= chatRoomLimitPerMember) {
-            throw new BusinessException(ChattingErrorCode.ROOM_LIMIT_EXCEEDED);
+            throw new BusinessException(ChattingErrorCode.ROOM_LIMIT_EXCEEDED, chatRoomLimitPerMember);
         }
     }
 

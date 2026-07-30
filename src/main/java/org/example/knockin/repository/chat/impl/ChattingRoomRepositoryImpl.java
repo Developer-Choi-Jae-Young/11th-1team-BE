@@ -2,21 +2,24 @@ package org.example.knockin.repository.chat.impl;
 
 import static org.example.knockin.entity.chat.QChattingRequired.chattingRequired;
 import static org.example.knockin.entity.chat.QChattingRoom.chattingRoom;
-import static org.example.knockin.entity.chat.QChatRoomMessage.chatRoomMessage;
 import static org.example.knockin.entity.file.QBasicInformationFile.basicInformationFile;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
+import static org.example.knockin.entity.room.QMyRoommate.myRoommate;
 
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.ChatRoomListDto;
+import org.example.knockin.entity.chat.QChatRoomMessage;
 import org.example.knockin.entity.chat.QChatRoomMember;
 import org.example.knockin.entity.file.QBasicInformationFile;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.member.QMember;
+import org.example.knockin.entity.room.QRoommateMatchingRequired;
 import org.example.knockin.repository.chat.ChattingRoomRepositoryCustom;
+import org.example.knockin.repository.chat.row.ChatRoomListRow;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -25,23 +28,40 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ChatRoomListDto.Response> findByMemberId(Long memberId) {
+    public List<ChatRoomListRow> findListRowsByMemberId(Long memberId) {
         QMember viewerMember = new QMember("viewerMember");
         QMember opponentMember = new QMember("opponentMember");
         QChatRoomMember viewerRoomMember = new QChatRoomMember("viewerRoomMember");
         QChatRoomMember opponentRoomMember = new QChatRoomMember("opponentRoomMember");
         QBasicInformation basicInformationSub = new QBasicInformation("basicInformationSub");
         QBasicInformationFile basicInformationFileSub = new QBasicInformationFile("basicInformationFileSub");
+        QChatRoomMessage latestMessage = new QChatRoomMessage("latestMessage");
+        QChatRoomMessage latestMessageSub = new QChatRoomMessage("latestMessageSub");
+        QRoommateMatchingRequired latestRoommateRequired = new QRoommateMatchingRequired("latestRoommateRequired");
+        QRoommateMatchingRequired latestRoommateRequiredSub = new QRoommateMatchingRequired("latestRoommateRequiredSub");
 
         return jpaQueryFactory
                 .select(Projections.constructor(
-                        ChatRoomListDto.Response.class,
+                        ChatRoomListRow.class,
                         chattingRoom.id,
+                        opponentMember.id,
                         basicInformation.name,
                         basicInformationFile.file.savedFileName,
                         chattingRoom.createdAt,
-                        chattingRoom.chattingRequired.status,
-                        chatRoomMessage.contents
+                        latestRoommateRequired.status,
+                        new CaseBuilder()
+                                .when(JPAExpressions
+                                        .selectOne()
+                                        .from(myRoommate)
+                                        .where(
+                                                myRoommate.roommateMatchingRequired.chattingRoom.eq(chattingRoom),
+                                                myRoommate.isDeleted.isFalse()
+                                        )
+                                        .exists())
+                                .then(true)
+                                .otherwise(false),
+                        latestMessage.contents,
+                        latestMessage.createdAt
                 ))
                 .from(chattingRoom)
                 .join(chattingRoom.chattingRequired, chattingRequired)
@@ -72,14 +92,24 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                                 .from(basicInformationFileSub)
                                 .where(basicInformationFileSub.basicInformation.eq(basicInformation))
                 ))
-                .leftJoin(chatRoomMessage)
-                .on(chatRoomMessage.id.eq(
+                .leftJoin(latestRoommateRequired)
+                .on(latestRoommateRequired.id.eq(
                         JPAExpressions
-                                .select(chatRoomMessage.id.max())
-                                .from(chatRoomMessage)
-                                .where(chatRoomMessage.chattingRoom.eq(chattingRoom))
+                                .select(latestRoommateRequiredSub.id.max())
+                                .from(latestRoommateRequiredSub)
+                                .where(latestRoommateRequiredSub.chattingRoom.eq(chattingRoom))
                 ))
-                .orderBy(chattingRoom.createdAt.desc())
+                .leftJoin(latestMessage)
+                .on(latestMessage.id.eq(
+                        JPAExpressions
+                                .select(latestMessageSub.id.max())
+                                .from(latestMessageSub)
+                                .where(latestMessageSub.chattingRoom.eq(chattingRoom))
+                ))
+                .orderBy(
+                        latestMessage.createdAt.coalesce(chattingRoom.createdAt).desc(),
+                        chattingRoom.id.desc()
+                )
                 .fetch();
     }
 

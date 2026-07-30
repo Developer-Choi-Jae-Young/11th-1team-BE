@@ -8,6 +8,7 @@ import org.example.knockin.entity.chat.ChatRoomMessage;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.chat.ChatRoomMessageRepository;
+import org.example.knockin.repository.chat.row.ChatRoomUnreadCountRow;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -30,5 +31,13 @@ public class ChatRoomMessageServiceImpl {
 
     public List<ChatRoomDetailDto.ChatMessage> findChatMessageDto(Long chatRoomId) {
         return chatRoomMessageRepository.findChatMessageDto(chatRoomId);
+    }
+
+    public List<ChatRoomUnreadCountRow> findUnreadMessageCounts(Long memberId, List<Long> chatRoomIds) {
+        return chatRoomMessageRepository.findUnreadMessageCounts(memberId, chatRoomIds);
+    }
+
+    public long markUnreadMessagesAsRead(Long chatRoomId, Long memberId) {
+        return chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId);
     }
 }

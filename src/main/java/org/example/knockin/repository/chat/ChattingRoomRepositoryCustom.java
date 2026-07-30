@@ -1,10 +1,10 @@
 package org.example.knockin.repository.chat;
 
 import java.util.List;
-import org.example.knockin.dto.ChatRoomListDto;
+import org.example.knockin.repository.chat.row.ChatRoomListRow;
 
 public interface ChattingRoomRepositoryCustom {
-    List<ChatRoomListDto.Response> findByMemberId(Long memberId);
+    List<ChatRoomListRow> findListRowsByMemberId(Long memberId);
 
     boolean existsActiveRoomBetweenMembers(Long memberAId, Long memberBId);
 
