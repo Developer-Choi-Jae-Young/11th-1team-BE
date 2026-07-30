@@ -2,11 +2,13 @@ package org.example.knockin.repository.board.impl;
 
 import static org.example.knockin.entity.board.QRoommateBoardInterest.roommateBoardInterest;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Collection;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.repository.board.RoommateBoardInterestRepositoryCustom;
+import org.example.knockin.repository.board.row.BoardInterestCountRow;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -29,6 +31,25 @@ public class RoommateBoardInterestRepositoryImpl implements RoommateBoardInteres
                         roommateBoardInterest.roommateBoard.id.in(boardIds),
                         roommateBoardInterest.isDeleted.isFalse()
                 )
+                .fetch();
+    }
+
+    @Override
+    public List<BoardInterestCountRow> findActiveInterestCountsByBoardIds(List<Long> boardIds) {
+        if (boardIds.isEmpty()) return List.of();
+
+        return jpaQueryFactory
+                .select(Projections.constructor(
+                        BoardInterestCountRow.class,
+                        roommateBoardInterest.roommateBoard.id,
+                        roommateBoardInterest.count()
+                ))
+                .from(roommateBoardInterest)
+                .where(
+                        roommateBoardInterest.roommateBoard.id.in(boardIds),
+                        roommateBoardInterest.isDeleted.isFalse()
+                )
+                .groupBy(roommateBoardInterest.roommateBoard.id)
                 .fetch();
     }
 }

@@ -39,6 +39,7 @@ import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.BoardBaseRow;
+import org.example.knockin.repository.board.row.BoardInterestCountRow;
 import org.example.knockin.repository.board.row.BoardThumbnailRow;
 import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
@@ -172,8 +173,14 @@ class RoommateBoardRepositoryTest {
         // Given
         LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
         Member member = persistMember("provider-gender");
-        persistBasicInformation(member, "이전정보", Gender.MALE, "old@example.com");
-        persistBasicInformation(member, "최신정보", Gender.FEMALE, "new@example.com");
+        BasicInformation oldBasicInformation = persistBasicInformation(
+                member, "이전정보", Gender.MALE, "old@example.com", LocalDate.of(2000, 1, 1));
+        persistBasicInformationFile(oldBasicInformation, persistFile("old-profile.jpg"));
+        LocalDate latestBirth = LocalDate.of(1997, 5, 20);
+        BasicInformation latestBasicInformation = persistBasicInformation(
+                member, "최신정보", Gender.FEMALE, "new@example.com", latestBirth);
+        persistBasicInformationFile(latestBasicInformation, persistFile("profile-old.jpg"));
+        persistBasicInformationFile(latestBasicInformation, persistFile("profile-latest.jpg"));
         RoomType roomType = persistRoomType("오피스텔");
         Region region = persistRegion("합정동", 3, null);
         persistBoard("최신 성별 기준 게시글", member, roomType, region, visibleEndDate.plusDays(1));
@@ -208,9 +215,12 @@ class RoommateBoardRepositoryTest {
         assertThat(femaleResult.getContent())
                 .extracting(BoardBaseRow::title)
                 .containsExactly("최신 성별 기준 게시글");
-        assertThat(femaleResult.getContent())
-                .extracting(BoardBaseRow::memberName)
-                .containsExactly("최신정보");
+        assertThat(femaleResult.getContent()).singleElement().satisfies(row -> {
+            assertThat(row.memberName()).isEqualTo("최신정보");
+            assertThat(row.memberProfileImageUrl()).isEqualTo("profile-latest.jpg");
+            assertThat(row.memberBirth()).isEqualTo(latestBirth);
+            assertThat(row.memberGender()).isEqualTo(Gender.FEMALE);
+        });
         assertThat(maleResult.getContent()).isEmpty();
     }
 
@@ -309,6 +319,42 @@ class RoommateBoardRepositoryTest {
                 requester.getId(),
                 List.of(activeBoard.getId(), deletedBoard.getId())
         )).containsExactly(activeBoard.getId());
+    }
+
+    @Test
+    @DisplayName("게시글별 관심 수는 활성 관심만 집계한다")
+    void findActiveInterestCountsByBoardIdsCountsOnlyActiveInterests() {
+        // Given
+        Member owner = persistMember("provider-interest-owner");
+        Member activeMember = persistMember("provider-interest-active");
+        Member deletedMember = persistMember("provider-interest-deleted");
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("역삼동", 3, null);
+        RoommateBoard interestedBoard = persistBoard(
+                "관심 집계 게시글", owner, roomType, region, LocalDateTime.now().plusDays(1));
+        RoommateBoard noInterestBoard = persistBoard(
+                "관심 없는 게시글", owner, roomType, region, LocalDateTime.now().plusDays(1));
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(activeMember)
+                .roommateBoard(interestedBoard)
+                .isDeleted(false)
+                .build());
+        entityManager.persist(RoommateBoardInterest.builder()
+                .member(deletedMember)
+                .roommateBoard(interestedBoard)
+                .isDeleted(true)
+                .build());
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        List<BoardInterestCountRow> result =
+                roommateBoardInterestRepository.findActiveInterestCountsByBoardIds(
+                        List.of(interestedBoard.getId(), noInterestBoard.getId()));
+
+        // Then
+        assertThat(result)
+                .containsExactly(new BoardInterestCountRow(interestedBoard.getId(), 1L));
     }
 
     @Test

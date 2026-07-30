@@ -30,6 +30,7 @@ import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.ReportDto;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
+import org.example.knockin.entity.board.RoommateBoardBadgeType;
 import org.example.knockin.entity.board.RoommateBoardDeclaration;
 import org.example.knockin.entity.board.RoommateBoardFile;
 import org.example.knockin.entity.board.RoommateBoardInterest;
@@ -38,6 +39,7 @@ import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.member.Gender;
+import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomExtraOption;
@@ -67,6 +69,7 @@ import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
+import org.example.knockin.repository.board.row.BoardInterestCountRow;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateScoreService;
 import org.junit.jupiter.api.BeforeEach;
@@ -204,6 +207,7 @@ class RoommateBoardServiceImplTest {
         lenient().when(roommateBoardPolicy.getComeableDateVisibleGraceDays()).thenReturn(7);
         lenient().when(roommateBoardPolicy.getImageMaxCount()).thenReturn(10);
         lenient().when(roommateBoardPolicy.getThumbnailImageMaxCount()).thenReturn(1);
+        lenient().when(roommateBoardPolicy.getHotBadgeMinInterestCount()).thenReturn(10);
         lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(null);
@@ -1005,6 +1009,7 @@ class RoommateBoardServiceImplTest {
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime comeableDate = LocalDateTime.of(2026, 8, 1, 9, 0);
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 9, 0);
+        LocalDate memberBirth = LocalDate.of(1998, 4, 15);
         BoardBaseRow baseRow = new BoardBaseRow(
                 1L,
                 "룸메이트를 구합니다",
@@ -1019,6 +1024,9 @@ class RoommateBoardServiceImplTest {
                 "서울",
                 11L,
                 "작성자",
+                "profile.jpg",
+                memberBirth,
+                Gender.FEMALE,
                 createdAt
         );
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
@@ -1045,6 +1053,9 @@ class RoommateBoardServiceImplTest {
             assertThat(response.getRegionFullName()).isEqualTo("서울 강남구 역삼동");
             assertThat(response.getMemberId()).isEqualTo(11L);
             assertThat(response.getMemberName()).isEqualTo("작성자");
+            assertThat(response.getMemberProfileImageUrl()).isEqualTo("profile.jpg");
+            assertThat(response.getMemberAge()).isEqualTo(DateUtils.calculateAge(memberBirth));
+            assertThat(response.getGender()).isEqualTo(Gender.FEMALE);
             assertThat(response.isInterested()).isFalse();
             assertThat(response.getCreatedAt()).isEqualTo(createdAt);
             assertThat(response.getAuthentications())
@@ -1067,11 +1078,13 @@ class RoommateBoardServiceImplTest {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 9, 0);
         BoardBaseRow firstRow = new BoardBaseRow(
                 1L, "첫 게시글", 1_000, 50, 10, comeableDate, 7L,
-                "원룸", "역삼동", "강남구", "서울", 11L, "첫 작성자", createdAt
+                "원룸", "역삼동", "강남구", "서울", 11L, "첫 작성자",
+                "first-profile.jpg", LocalDate.of(1998, 1, 1), Gender.FEMALE, createdAt
         );
         BoardBaseRow secondRow = new BoardBaseRow(
                 2L, "두 번째 게시글", 2_000, 60, 20, comeableDate, 3L,
-                "원룸", "서초동", "서초구", "서울", 12L, "두 번째 작성자", createdAt.minusHours(1)
+                "원룸", "서초동", "서초구", "서울", 12L, "두 번째 작성자",
+                null, LocalDate.of(1997, 2, 2), Gender.MALE, createdAt.minusHours(1)
         );
         when(roommateBoardRepository.search(
                 eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
@@ -1104,6 +1117,34 @@ class RoommateBoardServiceImplTest {
         verify(authenticationService).findAcceptedByMemberIds(List.of(11L, 12L));
         verify(roommateBoardInterestService)
                 .findActiveBoardIdsByMemberIdAndBoardIds(requesterId, List.of(1L, 2L));
+    }
+
+    @Test
+    @DisplayName("목록 조회는 활성 관심 수를 기준으로 HOT 뱃지를 조합한다")
+    void getBoardListComposesHotBadge() {
+        // Given
+        BoardListDto.Request request = new BoardListDto.Request();
+        Pageable pageable = PageRequest.of(0, 20);
+        LocalDateTime createdAt = LocalDateTime.now().minusDays(1);
+        BoardBaseRow baseRow = new BoardBaseRow(
+                1L, "인기 신규 게시글", 1_000, 50, 10, LocalDateTime.now().plusDays(1), 100L,
+                "원룸", "역삼동", "강남구", "서울", 11L, "작성자",
+                null, null, Gender.FEMALE, createdAt
+        );
+        when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(null)))
+                .thenReturn(new PageImpl<>(List.of(baseRow), pageable, 1));
+        when(roommateBoardInterestService.findActiveInterestCountsByBoardIds(List.of(1L)))
+                .thenReturn(List.of(new BoardInterestCountRow(1L, 10L)));
+
+        // When
+        Page<BoardListDto.Response> result = roommateBoardService.getBoardList(request, pageable, null);
+
+        // Then
+        assertThat(result.getContent()).singleElement().satisfies(response -> {
+            assertThat(response.getBadges())
+                    .containsExactly(RoommateBoardBadgeType.HOT);
+            assertThat(response.getMemberAge()).isNull();
+        });
     }
 
     @Test

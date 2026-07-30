@@ -17,31 +17,31 @@ public class BoardListDto {
     @Data
     public static class Request {
         @Schema(description = "지역 ids")
-        List<Long> regionIds;
+        private List<Long> regionIds;
 
         @Schema(description = "방 형태 ids")
-        List<Long> roomTypeIds;
+        private List<Long> roomTypeIds;
 
         @Schema(description = "성별")
-        Gender gender;
+        private Gender gender;
 
         @Schema(description = "최소 보증금")
-        Integer minDeposit;
+        private Integer minDeposit;
 
         @Schema(description = "최대 보증금")
-        Integer maxDeposit;
+        private Integer maxDeposit;
 
         @Schema(description = "최소 월세")
-        Integer minMounthRent;
+        private Integer minMounthRent;
 
         @Schema(description = "최대 월세")
-        Integer maxMounthRent;
+        private Integer maxMounthRent;
 
         @Schema(description = "검색 키워드 (제목/위치/룸형태)")
-        String keyword;
+        private String keyword;
 
         @Schema(description = "관심 게시글만 조회")
-        Boolean likedOnly;
+        private Boolean likedOnly;
     }
 
     @Data
@@ -50,51 +50,60 @@ public class BoardListDto {
     @AllArgsConstructor
     public static class Response {
         @Schema(description = "게시물 ID")
-        Long id;
+        private Long id;
 
         @Schema(description = "대표 이미지 URL")
-        String imageUrl;
+        private String imageUrl;
 
         @Schema(description = "게시물 제목")
-        String title;
+        private String title;
 
         @Schema(description = "보증금")
-        Integer deposit;
+        private Integer deposit;
 
         @Schema(description = "월세")
-        Integer monthlyRent;
+        private Integer monthlyRent;
 
         @Schema(description = "관리비")
-        Integer managementCost;
+        private Integer managementCost;
 
         @Schema(description = "룸 형태")
-        List<String> roomTypes;
+        private List<String> roomTypes;
 
         @Schema(description = "입주가능시기")
-        LocalDateTime comeableDate;
+        private LocalDateTime comeableDate;
 
         @Schema(description = "위치")
-        String regionFullName;
+        private String regionFullName;
 
         @Schema(description = "작성자 고유 식별 ID")
-        Long memberId;
+        private Long memberId;
 
         @Schema(description = "작성자 이름")
-        String memberName;
+        private String memberName;
+
+        @Schema(description = "작성자 프로필 사진 URL")
+        private String memberProfileImageUrl;
+
+        @Schema(description = "작성자 나이")
+        private Integer memberAge;
+
+        @Schema(description = "작성자 성별")
+        private Gender gender;
 
         @Schema(description = "신원 인증")
-        List<AuthenticationType> authentications;
+        private List<AuthenticationType> authentications;
 
         @Schema(description = "조회수")
-        Long hits;
+        private Long hits;
 
-        @Schema(description = "인증배지")
-        List<RoommateBoardBadgeType> badges;
+        @Schema(description = "게시글 태그 뱃지 목록")
+        private List<RoommateBoardBadgeType> badges;
 
         @Schema(description = "관심 여부")
         private boolean interested;
 
         @Schema(description = "생성일자")
-        LocalDateTime createdAt;
+        private LocalDateTime createdAt;
     }
 }
