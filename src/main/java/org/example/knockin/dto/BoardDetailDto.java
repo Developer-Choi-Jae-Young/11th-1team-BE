@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.board.RoommateBoardBadgeType;
 import org.example.knockin.entity.life.LifePatternType;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -101,6 +102,9 @@ public class BoardDetailDto {
 
         @Schema(description = "본인 여부")
         private boolean mine;
+
+        @Schema(description = "게시글 태그 뱃지 목록")
+        private List<RoommateBoardBadgeType> badges;
 
         @Data
         @NoArgsConstructor

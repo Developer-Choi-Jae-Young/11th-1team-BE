@@ -311,6 +311,13 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         boolean interested = roommateBoardInterestService.existsActiveByBoardIdAndMemberId(boardId, memberId);
         boolean mine = ownerId.equals(memberId);
 
+        long activeInterestCount = roommateBoardInterestService.findActiveInterestCountsByBoardIds(List.of(boardId)).stream()
+                .filter(row -> Objects.equals(row.boardId(), boardId))
+                .map(BoardInterestCountRow::count)
+                .findFirst()
+                .orElse(0L);
+        List<RoommateBoardBadgeType> badges = getBadges(activeInterestCount);
+
         return toResponse(
                 basicInfoRow,
                 images,
@@ -321,7 +328,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 authenticationTypes,
                 compatibility,
                 interested,
-                mine
+                mine,
+                badges
         );
     }
 
@@ -347,7 +355,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
             List<AuthenticationType> authentications,
             Compatibility compatibility,
             boolean interested,
-            boolean mine
+            boolean mine,
+            List<RoommateBoardBadgeType> badges
     ) {
 
         String regionFullName = StringUtils.parseToRegionFullName(
@@ -384,6 +393,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .comeableDateNegotiable(basicInfoRow.comeableDateNegotiable())
                 .comeableDate(basicInfoRow.comeableDate())
                 .mine(mine)
+                .badges(badges)
                 .build();
     }
 
