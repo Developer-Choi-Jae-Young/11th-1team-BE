@@ -108,9 +108,8 @@ class MetaServiceImplTest {
     @Test
     @DisplayName("방 유형 메타데이터 조회 테스트")
     void findRoomTypesTest() {
-        RoomType roomType = mock(RoomType.class);
-        given(roomType.getId()).willReturn(1L);
-        given(roomType.getName()).willReturn("원룸");
+        MetaRoomTypesDto.Response.RoomTypeItem roomType = MetaRoomTypesDto.Response.RoomTypeItem.builder()
+                .id(1L).name("원룸").image("http://example.com/icon.png").build();
         given(roomTypeService.findAllByIsDeleted(false)).willReturn(List.of(roomType));
  
         MetaRoomTypesDto.Response result = metaService.findRoomTypes();
@@ -122,9 +121,8 @@ class MetaServiceImplTest {
     @Test
     @DisplayName("방 추가 옵션 메타데이터 조회 테스트")
     void findRoomAddOptionsTest() {
-        RoomExtraOption option = mock(RoomExtraOption.class);
-        given(option.getId()).willReturn(1L);
-        given(option.getName()).willReturn("에어컨");
+        MetaRoomAddOptionsDto.Response.RoomAddOptionItem option = MetaRoomAddOptionsDto.Response.RoomAddOptionItem.builder()
+                .id(1L).name("에어컨").image("http://example.com/icon.png").build();
         given(roomExtraOptionService.findAllByIsDeleted(false)).willReturn(List.of(option));
  
         MetaRoomAddOptionsDto.Response result = metaService.findRoomAddOptions();

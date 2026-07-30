@@ -24,6 +24,8 @@ public class BoLifeStylePatternDetailDto {
         private Long id;
         @Schema(description = "이름")
         private String name;
+        @Schema(description = "이미지")
+        private String image;
         @Schema(description = "유형")
         private LifePatternType type;
         @Schema(description = "생활패턴 설명")

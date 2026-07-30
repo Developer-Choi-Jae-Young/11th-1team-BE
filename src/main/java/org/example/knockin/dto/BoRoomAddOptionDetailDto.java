@@ -24,5 +24,7 @@ public class BoRoomAddOptionDetailDto {
         private Long id;
         @Schema(description = "이름")
         private String name;
+        @Schema(description = "이미지")
+        private String image;
     }
 }

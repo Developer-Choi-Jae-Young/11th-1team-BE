@@ -1,10 +1,14 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.MetaRoomAddOptionsDto;
+import org.example.knockin.entity.file.BasicInformationFile;
+import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.room.RoomExtraOption;
-import org.example.knockin.entity.room.RoomType;
+import org.example.knockin.entity.room.RoomExtraOptionFile;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.RoomTypeErrorCode;
+import org.example.knockin.repository.room.RoomExtraOptionFileRepository;
 import org.example.knockin.repository.room.RoomExtraOptionRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,12 +20,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoomExtraOptionServiceImpl {
     private final RoomExtraOptionRepository roomExtraOptionRepository;
+    private final RoomExtraOptionFileRepository roomExtraOptionFileRepository;
 
     public List<RoomExtraOption> findAllById(List<Long> ids) {
         return roomExtraOptionRepository.findAllById(ids);
     }
 
-    public List<RoomExtraOption> findAllByIsDeleted(boolean isDeleted) {
+    public List<MetaRoomAddOptionsDto.Response.RoomAddOptionItem> findAllByIsDeleted(boolean isDeleted) {
         return roomExtraOptionRepository.findAllByIsDeleted(isDeleted);
     }
 
@@ -39,6 +44,15 @@ public class RoomExtraOptionServiceImpl {
     @Transactional
     public RoomExtraOption saveRoomExtraOption(RoomExtraOption roomExtraOption) {
         return roomExtraOptionRepository.save(roomExtraOption);
+    }
+
+    @Transactional
+    public RoomExtraOptionFile saveRoomExtraOptionFile(RoomExtraOptionFile roomExtraOptionFile) {
+        return roomExtraOptionFileRepository.save(roomExtraOptionFile);
+    }
+
+    public RoomExtraOptionFile findRoomExtraOptionFile(RoomExtraOption roomExtraOption) {
+        return roomExtraOptionFileRepository.findByRoomExtraOption(roomExtraOption).orElse(null);
     }
 
     @Transactional

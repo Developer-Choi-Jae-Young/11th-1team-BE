@@ -84,8 +84,7 @@ public class MetaServiceImpl {
 
     public MetaRoomTypesDto.Response findRoomTypes() {
         return MetaRoomTypesDto.Response.builder()
-                .roomType(roomTypeService.findAllByIsDeleted(false).stream().map(item ->
-                        MetaRoomTypesDto.Response.RoomTypeItem.builder().id(item.getId()).name(item.getName()).build()).toList())
+                .roomType(roomTypeService.findAllByIsDeleted(false))
                 .build();
     }
 
@@ -98,7 +97,6 @@ public class MetaServiceImpl {
 
     public MetaRoomAddOptionsDto.Response findRoomAddOptions() {
         return MetaRoomAddOptionsDto.Response.builder()
-                .roomAddOption(roomExtraOptionService.findAllByIsDeleted(false).stream().map(item ->
-                        MetaRoomAddOptionsDto.Response.RoomAddOptionItem.builder().id(item.getId()).name(item.getName()).build()).toList()).build();
+                .roomAddOption(roomExtraOptionService.findAllByIsDeleted(false)).build();
     }
 }

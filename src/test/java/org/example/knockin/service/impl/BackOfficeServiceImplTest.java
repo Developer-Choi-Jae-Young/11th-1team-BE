@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.example.knockin.service.FileService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,9 @@ import static org.mockito.Mockito.spy;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("관리자 백오피스 서비스 테스트")
 class BackOfficeServiceImplTest {
+
+    @Mock
+    private FileService fileService;
 
     @Mock
     private AgreementServiceImpl agreementService;
@@ -212,7 +216,7 @@ class BackOfficeServiceImplTest {
         request.setName("원룸");
 
         // when
-        BoRoomTypeDto.Response response = backOfficeService.saveRoomType(request);
+        BoRoomTypeDto.Response response = backOfficeService.saveRoomType(request, null);
 
         // then
         assertThat(response).isNotNull();
@@ -248,7 +252,7 @@ class BackOfficeServiceImplTest {
         request.setName("투룸");
 
         // when
-        BoRoomTypeDto.Response response = backOfficeService.modifyRoomType(request, roomTypeId);
+        BoRoomTypeDto.Response response = backOfficeService.modifyRoomType(request, roomTypeId, null);
 
         // then
         assertThat(response).isNotNull();
@@ -308,7 +312,7 @@ class BackOfficeServiceImplTest {
         given(lifeStyleService.saveLifePattern(any(LifePattern.class))).willReturn(lifePattern);
 
         // when
-        BoLifeStylePatternDto.Response response = backOfficeService.saveLifeStylePattern(request);
+        BoLifeStylePatternDto.Response response = backOfficeService.saveLifeStylePattern(request, null);
 
         // then
         assertThat(response).isNotNull();
@@ -371,7 +375,7 @@ class BackOfficeServiceImplTest {
         given(lifeStyleService.findLifeStyle(id)).willReturn(pattern);
 
         // when
-        BoLifeStylePatternDto.Response response = backOfficeService.modifyLifeStylePattern(request, id);
+        BoLifeStylePatternDto.Response response = backOfficeService.modifyLifeStylePattern(request, id, null);
 
         // then
         assertThat(response).isNotNull();

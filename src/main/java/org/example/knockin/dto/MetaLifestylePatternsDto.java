@@ -36,6 +36,8 @@ public class MetaLifestylePatternsDto {
             private String preferenceDescription;
             @Schema(description = "유형")
             private LifePatternType type;
+            @Schema(description = "이모지 이미지")
+            private String image;
             @Schema(description = "details")
             private List<DetailItem> details;
 
