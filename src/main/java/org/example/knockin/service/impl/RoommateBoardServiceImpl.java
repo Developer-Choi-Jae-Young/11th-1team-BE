@@ -33,6 +33,7 @@ import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.BoardAlarmTemplate;
 import org.example.knockin.entity.board.RoommateBoard;
+import org.example.knockin.entity.board.RoommateBoardBadgeType;
 import org.example.knockin.entity.board.RoommateBoardFile;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.member.Member;
@@ -51,6 +52,7 @@ import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.board.row.BasicInfoRow;
 import org.example.knockin.repository.board.row.BoardBaseRow;
+import org.example.knockin.repository.board.row.BoardInterestCountRow;
 import org.example.knockin.repository.board.row.BoardThumbnailRow;
 import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.board.row.MyRoommateBoardRow;
@@ -166,7 +168,8 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         validateLikedOnlyRequest(request.getLikedOnly(), requesterId);
         saveSearchKeyword(requesterId, request.getKeyword());
 
-        LocalDateTime endDate = LocalDateTime.now().minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
+        LocalDateTime endDate = LocalDateTime.now()
+                .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
         Page<BoardBaseRow> baseRows = roommateBoardRepository.search(request, pageable, endDate, requesterId);
 
         if (baseRows.isEmpty()) {
@@ -195,11 +198,20 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                         ));
         Set<Long> interestedBoardIds = findInterestedBoardIds(requesterId, boardIds);
 
+        Map<Long, Long> activeInterestCountByBoardId =
+                roommateBoardInterestService.findActiveInterestCountsByBoardIds(boardIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        BoardInterestCountRow::boardId,
+                        BoardInterestCountRow::count,
+                        (first, second) -> first));
+
         return baseRows.map(row -> toResponse(
                 row,
                 thumbnailByBoardId,
                 authenticationsByMemberId,
-                interestedBoardIds
+                interestedBoardIds,
+                activeInterestCountByBoardId
         ));
     }
 
@@ -223,11 +235,20 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         searchServiceImpl.save(member, keyword);
     }
 
+    private List<RoommateBoardBadgeType> getBadges(long activeInterestCount) {
+        List<RoommateBoardBadgeType> badges = new ArrayList<>();
+        if (activeInterestCount >= roommateBoardPolicy.getHotBadgeMinInterestCount()) {
+            badges.add(RoommateBoardBadgeType.HOT);
+        }
+        return badges;
+    }
+
     private BoardListDto.Response toResponse(
             BoardBaseRow row,
             Map<Long, String> thumbnailByBoardId,
             Map<Long, List<AuthenticationType>> authenticationsByMemberId,
-            Set<Long> interestedBoardIds
+            Set<Long> interestedBoardIds,
+            Map<Long, Long> activeInterestCountByBoardId
     ) {
         return BoardListDto.Response.builder()
                 .id(row.boardId())
@@ -245,9 +266,12 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 ))
                 .memberId(row.memberId())
                 .memberName(row.memberName())
+                .memberProfileImageUrl(row.memberProfileImageUrl())
+                .memberAge(row.memberBirth() == null ? null : DateUtils.calculateAge(row.memberBirth()))
+                .gender(row.memberGender())
                 .authentications(authenticationsByMemberId.getOrDefault(row.memberId(), List.of()))
                 .hits(row.hits())
-                .badges(List.of())
+                .badges(getBadges(activeInterestCountByBoardId.getOrDefault(row.boardId(), 0L)))
                 .interested(interestedBoardIds.contains(row.boardId()))
                 .createdAt(row.createdAt())
                 .build();

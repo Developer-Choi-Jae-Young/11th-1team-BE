@@ -21,4 +21,7 @@ public class RoommateBoardPolicy {
 
     @Min(1)
     private int thumbnailImageMaxCount;
+
+    @Min(1)
+    private int hotBadgeMinInterestCount;
 }

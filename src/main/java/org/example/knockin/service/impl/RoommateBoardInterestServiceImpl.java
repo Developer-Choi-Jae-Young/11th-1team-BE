@@ -7,6 +7,7 @@ import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardInterest;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.board.RoommateBoardInterestRepository;
+import org.example.knockin.repository.board.row.BoardInterestCountRow;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -40,5 +41,9 @@ public class RoommateBoardInterestServiceImpl {
                 .isDeleted(false)
                 .build();
         roommateBoardInterestRepository.save(roommateBoardInterest);
+    }
+
+    public List<BoardInterestCountRow> findActiveInterestCountsByBoardIds(List<Long> boardIds) {
+        return roommateBoardInterestRepository.findActiveInterestCountsByBoardIds(boardIds);
     }
 }

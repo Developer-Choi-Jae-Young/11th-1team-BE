@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoBoardDetailDto;
 import org.example.knockin.dto.BoBoardListDto;
 import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.entity.file.QBasicInformationFile;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.QBasicInformation;
@@ -54,6 +55,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion parentRegion = new QRegion("searchParentRegion");
         QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
         QBasicInformation latestBasicInformation = new QBasicInformation("searchLatestBasicInformation");
+        QBasicInformationFile latestBasicInformationFile =
+                new QBasicInformationFile("searchLatestBasicInformationFile");
         String keyword = request.getKeyword();
 
         Predicate[] searchCondition = {
@@ -85,6 +88,9 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         grandParentRegion.name,
                         member.id,
                         latestBasicInformation.name,
+                        file.savedFileName,
+                        latestBasicInformation.birth,
+                        latestBasicInformation.gender,
                         roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
@@ -95,6 +101,15 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .join(roommateBoard.member, member)
                 .leftJoin(member.basicInformations, latestBasicInformation)
                 .on(latestBasicInformationIdEq(latestBasicInformation))
+                .leftJoin(basicInformationFile)
+                .on(basicInformationFile.id.eq(
+                        JPAExpressions
+                                .select(latestBasicInformationFile.id.max())
+                                .from(latestBasicInformationFile)
+                                .where(latestBasicInformationFile.basicInformation.id.eq(latestBasicInformation.id))
+                ))
+                .leftJoin(basicInformationFile.file, file)
+                .on(file.isDeleted.isFalse())
                 .where(searchCondition)
                 .orderBy(toBoardOrderSpecifiers(pageable.getSort()))
                 .offset(pageable.getOffset())
