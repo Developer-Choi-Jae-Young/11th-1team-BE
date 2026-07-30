@@ -31,6 +31,7 @@ import org.example.knockin.exception.CommonErrorCode;
 import org.example.knockin.exception.MemberErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.auth.AuthenticationRepository;
+import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
 import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
@@ -377,6 +378,11 @@ class RoommateMatchingServiceImplTest {
                 .thenReturn(List.of(new MatchingPreferenceConditionRow(2L, 21L, 103L, 1003L, "소음", "1", "조용함", LifePatternType.SCALE)));
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(1L, 2L)))
                 .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(2L, 31L, 102L, "흡연")));
+        when(authenticationRepository.findAcceptedByMemberIds(List.of(1L, 2L)))
+                .thenReturn(List.of(
+                        new MemberAuthenticationRow(1L, AuthenticationType.STUDENT),
+                        new MemberAuthenticationRow(2L, AuthenticationType.COMPANY)
+                ));
         when(memberInterestRepository.findActiveReceiverIdsBySenderIdAndReceiverIds(viewerId, List.of(1L, 2L)))
                 .thenReturn(List.of(2L));
         when(roommateScoreService.calculateScores(any(), anyList()))
@@ -404,6 +410,7 @@ class RoommateMatchingServiceImplTest {
         assertThat(offer.getOfferProfile().getRoomTypeName()).isEqualTo("원룸");
         assertThat(offer.getSeekerProfile()).isNull();
         assertThat(offer.getLifeStyles()).extracting(MatchListDto.Lifestyle::getName).containsExactly("청결");
+        assertThat(offer.getAuthentications()).containsExactly(AuthenticationType.STUDENT);
 
         MatchListDto.Response seeker = response.getContent().get(1);
         assertThat(seeker.getMemberId()).isEqualTo(2L);
@@ -417,10 +424,12 @@ class RoommateMatchingServiceImplTest {
         assertThat(seeker.getSeekerProfile().getRegionFullNames()).containsExactly("서울특별시 성동구 성수동");
         assertThat(seeker.getConditions()).extracting(MatchListDto.Condition::getName).containsExactly("소음");
         assertThat(seeker.getConditionWeights()).extracting(MatchListDto.ConditionWeight::getName).containsExactly("흡연");
+        assertThat(seeker.getAuthentications()).containsExactly(AuthenticationType.COMPANY);
 
         verify(memberRepository).findMatchingBasicRow(List.of(99L, viewerId), 3, null, viewerId);
         verify(roomOfferProfileRepository).findAllOfferProfileByMemberIdIn(List.of(1L, 2L));
         verify(roomSeekerProfileRepository).findAllSeekerProfileByMemberIdIn(List.of(1L, 2L));
+        verify(authenticationRepository).findAcceptedByMemberIds(List.of(1L, 2L));
     }
 
     @Test
@@ -573,6 +582,7 @@ class RoommateMatchingServiceImplTest {
         assertThat(response.getConditionWeights()).extracting(MatchListDto.ConditionWeight::getName).containsExactly("흡연");
         assertThat(response.getAuthentications()).containsExactly(AuthenticationType.STUDENT);
         assertThat(response.getCompatibility().getTotalScore()).isEqualTo(87);
+        assertThat(response.isMine()).isFalse();
         verifyNoInteractions(roomSeekerProfileRepository);
     }
 
@@ -621,9 +631,43 @@ class RoommateMatchingServiceImplTest {
         assertThat(response.getSeekerProfile().getRoomTypeNames()).containsExactly("투룸");
         assertThat(response.getSeekerProfile().getRegionFullNames()).containsExactly("서울특별시 성동구 성수동");
         assertThat(response.getAuthentications()).isEmpty();
+        assertThat(response.isMine()).isFalse();
         verifyNoInteractions(roomOfferProfileRepository);
         verify(memberInterestRepository, never())
                 .existsBySenderIdAndReceiverIdAndIsDeletedIsFalse(any(), any());
+    }
+
+    @Test
+    @DisplayName("상세 조회는 본인 프로필을 조회하면 본인 여부를 true로 응답한다")
+    void findMatchingDetailReturnsMineTrueForTargetMember() {
+        // Given
+        Long memberId = 1L;
+        when(memberRepository.findMatchingBasicRowById(memberId))
+                .thenReturn(Optional.of(new MatchingBasicInfoRow(
+                        memberId,
+                        "profile.png",
+                        "본인",
+                        LocalDate.of(2000, 1, 1),
+                        Gender.MALE,
+                        101L,
+                        RoomProfileType.OFFER
+                )));
+        when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(memberId))
+                .thenReturn(List.of());
+        when(roomOfferProfileRepository.findAllOfferProfileByMemberIdIn(List.of(memberId)))
+                .thenReturn(List.of());
+        when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(memberId)))
+                .thenReturn(List.of());
+        when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(memberId)))
+                .thenReturn(List.of());
+        when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(memberId)))
+                .thenReturn(List.of());
+
+        // When
+        MatchDetailDto.Response response = roommateMatchingService.findMatchingDetail(memberId, memberId);
+
+        // Then
+        assertThat(response.isMine()).isTrue();
     }
 
     @Test

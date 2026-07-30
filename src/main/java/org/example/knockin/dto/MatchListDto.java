@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.room.RoomProfileType;
@@ -72,6 +73,9 @@ public class MatchListDto {
 
         @Schema(description = "중요 조건 목록")
         private List<ConditionWeight> conditionWeights;
+
+        @Schema(description = "승인된 신원 인증")
+        private List<AuthenticationType> authentications;
     }
 
     @Data

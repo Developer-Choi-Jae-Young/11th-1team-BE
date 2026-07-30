@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.MatchDetailDto;
@@ -24,6 +25,7 @@ import org.example.knockin.exception.CommonErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.global.util.HasMemberId;
 import org.example.knockin.global.util.StringUtils;
+import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
@@ -79,6 +81,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<MatchingLifestyleRow> matchingLifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(memberIds);
         List<MatchingPreferenceConditionRow> matchingPreferenceConditionRows = preferenceConditionService.findRowByMemberIdsIn(memberIds);
         List<MatchingPreferenceConditionWeightRow> matchingPreferenceConditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(memberIds);
+        List<MemberAuthenticationRow> authenticationRows = authenticationService.findAcceptedByMemberIds(memberIds);
         Map<Long, Compatibility> scoresByMemberId = Optional.ofNullable(roommateScoreService.calculateScores(memberId, memberIds))
                 .orElse(Map.of());
 
@@ -114,6 +117,12 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 this::toConditionWeight
         );
 
+        Map<Long, List<AuthenticationType>> authenticationMap = authenticationRows.stream()
+                .collect(Collectors.groupingBy(
+                        MemberAuthenticationRow::memberId,
+                        Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
+                ));
+
         Set<Long> likedMemberIds = findLikedMemberIds(memberId, memberIds);
 
         List<MatchListDto.Response> responses = matchingListBasicRow.stream()
@@ -126,6 +135,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                         lifestyleMap,
                         conditionMap,
                         conditionWeightMap,
+                        authenticationMap,
                         likedMemberIds,
                         scoresByMemberId
                 ))
@@ -205,6 +215,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
             Map<Long, List<MatchListDto.Lifestyle>> lifestyleMap,
             Map<Long, List<MatchListDto.Condition>> conditionMap,
             Map<Long, List<MatchListDto.ConditionWeight>> conditionWeightMap,
+            Map<Long, List<AuthenticationType>> authenticationMap,
             Set<Long> likedMemberIds,
             Map<Long, Compatibility> scoresByMemberId
     ) {
@@ -239,6 +250,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .lifeStyles(lifestyleMap.getOrDefault(candidateId, List.of()))
                 .conditions(conditionMap.getOrDefault(candidateId, List.of()))
                 .conditionWeights(conditionWeightMap.getOrDefault(candidateId, List.of()))
+                .authentications(authenticationMap.getOrDefault(candidateId, List.of()))
                 .build();
     }
 
@@ -333,6 +345,8 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .map(this::toConditionWeight)
                 .toList();
 
+        boolean mine = targetMemberId.equals(requesterId);
+
         return MatchDetailDto.Response.builder()
                 .memberId(basicInfoRow.memberId())
                 .memberProfileImageUrl(basicInfoRow.memberProfileImageUrl())
@@ -348,6 +362,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .conditionWeights(conditionWeights)
                 .authentications(authenticationTypes)
                 .compatibility(compatibility)
+                .mine(mine)
                 .build();
     }
 
