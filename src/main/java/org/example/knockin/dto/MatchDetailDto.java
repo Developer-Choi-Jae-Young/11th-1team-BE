@@ -62,5 +62,8 @@ public class MatchDetailDto {
 
         @Schema(description = "적합도 (TBD)")
         private Compatibility compatibility;
+
+        @Schema(description = "본인 여부")
+        private boolean mine;
     }
 }
