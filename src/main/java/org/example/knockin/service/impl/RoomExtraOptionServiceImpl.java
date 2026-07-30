@@ -31,8 +31,8 @@ public class RoomExtraOptionServiceImpl {
 
     @Transactional
     public RoomExtraOption modifyRoomExtraOption(RoomExtraOption roomExtraOption, Long id) {
-        RoomExtraOption roomExtraOptionEntity = roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUNT));
-        roomExtraOption.modifyRoomExtraOption(roomExtraOption);
+        RoomExtraOption roomExtraOptionEntity = roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUND));
+        roomExtraOptionEntity.modifyRoomExtraOption(roomExtraOption);
         return roomExtraOptionEntity;
     }
 
@@ -43,12 +43,12 @@ public class RoomExtraOptionServiceImpl {
 
     @Transactional
     public RoomExtraOption deleteRoomExtraOption(Long id) {
-        RoomExtraOption roomExtraOption = roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUNT));
+        RoomExtraOption roomExtraOption = roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUND));
         roomExtraOption.deleteRoomExtraOption();
         return roomExtraOption;
     }
 
     public RoomExtraOption findRoomAddOptions(Long id) {
-        return roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUNT));
+        return roomExtraOptionRepository.findById(id).orElseThrow(() -> new BusinessException(RoomTypeErrorCode.ROOM_EXTRA_OPTION_NOT_FOUND));
     }
 }

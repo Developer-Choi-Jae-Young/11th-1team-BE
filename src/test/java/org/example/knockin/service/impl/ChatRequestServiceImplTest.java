@@ -105,7 +105,7 @@ class ChatRequestServiceImplTest {
                 null,
                 null
         );
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
+        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null);
         RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
                 roommateBoardRepository,

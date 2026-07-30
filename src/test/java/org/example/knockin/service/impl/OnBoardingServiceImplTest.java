@@ -69,14 +69,14 @@ class OnBoardingServiceImplTest {
                 .terms(List.of(1L))
                 .build();
  
-        given(basicInformationService.save(any())).willReturn(mock(BasicInformation.class));
+        given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
         given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(mock(AgreementLog.class)));
         given(memberAgreementService.saveAll(any())).willReturn(List.of(mock(MemberAgreement.class)));
  
         SaveProfileBasicDto.Response response = onBoardingService.saveBasicInfoLogic(request, memberId);
  
         assertThat(response).isNotNull();
-        verify(basicInformationService).save(any());
+        verify(basicInformationService).save(any(BasicInformation.class));
         verify(memberAgreementService).saveAll(any());
         verify(memberPrivacyService).save(any());
     }
@@ -104,7 +104,7 @@ class OnBoardingServiceImplTest {
 
         assertThat(response).isNotNull();
         verify(existingBasic).modifyBasicInformation(any());
-        verify(basicInformationService, never()).save(any());
+        verify(basicInformationService, never()).save(any(BasicInformation.class));
     }
 
     @Test
@@ -174,7 +174,7 @@ class OnBoardingServiceImplTest {
         request.setRegion(List.of(1L));
         request.setRoomProfile(List.of(1L));
  
-        given(basicInformationService.save(any())).willReturn(mock(BasicInformation.class));
+        given(basicInformationService.save(any(BasicInformation.class))).willReturn(mock(BasicInformation.class));
         given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(mock(AgreementLog.class)));
         given(memberAgreementService.saveAll(any())).willReturn(List.of(mock(MemberAgreement.class)));
         given(metaService.findByLifeStyle(any())).willReturn(List.of(mock(LifePatternInformation.class)));
@@ -186,7 +186,7 @@ class OnBoardingServiceImplTest {
         SaveProfileAllDto.Response response = onBoardingService.saveAll(request, memberId);
  
         assertThat(response).isNotNull();
-        verify(basicInformationService).save(any());
+        verify(basicInformationService).save(any(BasicInformation.class));
         verify(memberLifePatternService).saveMemberLifePatternAll(any());
         verify(roomProfileService).save(any(RoomOfferProfile.class));
     }
@@ -198,14 +198,12 @@ class OnBoardingServiceImplTest {
                 .name("이몽룡")
                 .terms(List.of(1L))
                 .build();
- 
+
         BasicInformation basicInfo = mock(BasicInformation.class);
         given(basicInformationService.findByMember(member)).willReturn(List.of(basicInfo));
-        given(metaService.findByAgreementLogIsCurrent(any())).willReturn(List.of(mock(AgreementLog.class)));
-        given(memberAgreementService.findByMember(member)).willReturn(Collections.emptyList());
- 
-        ModifyProfileBasicDto.Response response = onBoardingService.modifyBasicInfoLogic(request, memberId);
- 
+
+        ModifyProfileBasicDto.Response response = onBoardingService.modifyBasicInfoLogic(request, memberId, null);
+
         assertThat(response).isNotNull();
         verify(basicInfo).modifyBasicInformation(request);
     }

@@ -1,32 +1,37 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.AgreementLog;
 import org.example.knockin.entity.agreement.MemberAgreement;
+import org.example.knockin.entity.file.BasicInformationFile;
+import org.example.knockin.entity.file.File;
+import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberPrivacy;
 import org.example.knockin.entity.member.MemberPrivacyType;
 import org.example.knockin.entity.room.*;
-import org.example.knockin.exception.AuthErrorCode;
-import org.example.knockin.exception.BusinessException;
-import org.example.knockin.exception.MetaErrorCode;
-import org.example.knockin.exception.OnBoardErrorCode;
+import org.example.knockin.exception.*;
+import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateBoardService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OnBoardingServiceImpl {
     private final BasicInformationServiceImpl basicInformationService;
     private final MemberServiceImpl memberService;
@@ -41,6 +46,7 @@ public class OnBoardingServiceImpl {
     private final MemberPrivacyServiceImpl memberPrivacyService;
     private final MyRoomMateServiceImpl myRoomMateService;
     private final RoommateBoardService roommateBoardService;
+    private final FileService fileService;
 
     @Transactional
     public BasicInformation saveBasicInfo(SaveProfileBasicDto.Request request, Member member) {
@@ -238,6 +244,30 @@ public class OnBoardingServiceImpl {
         basicInformation.modifyBasicInformation(request);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public void modifyBasicInfo(ModifyProfileBasicDto.Request request, Member member, MultipartFile file) {
+        try {
+            BasicInformation basicInformation = basicInformationService.findByMember(member).getFirst();
+            basicInformation.modifyBasicInformation(request);
+
+            if(file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.USER_PROFILE_IMAGE);
+                BasicInformationFile basicInformationFile = basicInformationService.findBasicInformationFile(basicInformation);
+                if(basicInformationFile != null) {
+                    basicInformationFile.modifyFile(fileEntity);
+                } else {
+                    basicInformationService.save(BasicInformationFile.builder()
+                            .file(fileEntity)
+                            .basicInformation(basicInformation)
+                            .build());
+                }
+            }
+        } catch (IOException e) {
+            log.info("파일 저장에 실패하였습니다. {}", e.toString());
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+
     @Transactional
     public void modifyAgreement(ModifyProfileBasicDto.Request request, Member member) {
         List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
@@ -266,11 +296,10 @@ public class OnBoardingServiceImpl {
     }
 
     @Transactional
-    public ModifyProfileBasicDto.Response modifyBasicInfoLogic(ModifyProfileBasicDto.Request request, Long memberId) {
+    public ModifyProfileBasicDto.Response modifyBasicInfoLogic(ModifyProfileBasicDto.Request request, Long memberId, MultipartFile file) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
-        modifyBasicInfo(request, member);
-        modifyAgreement(request, member);
+        modifyBasicInfo(request, member, file);
 
         return ModifyProfileBasicDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
@@ -648,5 +677,10 @@ public class OnBoardingServiceImpl {
         else {
             memberPrivacyService.save(MemberPrivacy.builder().member(member).type(targetType).build());
         }
+    }
+
+    public MyProfileAllDto.Response.UserInfo findProfileInfo(Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        return memberService.findProfileInfo(member);
     }
 }

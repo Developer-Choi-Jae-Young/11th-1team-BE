@@ -281,7 +281,7 @@ class SeparatedRepositoryServiceImplTest {
     @DisplayName("채팅 요청 알림 서비스는 행위자 이름으로 알림을 저장하고 클라이언트에 전송한다")
     void chattingRequiredAlarmServiceSavesAlarmAndSendsToClient() {
         // Given
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
+        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         ChattingRequiredAlarmServiceImpl service = new ChattingRequiredAlarmServiceImpl(
                 basicInformationService,
                 alarmService
@@ -356,7 +356,7 @@ class SeparatedRepositoryServiceImplTest {
     @DisplayName("알림 서비스는 행위자의 기본 정보가 없으면 알림을 저장하지 않는다")
     void alarmServiceDoesNotSaveWhenActorBasicInformationIsMissing() {
         // Given
-        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository);
+        BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         ChattingRequiredAlarmServiceImpl service = new ChattingRequiredAlarmServiceImpl(
                 basicInformationService,
                 alarmService

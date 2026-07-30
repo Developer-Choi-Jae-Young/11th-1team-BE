@@ -79,7 +79,7 @@ class RoomTypeServiceImplTest {
         // when & then
         assertThatThrownBy(() -> roomTypeService.modifyRoomType(updateInfo, id))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT);
+                .hasFieldOrPropertyWithValue("errorCode", RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND);
     }
 
     @Test
@@ -146,6 +146,6 @@ class RoomTypeServiceImplTest {
         // when & then
         assertThatThrownBy(() -> roomTypeService.findRoomType(id))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", RoomTypeErrorCode.ROOM_TYPE_NOT_FOUNT);
+                .hasFieldOrPropertyWithValue("errorCode", RoomTypeErrorCode.ROOM_TYPE_NOT_FOUND);
     }
 }

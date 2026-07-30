@@ -127,6 +127,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         basicInformation.name,
                         basicInformation.email,
                         basicInformation.birth,
+                        file.savedFileName.as("profile"),
                         memberPrivacy.type.as("memberPrivacyType")
                         ))
                 .from(member)

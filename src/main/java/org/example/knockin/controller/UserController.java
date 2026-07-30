@@ -15,8 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/users/me")
@@ -57,10 +59,10 @@ public class UserController {
         return CommonResponse.status(HttpStatus.OK).body(onBoardingService.saveAll(request, principalDetails.getMember().getId()));
     }
 
-    @PutMapping("/profile/basic")
+    @PutMapping(name = "/profile/basic", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "기본정보 수정")
-    public CommonResponse<ModifyProfileBasicDto.Response> modifyBasicInfo(@Valid @RequestBody ModifyProfileBasicDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyBasicInfoLogic(request, principalDetails.getMember().getId()));
+    public CommonResponse<ModifyProfileBasicDto.Response> modifyBasicInfo(@Valid @RequestBody ModifyProfileBasicDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyBasicInfoLogic(request, principalDetails.getMember().getId(), file));
     }
 
     @PutMapping("/profile/lifestyle")
@@ -121,6 +123,12 @@ public class UserController {
     @Operation(summary = "선호 전체 조회")
     public CommonResponse<MyPreferencesAllDto.Response> findPreAll(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         return CommonResponse.status(HttpStatus.OK).body(onBoardingService.findPreAll(principalDetails.getMember().getId()));
+    }
+
+    @GetMapping("/profile")
+    @Operation(summary = "내 프로필 정보 조회")
+    public CommonResponse<MyProfileAllDto.Response.UserInfo> findProfileInfo(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.findProfileInfo(principalDetails.getMember().getId()));
     }
 
     @GetMapping("/profile/all")

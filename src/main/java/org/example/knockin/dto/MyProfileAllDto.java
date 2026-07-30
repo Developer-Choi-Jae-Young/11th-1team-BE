@@ -60,6 +60,8 @@ public class MyProfileAllDto {
             private String name;
             @Schema(description = "프로필 공개 여부")
             private MemberPrivacyType memberPrivacyType;
+            @Schema(description = "프로필 이미지")
+            private String profile;
         }
 
         @Data
