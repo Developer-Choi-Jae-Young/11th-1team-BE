@@ -73,6 +73,7 @@ public class ChatServiceImpl {
     private final BlockServiceImpl blockService;
     private final PushNotificationServiceImpl pushNotificationService;
     private final AuthenticationServiceImpl authenticationService;
+    private final MyRoomMateServiceImpl myRoomMateService;
     @Value("${policy.chat.room-limit-per-member}")
     private long chatRoomLimitPerMember;
 
@@ -244,12 +245,14 @@ public class ChatServiceImpl {
         List<ChatRoomDetailDto.ChatMessage> messages = chatRoomMessageService.findChatMessageDto(chatRoomId);
         List<RoommateMatchingRequiredInfo> matchingRequiredList = roommateMatchingRequiredService.findRequiredDto(chattingRoom);
         boolean blocked = blockService.isBlockedBetween(memberId, opponentMember.getId());
+        boolean opponentHasRoommate = myRoomMateService.isExistRoomMate(opponentMember);
 
         return ChatRoomDetailDto.Response.builder()
                 .opponentProfile(opponentProfile)
                 .messages(messages)
                 .matchingRequiredList(matchingRequiredList)
                 .blocked(blocked)
+                .opponentHasRoommate(opponentHasRoommate)
                 .build();
     }
 

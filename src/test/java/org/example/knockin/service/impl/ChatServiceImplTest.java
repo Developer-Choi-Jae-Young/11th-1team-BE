@@ -139,6 +139,9 @@ class ChatServiceImplTest {
     @Mock
     private AuthenticationServiceImpl authenticationService;
 
+    @Mock
+    private MyRoomMateServiceImpl myRoomMateService;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -191,7 +194,8 @@ class ChatServiceImplTest {
                 new ChattingScoreServiceImpl(chattingScoreRepository),
                 blockService,
                 pushNotificationService,
-                authenticationService
+                authenticationService,
+                myRoomMateService
         );
         ReflectionTestUtils.setField(chatService, "chatRoomLimitPerMember", 15L);
     }
@@ -298,6 +302,7 @@ class ChatServiceImplTest {
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
         when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
+        when(myRoomMateService.isExistRoomMate(opponent)).thenReturn(true);
 
         // When
         ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
@@ -312,6 +317,8 @@ class ChatServiceImplTest {
         assertThat(response.getMessages()).isSameAs(messages);
         assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
         assertThat(response.isBlocked()).isTrue();
+        assertThat(response.isOpponentHasRoommate()).isTrue();
+        verify(myRoomMateService).isExistRoomMate(opponent);
 
         InOrder detailOrder = inOrder(
                 chattingRoomRepository,
@@ -341,7 +348,12 @@ class ChatServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND));
         verify(chatRoomMemberRepository, never()).findPartnerMember(any(), eq(chatRoomId));
-        verifyNoInteractions(basicInformationRepository, chatRoomMessageRepository, roommateMatchingRequiredRepository);
+        verifyNoInteractions(
+                basicInformationRepository,
+                chatRoomMessageRepository,
+                roommateMatchingRequiredRepository,
+                myRoomMateService
+        );
     }
 
     @Test
@@ -382,7 +394,9 @@ class ChatServiceImplTest {
         assertThat(response.getMatchingRequiredList()).isEmpty();
         assertThat(response.getOpponentProfile().getId()).isEqualTo(opponent.getId());
         assertThat(response.isBlocked()).isFalse();
+        assertThat(response.isOpponentHasRoommate()).isFalse();
         verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
+        verify(myRoomMateService).isExistRoomMate(opponent);
     }
 
     @Test
@@ -408,6 +422,7 @@ class ChatServiceImplTest {
         verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
         verify(chatRoomMessageRepository, never()).findChatMessageDto(chatRoomId);
         verifyNoInteractions(roommateMatchingRequiredRepository);
+        verifyNoInteractions(myRoomMateService);
     }
 
     @Test

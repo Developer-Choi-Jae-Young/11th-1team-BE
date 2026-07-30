@@ -34,6 +34,9 @@ public class ChatRoomDetailDto {
 
         @Schema(description = "채팅 상대와의 양방향 차단 여부")
         private boolean blocked;
+
+        @Schema(description = "상대방의 활성 룸메이트 여부")
+        private boolean opponentHasRoommate;
     }
 
     @Data
