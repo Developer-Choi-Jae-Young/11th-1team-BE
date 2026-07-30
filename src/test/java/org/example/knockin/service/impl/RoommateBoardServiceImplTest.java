@@ -1201,6 +1201,8 @@ class RoommateBoardServiceImplTest {
         when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(ownerId)).thenReturn(authenticationTypes);
         when(roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId))
                 .thenReturn(true);
+        when(roommateBoardInterestService.findActiveInterestCountsByBoardIds(List.of(boardId)))
+                .thenReturn(List.of(new BoardInterestCountRow(boardId, 10L)));
 
         // When
         BoardDetailDto.Response response = roommateBoardService.getBoardDetail(boardId, viewerId);
@@ -1234,6 +1236,7 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getCompatibility().getTotalScore()).isEqualTo(76);
         assertThat(response.isInterested()).isTrue();
         assertThat(response.isMine()).isFalse();
+        assertThat(response.getBadges()).containsExactly(RoommateBoardBadgeType.HOT);
         InOrder inOrder = inOrder(roommateBoardRepository);
         inOrder.verify(roommateBoardRepository).increaseHitsById(boardId);
         inOrder.verify(roommateBoardRepository).getBasicInfo(boardId);
@@ -1244,6 +1247,7 @@ class RoommateBoardServiceImplTest {
         verify(preferenceConditionWeightRepository).findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId));
         verify(authenticationRepository).getAcceptedAuthenticationTypeByMemberId(ownerId);
         verify(roommateBoardInterestRepository).existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId);
+        verify(roommateBoardInterestService).findActiveInterestCountsByBoardIds(List.of(boardId));
     }
 
     @Test
@@ -1264,6 +1268,8 @@ class RoommateBoardServiceImplTest {
         when(authenticationRepository.getAcceptedAuthenticationTypeByMemberId(ownerId)).thenReturn(List.of());
         when(roommateBoardInterestRepository.existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId))
                 .thenReturn(false);
+        when(roommateBoardInterestService.findActiveInterestCountsByBoardIds(List.of(boardId)))
+                .thenReturn(List.of());
 
         // When
         BoardDetailDto.Response response = roommateBoardService.getBoardDetail(boardId, viewerId);
@@ -1272,7 +1278,9 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getLifeStyles()).isEmpty();
         assertThat(response.getConditionWeights()).isEmpty();
         assertThat(response.isInterested()).isFalse();
+        assertThat(response.getBadges()).isEmpty();
         verify(roommateBoardInterestRepository).existsByRoommateBoardIdAndMemberIdAndIsDeletedIsFalse(boardId, viewerId);
+        verify(roommateBoardInterestService).findActiveInterestCountsByBoardIds(List.of(boardId));
     }
 
     @Test
