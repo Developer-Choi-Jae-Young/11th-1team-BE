@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.CreatedAtEntity;
+import org.hibernate.annotations.ColumnDefault;
 
 @Getter
 @Entity
@@ -45,4 +46,9 @@ public class ChatRoomMessage extends CreatedAtEntity {
 
     @Column(name = "contents", length = 500)
     private String contents;
+
+    @Builder.Default
+    @ColumnDefault("false")
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
 }

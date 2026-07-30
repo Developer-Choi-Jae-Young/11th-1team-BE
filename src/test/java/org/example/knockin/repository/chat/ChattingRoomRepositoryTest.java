@@ -11,7 +11,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.example.knockin.config.QueryDslConfig;
-import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.chat.ChatRoomMember;
@@ -26,6 +25,10 @@ import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.room.MyRoommate;
+import org.example.knockin.entity.room.RoommateMatchingRequired;
+import org.example.knockin.entity.room.RoommateRequiredStatus;
+import org.example.knockin.repository.chat.row.ChatRoomListRow;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,23 +85,25 @@ class ChattingRoomRepositoryTest {
         entityManager.clear();
 
         // When
-        List<ChatRoomListDto.Response> responses = chattingRoomRepository.findByMemberId(viewer.getId());
+        List<ChatRoomListRow> responses = chattingRoomRepository.findListRowsByMemberId(viewer.getId());
 
         // Then
         assertThat(responses).hasSize(2);
-        ChatRoomListDto.Response acceptedResponse = findResponseByChatRoomId(responses, activeRoom.getId());
-        assertThat(acceptedResponse.getMemberName()).isEqualTo("상대회원");
-        assertThat(acceptedResponse.getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
-        assertThat(acceptedResponse.getCreatedAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
-        assertThat(acceptedResponse.getStatus()).isEqualTo(ChattingRequiredStatus.ACCEPTED);
-        assertThat(acceptedResponse.getLastMessage()).isNull();
+        ChatRoomListRow acceptedResponse = findResponseByChatRoomId(responses, activeRoom.getId());
+        assertThat(acceptedResponse.memberName()).isEqualTo("상대회원");
+        assertThat(acceptedResponse.memberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
+        assertThat(acceptedResponse.createdAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
+        assertThat(acceptedResponse.roommateStatus()).isNull();
+        assertThat(acceptedResponse.isRoommate()).isFalse();
+        assertThat(acceptedResponse.lastMessage()).isNull();
 
-        ChatRoomListDto.Response pendingResponse = findResponseByChatRoomId(responses, pendingRoom.getId());
-        assertThat(pendingResponse.getMemberName()).isEqualTo("대기상대");
-        assertThat(pendingResponse.getMemberProfileImageUrl()).isEqualTo("pending-profile.jpg");
-        assertThat(pendingResponse.getCreatedAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
-        assertThat(pendingResponse.getStatus()).isEqualTo(ChattingRequiredStatus.PENDING);
-        assertThat(pendingResponse.getLastMessage()).isNull();
+        ChatRoomListRow pendingResponse = findResponseByChatRoomId(responses, pendingRoom.getId());
+        assertThat(pendingResponse.memberName()).isEqualTo("대기상대");
+        assertThat(pendingResponse.memberProfileImageUrl()).isEqualTo("pending-profile.jpg");
+        assertThat(pendingResponse.createdAt()).isEqualTo(CHAT_ROOM_CREATED_AT);
+        assertThat(pendingResponse.roommateStatus()).isNull();
+        assertThat(pendingResponse.isRoommate()).isFalse();
+        assertThat(pendingResponse.lastMessage()).isNull();
     }
 
     @Test
@@ -111,18 +116,92 @@ class ChattingRoomRepositoryTest {
         ChattingRoom room = persistChattingRoom(viewer, opponent, ChattingRequiredStatus.ACCEPTED);
         ChatRoomMember viewerRoomMember = persistChatRoomMember(room, viewer, false);
         ChatRoomMember opponentRoomMember = persistChatRoomMember(room, opponent, false);
-        persistChatRoomMessage(room, viewerRoomMember.getMember(), "이전 메시지");
-        persistChatRoomMessage(room, opponentRoomMember.getMember(), "최근 메시지");
+        ChatRoomMessage previousMessage =
+                persistChatRoomMessage(room, viewerRoomMember.getMember(), "이전 메시지");
+        ChatRoomMessage latestMessage =
+                persistChatRoomMessage(room, opponentRoomMember.getMember(), "최근 메시지");
+
+        entityManager.flush();
+        updateMessageCreatedAt(previousMessage, LocalDateTime.of(2026, 6, 18, 12, 10));
+        updateMessageCreatedAt(latestMessage, LocalDateTime.of(2026, 6, 18, 12, 20));
+        entityManager.clear();
+
+        // When
+        List<ChatRoomListRow> responses = chattingRoomRepository.findListRowsByMemberId(viewer.getId());
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.getFirst().lastMessage()).isEqualTo("최근 메시지");
+        assertThat(responses.getFirst().lastMessageAt())
+                .isEqualTo(LocalDateTime.of(2026, 6, 18, 12, 20));
+    }
+
+    @Test
+    @DisplayName("채팅방 목록은 최신 룸메이트 요청 상태와 현재 룸메이트 여부를 반환한다")
+    void findListRowsReturnsLatestRoommateStatusAndActiveRoommateFlag() {
+        // Given
+        Member viewer = persistMember("viewer-roommate-status");
+        Member opponent = persistMember("opponent-roommate-status");
+        persistBasicInformationWithProfile(opponent, "룸메이트상대", "roommate-profile.jpg");
+        ChattingRoom room = persistChattingRoom(viewer, opponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(room, viewer, false);
+        persistChatRoomMember(room, opponent, false);
+
+        RoommateMatchingRequired accepted = persistRoommateRequest(
+                room,
+                viewer,
+                opponent,
+                RoommateRequiredStatus.ACCEPTED
+        );
+        entityManager.persist(MyRoommate.builder()
+                .roommateMatchingRequired(accepted)
+                .isDeleted(false)
+                .build());
+        persistRoommateRequest(room, opponent, viewer, RoommateRequiredStatus.PENDING);
 
         entityManager.flush();
         entityManager.clear();
 
         // When
-        List<ChatRoomListDto.Response> responses = chattingRoomRepository.findByMemberId(viewer.getId());
+        ChatRoomListRow response =
+                chattingRoomRepository.findListRowsByMemberId(viewer.getId()).getFirst();
 
         // Then
-        assertThat(responses).hasSize(1);
-        assertThat(responses.getFirst().getLastMessage()).isEqualTo("최근 메시지");
+        assertThat(response.roommateStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
+        assertThat(response.isRoommate()).isTrue();
+    }
+
+    @Test
+    @DisplayName("채팅방 목록은 마지막 메시지 시각이 최근인 순서로 정렬한다")
+    void findListRowsOrdersByLastMessageAtDescending() {
+        // Given
+        Member viewer = persistMember("viewer-last-message-order");
+        Member recentOpponent = persistMember("recent-opponent");
+        Member oldOpponent = persistMember("old-opponent");
+        persistBasicInformationWithProfile(recentOpponent, "최근상대", "recent.jpg");
+        persistBasicInformationWithProfile(oldOpponent, "오래된상대", "old.jpg");
+
+        ChattingRoom recentRoom = persistChattingRoom(viewer, recentOpponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(recentRoom, viewer, false);
+        persistChatRoomMember(recentRoom, recentOpponent, false);
+        ChatRoomMessage recentMessage = persistChatRoomMessage(recentRoom, recentOpponent, "최근 메시지");
+
+        ChattingRoom oldRoom = persistChattingRoom(viewer, oldOpponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(oldRoom, viewer, false);
+        persistChatRoomMember(oldRoom, oldOpponent, false);
+        ChatRoomMessage oldMessage = persistChatRoomMessage(oldRoom, oldOpponent, "오래된 메시지");
+
+        entityManager.flush();
+        updateMessageCreatedAt(recentMessage, LocalDateTime.of(2026, 6, 18, 15, 0));
+        updateMessageCreatedAt(oldMessage, LocalDateTime.of(2026, 6, 18, 13, 0));
+        entityManager.clear();
+
+        // When
+        List<ChatRoomListRow> responses = chattingRoomRepository.findListRowsByMemberId(viewer.getId());
+
+        // Then
+        assertThat(responses).extracting(ChatRoomListRow::chatRoomId)
+                .containsExactly(recentRoom.getId(), oldRoom.getId());
     }
 
     @Test
@@ -155,7 +234,7 @@ class ChattingRoomRepositoryTest {
         entityManager.clear();
 
         // When
-        List<ChatRoomListDto.Response> responses = chattingRoomRepository.findByMemberId(viewer.getId());
+        List<ChatRoomListRow> responses = chattingRoomRepository.findListRowsByMemberId(viewer.getId());
 
         // Then
         assertThat(responses).isEmpty();
@@ -284,9 +363,9 @@ class ChattingRoomRepositoryTest {
         }
     }
 
-    private ChatRoomListDto.Response findResponseByChatRoomId(List<ChatRoomListDto.Response> responses, Long chatRoomId) {
+    private ChatRoomListRow findResponseByChatRoomId(List<ChatRoomListRow> responses, Long chatRoomId) {
         return responses.stream()
-                .filter(response -> response.getChatRoomId().equals(chatRoomId))
+                .filter(response -> response.chatRoomId().equals(chatRoomId))
                 .findFirst()
                 .orElseThrow();
     }
@@ -322,13 +401,46 @@ class ChattingRoomRepositoryTest {
     }
 
     private ChatRoomMessage persistChatRoomMessage(ChattingRoom chattingRoom, Member member, String contents) {
+        return persistChatRoomMessage(chattingRoom, member, contents, false);
+    }
+
+    private ChatRoomMessage persistChatRoomMessage(
+            ChattingRoom chattingRoom,
+            Member member,
+            String contents,
+            Boolean isRead
+    ) {
         ChatRoomMessage chatRoomMessage = ChatRoomMessage.builder()
                 .chattingRoom(chattingRoom)
                 .member(member)
                 .type(MessageType.TEXT)
                 .contents(contents)
+                .isRead(isRead)
                 .build();
         entityManager.persist(chatRoomMessage);
         return chatRoomMessage;
+    }
+
+    private RoommateMatchingRequired persistRoommateRequest(
+            ChattingRoom chattingRoom,
+            Member requester,
+            Member requestee,
+            RoommateRequiredStatus status
+    ) {
+        RoommateMatchingRequired required = RoommateMatchingRequired.builder()
+                .chattingRoom(chattingRoom)
+                .requester(requester)
+                .requestee(requestee)
+                .status(status)
+                .build();
+        entityManager.persist(required);
+        return required;
+    }
+
+    private void updateMessageCreatedAt(ChatRoomMessage message, LocalDateTime createdAt) {
+        entityManager.createNativeQuery("update chat_room_message set created_at = ? where id = ?")
+                .setParameter(1, Timestamp.valueOf(createdAt))
+                .setParameter(2, message.getId())
+                .executeUpdate();
     }
 }

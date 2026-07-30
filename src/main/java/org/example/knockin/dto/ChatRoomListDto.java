@@ -1,11 +1,14 @@
 package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.knockin.entity.chat.ChattingRequiredStatus;
+import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.room.RoommateRequiredStatus;
 
 @Data
 public class ChatRoomListDto {
@@ -14,6 +17,7 @@ public class ChatRoomListDto {
     }
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
@@ -29,10 +33,22 @@ public class ChatRoomListDto {
         @Schema(description = "채팅방 생성 일자")
         private LocalDateTime createdAt;
 
-        @Schema(description = "채팅 요청 상태")
-        private ChattingRequiredStatus status;
+        @Schema(description = "룸메이트 요청 상태")
+        private RoommateRequiredStatus roommateStatus;
+
+        @Schema(description = "룸메이트 여부")
+        private Boolean isRoommate;
+
+        @Schema(description = "신원 인증 타입 목록")
+        private List<AuthenticationType> authenticationTypes;
         
         @Schema(description = "마지막 메세지")
         private String lastMessage;
+
+        @Schema(description = "안 읽은 메시지 수")
+        private Integer messageCount;
+
+        @Schema(description = "마지막 메세지 도착 시간")
+        private LocalDateTime lastMessageAt;
     }
 }

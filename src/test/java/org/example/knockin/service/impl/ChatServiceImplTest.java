@@ -29,6 +29,7 @@ import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.alarm.AlarmSettingType;
+import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
@@ -60,6 +61,9 @@ import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
+import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
+import org.example.knockin.repository.chat.row.ChatRoomListRow;
+import org.example.knockin.repository.chat.row.ChatRoomUnreadCountRow;
 import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateScoreService;
@@ -132,6 +136,9 @@ class ChatServiceImplTest {
     @Mock
     private PushNotificationServiceImpl pushNotificationService;
 
+    @Mock
+    private AuthenticationServiceImpl authenticationService;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -183,36 +190,48 @@ class ChatServiceImplTest {
                 roommateScoreService,
                 new ChattingScoreServiceImpl(chattingScoreRepository),
                 blockService,
-                pushNotificationService
+                pushNotificationService,
+                authenticationService
         );
         ReflectionTestUtils.setField(chatService, "chatRoomLimitPerMember", 15L);
     }
 
     @Test
-    @DisplayName("회원 식별자로 채팅방 목록을 조회하고 결과를 그대로 반환한다")
-    void getChatRoomListReturnsRoomsByMemberId() {
+    @DisplayName("회원 식별자로 조회한 채팅방 Row에 안 읽은 수와 인증 타입을 조립한다")
+    void getChatRoomListBuildsResponsesWithoutPerRoomQueries() {
         // Given
         Long memberId = 1L;
-        List<ChatRoomListDto.Response> chatRooms = List.of(
-                chatRoom(10L, "상대방A", "profile-a.jpg", LocalDateTime.of(2026, 6, 18, 10, 0), ChattingRequiredStatus.ACCEPTED),
-                chatRoom(20L, "상대방B", "profile-b.jpg", LocalDateTime.of(2026, 6, 18, 11, 0), ChattingRequiredStatus.PENDING)
+        List<ChatRoomListRow> rows = List.of(
+                chatRoomRow(10L, 2L, "상대방A", "profile-a.jpg", LocalDateTime.of(2026, 6, 18, 10, 0)),
+                chatRoomRow(20L, 3L, "상대방B", "profile-b.jpg", LocalDateTime.of(2026, 6, 18, 11, 0))
         );
-        when(chattingRoomRepository.findByMemberId(memberId)).thenReturn(chatRooms);
+        when(chattingRoomRepository.findListRowsByMemberId(memberId)).thenReturn(rows);
+        when(chatRoomMessageRepository.findUnreadMessageCounts(memberId, List.of(10L, 20L)))
+                .thenReturn(List.of(new ChatRoomUnreadCountRow(10L, 3L)));
+        when(authenticationService.findAcceptedByMemberIds(List.of(2L, 3L)))
+                .thenReturn(List.of(
+                        new MemberAuthenticationRow(2L, AuthenticationType.STUDENT),
+                        new MemberAuthenticationRow(2L, AuthenticationType.COMPANY)
+                ));
 
         // When
         List<ChatRoomListDto.Response> responses = chatService.getChatRoomList(memberId);
 
         // Then
-        assertThat(responses).isSameAs(chatRooms);
         assertThat(responses).extracting(ChatRoomListDto.Response::getChatRoomId)
                 .containsExactly(10L, 20L);
         assertThat(responses).extracting(ChatRoomListDto.Response::getMemberName)
                 .containsExactly("상대방A", "상대방B");
         assertThat(responses).extracting(ChatRoomListDto.Response::getMemberProfileImageUrl)
                 .containsExactly("profile-a.jpg", "profile-b.jpg");
-        assertThat(responses).extracting(ChatRoomListDto.Response::getStatus)
-                .containsExactly(ChattingRequiredStatus.ACCEPTED, ChattingRequiredStatus.PENDING);
-        verify(chattingRoomRepository).findByMemberId(memberId);
+        assertThat(responses).extracting(ChatRoomListDto.Response::getMessageCount)
+                .containsExactly(3, 0);
+        assertThat(responses.getFirst().getAuthenticationTypes())
+                .containsExactly(AuthenticationType.STUDENT, AuthenticationType.COMPANY);
+        assertThat(responses.get(1).getAuthenticationTypes()).isEmpty();
+        verify(chattingRoomRepository).findListRowsByMemberId(memberId);
+        verify(chatRoomMessageRepository).findUnreadMessageCounts(memberId, List.of(10L, 20L));
+        verify(authenticationService).findAcceptedByMemberIds(List.of(2L, 3L));
     }
 
     @Test
@@ -220,14 +239,15 @@ class ChatServiceImplTest {
     void getChatRoomListReturnsEmptyListWhenMemberHasNoRooms() {
         // Given
         Long memberId = 1L;
-        when(chattingRoomRepository.findByMemberId(memberId)).thenReturn(List.of());
+        when(chattingRoomRepository.findListRowsByMemberId(memberId)).thenReturn(List.of());
 
         // When
         List<ChatRoomListDto.Response> responses = chatService.getChatRoomList(memberId);
 
         // Then
         assertThat(responses).isEmpty();
-        verify(chattingRoomRepository).findByMemberId(memberId);
+        verify(chattingRoomRepository).findListRowsByMemberId(memberId);
+        verifyNoInteractions(authenticationService);
     }
 
     @Test
@@ -922,20 +942,24 @@ class ChatServiceImplTest {
         verifyNoInteractions(publisher, messagingTemplate);
     }
 
-    private ChatRoomListDto.Response chatRoom(
+    private ChatRoomListRow chatRoomRow(
             Long chatRoomId,
+            Long opponentMemberId,
             String memberName,
             String memberProfileImageUrl,
-            LocalDateTime createdAt,
-            ChattingRequiredStatus status
+            LocalDateTime createdAt
     ) {
-        ChatRoomListDto.Response response = new ChatRoomListDto.Response();
-        response.setChatRoomId(chatRoomId);
-        response.setMemberName(memberName);
-        response.setMemberProfileImageUrl(memberProfileImageUrl);
-        response.setCreatedAt(createdAt);
-        response.setStatus(status);
-        return response;
+        return new ChatRoomListRow(
+                chatRoomId,
+                opponentMemberId,
+                memberName,
+                memberProfileImageUrl,
+                createdAt,
+                RoommateRequiredStatus.PENDING,
+                false,
+                "마지막 메시지",
+                createdAt.plusMinutes(1)
+        );
     }
 
     private ChatMessageDto.Request textMessageRequest() {
