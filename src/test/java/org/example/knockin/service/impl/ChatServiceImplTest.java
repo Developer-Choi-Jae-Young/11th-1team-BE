@@ -293,6 +293,7 @@ class ChatServiceImplTest {
                         Gender.FEMALE,
                         "opponent-profile.jpg"
                 )));
+        when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(2L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
@@ -311,6 +312,17 @@ class ChatServiceImplTest {
         assertThat(response.getMessages()).isSameAs(messages);
         assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
         assertThat(response.isBlocked()).isTrue();
+
+        InOrder detailOrder = inOrder(
+                chattingRoomRepository,
+                chatRoomMemberRepository,
+                chatRoomMessageRepository
+        );
+        detailOrder.verify(chattingRoomRepository).findById(chatRoomId);
+        detailOrder.verify(chatRoomMemberRepository).findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
+        detailOrder.verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
+        detailOrder.verify(chatRoomMemberRepository).findPartnerMember(roomMember, chatRoomId);
+        detailOrder.verify(chatRoomMessageRepository).findChatMessageDto(chatRoomId);
     }
 
     @Test
@@ -333,6 +345,47 @@ class ChatServiceImplTest {
     }
 
     @Test
+    @DisplayName("읽음 처리할 메시지가 없어도 채팅방 상세 조회는 정상 완료한다")
+    void getChatRoomDetailSucceedsWhenThereAreNoUnreadMessages() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        LocalDate opponentBirth = LocalDate.now().minusYears(25);
+        ChattingRoom chattingRoom = chattingRoom();
+        Member me = member(memberId);
+        Member opponent = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(me, chattingRoom);
+
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatRoomId)).thenReturn(opponent);
+        when(basicInformationRepository.findChattingRoomBasicInfoRow(opponent.getId()))
+                .thenReturn(Optional.of(new ChattingRoomBasicInfoRow(
+                        opponent.getId(),
+                        "상대방",
+                        opponentBirth,
+                        Gender.FEMALE,
+                        "opponent-profile.jpg"
+                )));
+        when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(0L);
+        when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(List.of());
+        when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(List.of());
+        when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
+        when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(false);
+
+        // When
+        ChatRoomDetailDto.Response response = chatService.getChatRoomDetail(chatRoomId, memberId);
+
+        // Then
+        assertThat(response.getMessages()).isEmpty();
+        assertThat(response.getMatchingRequiredList()).isEmpty();
+        assertThat(response.getOpponentProfile().getId()).isEqualTo(opponent.getId());
+        assertThat(response.isBlocked()).isFalse();
+        verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
+    }
+
+    @Test
     @DisplayName("채팅방 상세 조회 시 상대방 기본 정보가 없으면 실패한다")
     void getChatRoomDetailRejectsWhenOpponentBasicInformationMissing() {
         // Given
@@ -352,7 +405,9 @@ class ChatServiceImplTest {
         assertThatThrownBy(() -> chatService.getChatRoomDetail(chatRoomId, memberId))
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.BASIC_INFO_NOT_FOUND));
-        verifyNoInteractions(chatRoomMessageRepository, roommateMatchingRequiredRepository);
+        verify(chatRoomMessageRepository).markUnreadMessagesAsRead(chatRoomId, memberId);
+        verify(chatRoomMessageRepository, never()).findChatMessageDto(chatRoomId);
+        verifyNoInteractions(roommateMatchingRequiredRepository);
     }
 
     @Test

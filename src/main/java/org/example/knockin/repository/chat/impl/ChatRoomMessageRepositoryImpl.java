@@ -69,4 +69,17 @@ public class ChatRoomMessageRepositoryImpl implements ChatRoomMessageRepositoryC
                 .groupBy(unreadMessage.chattingRoom.id)
                 .fetch();
     }
+
+    @Override
+    public long markUnreadMessagesAsRead(Long chatRoomId, Long memberId) {
+        return jpaQueryFactory
+                .update(chatRoomMessage)
+                .set(chatRoomMessage.isRead, true)
+                .where(
+                        chatRoomMessage.chattingRoom.id.eq(chatRoomId),
+                        chatRoomMessage.isRead.isFalse(),
+                        chatRoomMessage.member.isNull().or(chatRoomMessage.member.id.ne(memberId))
+                )
+                .execute();
+    }
 }

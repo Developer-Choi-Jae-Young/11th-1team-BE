@@ -36,4 +36,8 @@ public class ChatRoomMessageServiceImpl {
     public List<ChatRoomUnreadCountRow> findUnreadMessageCounts(Long memberId, List<Long> chatRoomIds) {
         return chatRoomMessageRepository.findUnreadMessageCounts(memberId, chatRoomIds);
     }
+
+    public long markUnreadMessagesAsRead(Long chatRoomId, Long memberId) {
+        return chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId);
+    }
 }

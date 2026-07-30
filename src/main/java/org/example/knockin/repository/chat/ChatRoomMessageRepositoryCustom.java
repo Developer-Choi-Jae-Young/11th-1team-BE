@@ -8,4 +8,6 @@ public interface ChatRoomMessageRepositoryCustom {
     List<ChatMessage> findChatMessageDto(Long chatRoomId);
 
     List<ChatRoomUnreadCountRow> findUnreadMessageCounts(Long memberId, List<Long> chatRoomIds);
+
+    long markUnreadMessagesAsRead(Long chatRoomId, Long memberId);
 }

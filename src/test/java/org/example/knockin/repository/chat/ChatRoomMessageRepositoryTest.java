@@ -66,6 +66,51 @@ class ChatRoomMessageRepositoryTest {
                 });
     }
 
+    @Test
+    @DisplayName("채팅방 입장 시 상대방과 시스템의 안 읽은 메시지만 읽음 처리한다")
+    void markUnreadMessagesAsReadUpdatesOnlyUnreadMessagesNotSentByViewer() {
+        // Given
+        Member viewer = persistMember("viewer-mark-read");
+        Member opponent = persistMember("opponent-mark-read");
+        ChattingRoom room = persistChattingRoom(viewer, opponent);
+        ChattingRoom otherRoom = persistChattingRoom(viewer, opponent);
+        persistChatRoomMember(room, viewer);
+        persistChatRoomMember(room, opponent);
+        persistChatRoomMember(otherRoom, viewer);
+        persistChatRoomMember(otherRoom, opponent);
+
+        ChatRoomMessage opponentUnread = persistChatRoomMessage(room, opponent, "안 읽은 상대방 메시지", false);
+        ChatRoomMessage systemUnread = persistChatRoomMessage(room, null, "안 읽은 시스템 메시지", false);
+        ChatRoomMessage ownUnread = persistChatRoomMessage(room, viewer, "내가 보낸 안 읽은 메시지", false);
+        ChatRoomMessage opponentRead = persistChatRoomMessage(room, opponent, "이미 읽은 상대방 메시지", true);
+        ChatRoomMessage otherRoomUnread =
+                persistChatRoomMessage(otherRoom, opponent, "다른 채팅방의 안 읽은 메시지", false);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        long updatedCount = chatRoomMessageRepository.markUnreadMessagesAsRead(room.getId(), viewer.getId());
+        entityManager.clear();
+
+        // Then
+        assertThat(updatedCount).isEqualTo(2L);
+        assertThat(findMessage(opponentUnread.getId()).getIsRead()).isTrue();
+        assertThat(findMessage(systemUnread.getId()).getIsRead()).isTrue();
+        assertThat(findMessage(ownUnread.getId()).getIsRead()).isFalse();
+        assertThat(findMessage(opponentRead.getId()).getIsRead()).isTrue();
+        assertThat(findMessage(otherRoomUnread.getId()).getIsRead()).isFalse();
+        assertThat(chatRoomMessageRepository.findUnreadMessageCounts(viewer.getId(), List.of(room.getId())))
+                .isEmpty();
+
+        assertThat(chatRoomMessageRepository.markUnreadMessagesAsRead(room.getId(), viewer.getId()))
+                .isZero();
+    }
+
+    private ChatRoomMessage findMessage(Long messageId) {
+        return chatRoomMessageRepository.findById(messageId).orElseThrow();
+    }
+
     private Member persistMember(String providerId) {
         Member member = Member.builder()
                 .providerType(LoginProviderType.KAKAO)
@@ -100,18 +145,20 @@ class ChatRoomMessageRepositoryTest {
                 .build());
     }
 
-    private void persistChatRoomMessage(
+    private ChatRoomMessage persistChatRoomMessage(
             ChattingRoom chattingRoom,
             Member member,
             String contents,
             Boolean isRead
     ) {
-        entityManager.persist(ChatRoomMessage.builder()
+        ChatRoomMessage message = ChatRoomMessage.builder()
                 .chattingRoom(chattingRoom)
                 .member(member)
                 .type(MessageType.TEXT)
                 .contents(contents)
                 .isRead(isRead)
-                .build());
+                .build();
+        entityManager.persist(message);
+        return message;
     }
 }

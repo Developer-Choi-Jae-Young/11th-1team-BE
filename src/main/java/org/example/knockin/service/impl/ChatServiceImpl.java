@@ -237,6 +237,7 @@ public class ChatServiceImpl {
     public ChatRoomDetailDto.Response getChatRoomDetail(Long chatRoomId, Long memberId) {
         ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
         ChatRoomMember chatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
+        chatRoomMessageService.markUnreadMessagesAsRead(chatRoomId, memberId);
 
         Member opponentMember = chatRoomMemberService.findPartnerMember(chatRoomMember, chatRoomId);
         ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chatRoomMember, opponentMember);
