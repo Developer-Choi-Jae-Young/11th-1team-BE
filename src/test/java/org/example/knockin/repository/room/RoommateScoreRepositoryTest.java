@@ -124,6 +124,8 @@ class RoommateScoreRepositoryTest {
                 .dtype(LifePatternType.SCALE)
                 .isDeleted(false)
                 .sort(sort)
+                .lifePatternDescription("생활패턴 설명")
+                .preferenceDescription("선호조건 설명")
                 .build();
         entityManager.persist(lifePattern);
         return lifePattern;

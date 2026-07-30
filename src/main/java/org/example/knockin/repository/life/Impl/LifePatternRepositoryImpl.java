@@ -34,6 +34,8 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                 .transform(groupBy(lifePattern.id).list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.class,
                                         lifePattern.id,
                                         lifePattern.name,
+                                        lifePattern.lifePatternDescription,
+                                        lifePattern.preferenceDescription,
                                         lifePattern.dtype.as("type"),
                                         list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.DetailItem.class,
                                                 lifePatternInformation.id,
@@ -72,6 +74,8 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                                         lifePattern.id,
                                         lifePattern.name,
                                         lifePattern.dtype.as("type"),
+                                        lifePattern.lifePatternDescription,
+                                        lifePattern.preferenceDescription,
                                         list(Projections.fields(BoLifeStylePatternDetailDto.Response.DetailItem.class,
                                                         lifePatternInformation.dvalue.as("values"),
                                                         lifePatternInformation.description)).as("details")))).get(patternId);
