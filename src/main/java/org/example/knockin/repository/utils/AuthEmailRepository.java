@@ -3,5 +3,12 @@ package org.example.knockin.repository.utils;
 import org.example.knockin.entity.utils.AuthEmail;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AuthEmailRepository extends JpaRepository<AuthEmail,Long> {
+import java.util.List;
+import java.util.Optional;
+
+public interface AuthEmailRepository extends JpaRepository<AuthEmail, Long> {
+    List<AuthEmail> findByIsDeletedFalse();
+    Optional<AuthEmail> findByIdAndIsDeletedFalse(Long id);
+    boolean existsByDomainAndIsDeletedFalse(String domain);
+    boolean existsByDomainAndIsDeletedFalseAndIdNot(String domain, Long id);
 }

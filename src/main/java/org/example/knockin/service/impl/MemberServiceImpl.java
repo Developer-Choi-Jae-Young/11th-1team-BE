@@ -271,4 +271,9 @@ public class MemberServiceImpl {
     public MyProfileAllDto.Response.UserInfo findProfileInfo(Member member) {
         return memberRepository.findByProfile(member);
     }
+
+    public MyAccountDto.Response findMyAccountRole(Long memberId) {
+        Member member = findByIdOrThrow(memberId);
+        return MyAccountDto.Response.builder().role(member.getRole()).build();
+    }
 }
