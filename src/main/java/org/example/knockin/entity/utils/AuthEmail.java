@@ -35,4 +35,8 @@ public class AuthEmail extends BaseEntity {
         this.name = request.getName();
         this.dtype = request.getType();
     }
+
+    public void delete() {
+        this.isDeleted = true;
+    }
 }

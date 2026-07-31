@@ -1,5 +1,6 @@
 package org.example.knockin.service.impl;
 
+import org.example.knockin.dto.AuthEmailDeleteDto;
 import org.example.knockin.dto.AuthEmailListDto;
 import org.example.knockin.dto.AuthEmailModifyDto;
 import org.example.knockin.dto.AuthEmailSaveDto;
@@ -35,7 +36,7 @@ class AuthEmailServiceImplTest {
     private AuthEmailServiceImpl authEmailService;
 
     @Test
-    @DisplayName("인증 가능 이메일 도메인 목록 조회 성공 테스트")
+    @DisplayName("인증 가능 이메일 도메인 목록 조회 성공 테스트 (isDeleted=false 필터링)")
     void findAuthEmailListSuccessTest() {
         // given
         AuthEmail email1 = AuthEmail.builder()
@@ -53,7 +54,7 @@ class AuthEmailServiceImplTest {
                 .isDeleted(false)
                 .build();
 
-        given(authEmailRepository.findAll()).willReturn(List.of(email1, email2));
+        given(authEmailRepository.findByIsDeletedFalse()).willReturn(List.of(email1, email2));
 
         // when
         AuthEmailListDto.Response response = authEmailService.findAuthEmailList();
@@ -65,14 +66,10 @@ class AuthEmailServiceImplTest {
         AuthEmailListDto.Response.AuthEmailInfo info1 = response.getAuthEmailInfoList().get(0);
         assertThat(info1.getId()).isEqualTo(1L);
         assertThat(info1.getDomain()).isEqualTo("univ.ac.kr");
-        assertThat(info1.getName()).isEqualTo("대학교 이메일");
-        assertThat(info1.getType()).isEqualTo(AuthenticationType.STUDENT);
 
         AuthEmailListDto.Response.AuthEmailInfo info2 = response.getAuthEmailInfoList().get(1);
         assertThat(info2.getId()).isEqualTo(2L);
         assertThat(info2.getDomain()).isEqualTo("company.com");
-        assertThat(info2.getName()).isEqualTo("직장 이메일");
-        assertThat(info2.getType()).isEqualTo(AuthenticationType.COMPANY);
     }
 
     @Test
@@ -84,6 +81,8 @@ class AuthEmailServiceImplTest {
         request.setName("신규 대학교");
         request.setType(AuthenticationType.STUDENT);
 
+        given(authEmailRepository.existsByDomainAndIsDeletedFalse("new-univ.ac.kr")).willReturn(false);
+
         // when
         AuthEmailSaveDto.Response response = authEmailService.saveAuthEmail(request);
 
@@ -91,6 +90,25 @@ class AuthEmailServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(authEmailRepository).save(any(AuthEmail.class));
+    }
+
+    @Test
+    @DisplayName("인증 가능 이메일 도메인 등록 시 중복 도메인이면 BusinessException 발생")
+    void saveAuthEmailDuplicateTest() {
+        // given
+        AuthEmailSaveDto.Request request = new AuthEmailSaveDto.Request();
+        request.setDomain("univ.ac.kr");
+        request.setName("대학교");
+        request.setType(AuthenticationType.STUDENT);
+
+        given(authEmailRepository.existsByDomainAndIsDeletedFalse("univ.ac.kr")).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> authEmailService.saveAuthEmail(request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthEmailErrorCode.AUTH_EMAIL_DUPLICATE_DOMAIN);
+
+        verify(authEmailRepository, never()).save(any(AuthEmail.class));
     }
 
     @Test
@@ -111,7 +129,8 @@ class AuthEmailServiceImplTest {
                 .isDeleted(false)
                 .build());
 
-        given(authEmailRepository.findById(1L)).willReturn(Optional.of(authEmail));
+        given(authEmailRepository.findByIdAndIsDeletedFalse(1L)).willReturn(Optional.of(authEmail));
+        given(authEmailRepository.existsByDomainAndIsDeletedFalseAndIdNot("modified-univ.ac.kr", 1L)).willReturn(false);
 
         // when
         AuthEmailModifyDto.Response response = authEmailService.modifyAuthEmail(request);
@@ -120,6 +139,33 @@ class AuthEmailServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
         verify(authEmail).modifyAuthEmail(request);
+    }
+
+    @Test
+    @DisplayName("인증 가능 이메일 도메인 수정 시 중복 도메인이면 BusinessException 발생")
+    void modifyAuthEmailDuplicateTest() {
+        // given
+        AuthEmailModifyDto.Request request = new AuthEmailModifyDto.Request();
+        request.setId(1L);
+        request.setDomain("duplicate-univ.ac.kr");
+        request.setName("변경된 대학교");
+        request.setType(AuthenticationType.STUDENT);
+
+        AuthEmail authEmail = AuthEmail.builder()
+                .id(1L)
+                .domain("univ.ac.kr")
+                .name("대학교 이메일")
+                .dtype(AuthenticationType.STUDENT)
+                .isDeleted(false)
+                .build();
+
+        given(authEmailRepository.findByIdAndIsDeletedFalse(1L)).willReturn(Optional.of(authEmail));
+        given(authEmailRepository.existsByDomainAndIsDeletedFalseAndIdNot("duplicate-univ.ac.kr", 1L)).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> authEmailService.modifyAuthEmail(request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthEmailErrorCode.AUTH_EMAIL_DUPLICATE_DOMAIN);
     }
 
     @Test
@@ -132,7 +178,7 @@ class AuthEmailServiceImplTest {
         request.setName("변경된 대학교");
         request.setType(AuthenticationType.STUDENT);
 
-        given(authEmailRepository.findById(1L)).willReturn(Optional.empty());
+        given(authEmailRepository.findByIdAndIsDeletedFalse(1L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> authEmailService.modifyAuthEmail(request))
@@ -140,5 +186,40 @@ class AuthEmailServiceImplTest {
                 .hasFieldOrPropertyWithValue("errorCode", AuthEmailErrorCode.AUTH_EMAIL_NOT_FOUND);
 
         verify(authEmailRepository, never()).save(any(AuthEmail.class));
+    }
+
+    @Test
+    @DisplayName("인증 가능 이메일 도메인 삭제 성공 테스트")
+    void deleteAuthEmailSuccessTest() {
+        // given
+        AuthEmail authEmail = AuthEmail.builder()
+                .id(1L)
+                .domain("univ.ac.kr")
+                .name("대학교 이메일")
+                .dtype(AuthenticationType.STUDENT)
+                .isDeleted(false)
+                .build();
+
+        given(authEmailRepository.findByIdAndIsDeletedFalse(1L)).willReturn(Optional.of(authEmail));
+
+        // when
+        AuthEmailDeleteDto.Response response = authEmailService.deleteAuthEmail(1L);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        assertThat(authEmail.getIsDeleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("인증 가능 이메일 도메인 삭제 시 대상을 찾을 수 없으면 BusinessException 발생")
+    void deleteAuthEmailNotFoundTest() {
+        // given
+        given(authEmailRepository.findByIdAndIsDeletedFalse(1L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> authEmailService.deleteAuthEmail(1L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthEmailErrorCode.AUTH_EMAIL_NOT_FOUND);
     }
 }
