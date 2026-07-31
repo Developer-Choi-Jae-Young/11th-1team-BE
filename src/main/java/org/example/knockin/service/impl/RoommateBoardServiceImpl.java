@@ -639,6 +639,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     @Override
+    @Transactional
     public BoardDto.Response deleteBoard(Long boardId, Long memberId) {
 
         RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)
