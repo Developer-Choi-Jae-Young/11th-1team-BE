@@ -182,4 +182,10 @@ public class UserController {
         Response response = memberService.upsertFcmProps(details.getMember().getId(), request);
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
+
+    @GetMapping("/account")
+    @Operation(summary = "내 계정 권한(Role) 조회")
+    public CommonResponse<MyAccountDto.Response> findMyAccount(@AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(memberService.findMyAccountRole(principalDetails.getMember().getId()));
+    }
 }
