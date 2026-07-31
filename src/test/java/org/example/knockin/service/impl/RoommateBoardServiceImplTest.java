@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.StreamSupport;
 import org.example.knockin.config.RoommateBoardPolicy;
 import org.example.knockin.dto.*;
+import org.example.knockin.dto.BoardDetailDto.Response.RoomExtraOptionInfo;
 import org.example.knockin.dto.BoardDto.Request.FileDto;
-import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
 import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
 import org.example.knockin.dto.BoardModifyDto.Request.NewFileDto;
 import org.example.knockin.dto.Compatibility;
@@ -262,8 +262,6 @@ class RoommateBoardServiceImplTest {
                 .thenAnswer(invocation -> preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(invocation.getArgument(0)));
         lenient().when(authenticationService.findTypesByMemberId(any()))
                 .thenAnswer(invocation -> authenticationRepository.getAcceptedAuthenticationTypeByMemberId(invocation.getArgument(0)));
-        lenient().when(roommateBoardOptionService.findExtraOptionNamesByBoardId(any()))
-                .thenAnswer(invocation -> roommateBoardOptionRepository.getExtraOptionsNameByBoardId(invocation.getArgument(0)));
         lenient().when(roommateBoardOptionService.findExtraOptionsByBoardId(any()))
                 .thenAnswer(invocation -> roommateBoardOptionRepository.getExtraOptionsByBoardId(invocation.getArgument(0)));
         lenient().when(roommateBoardOptionService.findWithRoomExtraOptionByBoardId(any()))
@@ -1178,21 +1176,27 @@ class RoommateBoardServiceImplTest {
                 new BoardDetailDto.Response.FileDetailDto(101L, "thumbnail.jpg"),
                 new BoardDetailDto.Response.FileDetailDto(102L, "room.jpg")
         );
-        List<String> roomExtraOptionNames = List.of("풀옵션", "주차 가능");
+        List<RoomExtraOptionInfo> roomExtraOptions = List.of(
+                new RoomExtraOptionInfo(201L, "풀옵션", "full-option.png"),
+                new RoomExtraOptionInfo(202L, "주차 가능", "parking.png")
+        );
         MatchingLifestyleRow visitor = new MatchingLifestyleRow(
-                ownerId, 2L, 201L, 2001L, "방문객", "가끔", "가끔 방문해요", LifePatternType.SINGLE_CHOICE);
+                ownerId, 2L, 201L, 2001L, "방문객", "가끔", "가끔 방문해요",
+                LifePatternType.SINGLE_CHOICE, "visitor.png");
         MatchingLifestyleRow sleep = new MatchingLifestyleRow(
-                ownerId, 1L, 202L, 2002L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE);
+                ownerId, 1L, 202L, 2002L, "취침", "23:00", "일찍 자요",
+                LifePatternType.SCALE, "sleep.png");
         MatchingPreferenceConditionRow condition = new MatchingPreferenceConditionRow(
-                ownerId, 3L, 203L, 2003L, "흡연", "비흡연", "비흡연 선호", LifePatternType.BOOLEAN);
+                ownerId, 3L, 203L, 2003L, "흡연", "비흡연", "비흡연 선호",
+                LifePatternType.BOOLEAN, "smoking.png");
         MatchingPreferenceConditionWeightRow conditionWeight = new MatchingPreferenceConditionWeightRow(
-                ownerId, 4L, 202L, "청결");
+                ownerId, 4L, 202L, "청결", "cleaning.png");
         List<AuthenticationType> authenticationTypes = List.of(AuthenticationType.STUDENT);
 
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(images);
-        when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(roomExtraOptionNames);
+        when(roommateBoardOptionRepository.getExtraOptionsByBoardId(boardId)).thenReturn(roomExtraOptions);
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(ownerId))).thenReturn(List.of(visitor, sleep));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(ownerId))).thenReturn(List.of(condition));
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId))).thenReturn(List.of(conditionWeight));
@@ -1220,13 +1224,19 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getComeableDate()).isEqualTo(LocalDateTime.of(2026, 7, 1, 9, 0));
         assertThat(response.getHits()).isEqualTo(3L);
         assertThat(response.getContents()).isEqualTo("상세 내용");
-        assertThat(response.getRoomExtraOptionNames()).isSameAs(roomExtraOptionNames);
+        assertThat(response.getRoomExtraOptions()).isSameAs(roomExtraOptions);
         assertThat(response.getLifeStyles()).extracting(BoardDetailDto.Response.Lifestyle::getName)
                 .containsExactly("방문객", "취침");
+        assertThat(response.getLifeStyles()).extracting(BoardDetailDto.Response.Lifestyle::getImageUrl)
+                .containsExactly("visitor.png", "sleep.png");
         assertThat(response.getConditions()).extracting(BoardDetailDto.Response.Condition::getName)
                 .containsExactly("흡연");
+        assertThat(response.getConditions()).extracting(BoardDetailDto.Response.Condition::getImageUrl)
+                .containsExactly("smoking.png");
         assertThat(response.getConditionWeights()).extracting(BoardDetailDto.Response.ConditionWeight::getName)
                 .containsExactly("청결");
+        assertThat(response.getConditionWeights()).extracting(BoardDetailDto.Response.ConditionWeight::getImageUrl)
+                .containsExactly("cleaning.png");
         assertThat(response.getMemberId()).isEqualTo(ownerId);
         assertThat(response.getMemberName()).isEqualTo("상세작성자");
         assertThat(response.getMemberProfileImageUrl()).isEqualTo("profile.jpg");
@@ -1241,7 +1251,7 @@ class RoommateBoardServiceImplTest {
         inOrder.verify(roommateBoardRepository).increaseHitsById(boardId);
         inOrder.verify(roommateBoardRepository).getBasicInfo(boardId);
         verify(roommateBoardFileRepository).getFileDetailDtoByBoardId(boardId);
-        verify(roommateBoardOptionRepository).getExtraOptionsNameByBoardId(boardId);
+        verify(roommateBoardOptionRepository).getExtraOptionsByBoardId(boardId);
         verify(memberLifePatternRepository).findAllLifestyleByMemberIdIn(List.of(ownerId));
         verify(preferenceConditionRepository).findAllPreferenceConditionByMemberIdIn(List.of(ownerId));
         verify(preferenceConditionWeightRepository).findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId));
@@ -1261,7 +1271,7 @@ class RoommateBoardServiceImplTest {
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(List.of());
-        when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(List.of());
+        when(roommateBoardOptionRepository.getExtraOptionsByBoardId(boardId)).thenReturn(List.of());
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
@@ -1294,7 +1304,7 @@ class RoommateBoardServiceImplTest {
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(List.of());
-        when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(List.of());
+        when(roommateBoardOptionRepository.getExtraOptionsByBoardId(boardId)).thenReturn(List.of());
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
@@ -1320,7 +1330,7 @@ class RoommateBoardServiceImplTest {
         when(roommateBoardRepository.increaseHitsById(boardId)).thenReturn(1);
         when(roommateBoardRepository.getBasicInfo(boardId)).thenReturn(Optional.of(basicInfoRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(List.of());
-        when(roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId)).thenReturn(List.of());
+        when(roommateBoardOptionRepository.getExtraOptionsByBoardId(boardId)).thenReturn(List.of());
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(ownerId))).thenReturn(List.of());
@@ -1387,16 +1397,16 @@ class RoommateBoardServiceImplTest {
                 new BoardDetailDto.Response.FileDetailDto(101L, "thumbnail.jpg"),
                 new BoardDetailDto.Response.FileDetailDto(102L, "room.jpg")
         );
-        List<BoardOptionInfo> roomExtraOptions = List.of(
-                new BoardOptionInfo(201L, "풀옵션"),
-                new BoardOptionInfo(202L, "주차 가능")
+        List<RoomExtraOptionInfo> roomExtraOptions = List.of(
+                new RoomExtraOptionInfo(201L, "풀옵션", "full-option.png"),
+                new RoomExtraOptionInfo(202L, "주차 가능", "parking.png")
         );
         BoardDetailDto.Response.Lifestyle lifestyle = new BoardDetailDto.Response.Lifestyle(
-                1L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE);
+                1L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE, "sleep.png");
         BoardDetailDto.Response.Condition condition = new BoardDetailDto.Response.Condition(
-                2L, "흡연", "비흡연", "비흡연 선호", LifePatternType.BOOLEAN);
+                2L, "흡연", "비흡연", "비흡연 선호", LifePatternType.BOOLEAN, "smoking.png");
         BoardDetailDto.Response.ConditionWeight conditionWeight = new BoardDetailDto.Response.ConditionWeight(
-                3L, "청결");
+                3L, "청결", "cleaning.png");
 
         when(roommateBoardRepository.getEditRow(boardId)).thenReturn(Optional.of(editFormRow));
         when(roommateBoardFileRepository.getFileDetailDtoByBoardId(boardId)).thenReturn(images);
@@ -1417,6 +1427,7 @@ class RoommateBoardServiceImplTest {
         assertThat(response.getManagementCost()).isEqualTo(10);
         assertThat(response.getRoomType().getRoomTypeId()).isEqualTo(11L);
         assertThat(response.getRoomType().getName()).isEqualTo("원룸");
+        assertThat(response.getRoomType().getImageUrl()).isEqualTo("one-room.png");
         assertThat(response.getRegion().getRegionId()).isEqualTo(33L);
         assertThat(response.getRegion().getFullName()).isEqualTo("서울 강남구 역삼동");
         assertThat(response.getComeableDateNegotiable()).isTrue();
@@ -1986,6 +1997,7 @@ class RoommateBoardServiceImplTest {
                 10,
                 11L,
                 "원룸",
+                "one-room.png",
                 33L,
                 "역삼동",
                 "강남구",

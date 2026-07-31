@@ -10,9 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.knockin.dto.BoardDetailDto.Response.Condition;
-import org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight;
-import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 
 public class BoardEditDto {
     @Data
@@ -60,22 +57,23 @@ public class BoardEditDto {
         private LocalDateTime comeableDate;
 
         @Schema(description = "방 추가 옵션 목록")
-        private List<BoardOptionInfo> roomExtraOptions;
+        private List<BoardDetailDto.Response.RoomExtraOptionInfo> roomExtraOptions;
 
         @NotNull
         @Schema(description = "내용")
         private String contents;
 
         @Schema(description = "생활패턴")
-        private List<Lifestyle> lifeStyles;
+        private List<BoardDetailDto.Response.Lifestyle> lifeStyles;
 
         @Schema(description = "선호 룸메이트 조건 목록")
-        private List<Condition> conditions;
+        private List<BoardDetailDto.Response.Condition> conditions;
 
         @Schema(description = "선호 룸메이트 중요 조건 목록")
-        private List<ConditionWeight> conditionWeights;
+        private List<BoardDetailDto.Response.ConditionWeight> conditionWeights;
 
         @Data
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
         public static class RoomTypeInfo {
@@ -84,6 +82,9 @@ public class BoardEditDto {
 
             @Schema(description = "이름")
             private String name;
+
+            @Schema(description = "이미지 URL")
+            private String imageUrl;
         }
 
         @Data
@@ -97,15 +98,5 @@ public class BoardEditDto {
             private String fullName;
         }
 
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class BoardOptionInfo {
-            @Schema(description = "고유 식별 ID")
-            private Long extraOptionId;
-
-            @Schema(description = "옵션명")
-            private String name;
-        }
     }
 }

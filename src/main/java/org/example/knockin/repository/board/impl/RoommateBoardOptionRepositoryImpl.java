@@ -4,11 +4,14 @@ import static org.example.knockin.entity.board.QRoommateBoardOption.roommateBoar
 import static org.example.knockin.entity.room.QRoomExtraOption.roomExtraOption;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoardEditDto;
+import org.example.knockin.dto.BoardDetailDto.Response.RoomExtraOptionInfo;
 import org.example.knockin.entity.board.RoommateBoardOption;
+import org.example.knockin.entity.file.QFile;
+import org.example.knockin.entity.room.QRoomExtraOptionFile;
 import org.example.knockin.repository.board.RoommateBoardOptionRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -18,28 +21,29 @@ public class RoommateBoardOptionRepositoryImpl implements RoommateBoardOptionRep
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<String> getExtraOptionsNameByBoardId(Long boardId) {
-        return jpaQueryFactory
-                .select(roomExtraOption.name)
-                .from(roommateBoardOption)
-                .join(roommateBoardOption.roomExtraOption, roomExtraOption)
-                .where(
-                        roommateBoardOption.roommateBoard.id.eq(boardId),
-                        roomExtraOption.isDeleted.isFalse()
-                )
-                .fetch();
-    }
+    public List<RoomExtraOptionInfo> getExtraOptionsByBoardId(Long boardId) {
+        QRoomExtraOptionFile selectedOptionFile = new QRoomExtraOptionFile("selectedBoardOptionFile");
+        QRoomExtraOptionFile latestOptionFile = new QRoomExtraOptionFile("latestBoardOptionFile");
+        QFile optionImageFile = new QFile("boardOptionImageFile");
 
-    @Override
-    public List<BoardEditDto.Response.BoardOptionInfo> getExtraOptionsByBoardId(Long boardId) {
         return jpaQueryFactory
                 .select(Projections.constructor(
-                        BoardEditDto.Response.BoardOptionInfo.class,
+                        RoomExtraOptionInfo.class,
                         roomExtraOption.id,
-                        roomExtraOption.name
+                        roomExtraOption.name,
+                        optionImageFile.savedFileName
                 ))
                 .from(roommateBoardOption)
                 .join(roommateBoardOption.roomExtraOption, roomExtraOption)
+                .leftJoin(selectedOptionFile)
+                .on(selectedOptionFile.id.eq(
+                        JPAExpressions
+                                .select(latestOptionFile.id.max())
+                                .from(latestOptionFile)
+                                .where(latestOptionFile.roomExtraOption.eq(roomExtraOption))
+                ))
+                .leftJoin(selectedOptionFile.file, optionImageFile)
+                .on(optionImageFile.isDeleted.isFalse())
                 .where(
                         roommateBoardOption.roommateBoard.id.eq(boardId),
                         roomExtraOption.isDeleted.isFalse()

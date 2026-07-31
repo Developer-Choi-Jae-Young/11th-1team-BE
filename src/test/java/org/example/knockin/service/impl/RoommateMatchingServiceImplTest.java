@@ -371,13 +371,20 @@ class RoommateMatchingServiceImplTest {
                 .thenReturn(List.of(new MatchingSeekerRoomTypeRow(2L, "투룸")));
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(1L, 2L)))
                 .thenReturn(List.of(
-                        new MatchingLifestyleRow(1L, 11L, 101L, 1001L, "청결", "4", "깔끔함", LifePatternType.SCALE),
-                        new MatchingLifestyleRow(2L, 12L, 102L, 1002L, "흡연", "2", "비흡연자", LifePatternType.SINGLE_CHOICE)
+                        new MatchingLifestyleRow(
+                                1L, 11L, 101L, 1001L, "청결", "4", "깔끔함",
+                                LifePatternType.SCALE, "cleaning.png"),
+                        new MatchingLifestyleRow(
+                                2L, 12L, 102L, 1002L, "흡연", "2", "비흡연자",
+                                LifePatternType.SINGLE_CHOICE, "smoking.png")
                 ));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(1L, 2L)))
-                .thenReturn(List.of(new MatchingPreferenceConditionRow(2L, 21L, 103L, 1003L, "소음", "1", "조용함", LifePatternType.SCALE)));
+                .thenReturn(List.of(new MatchingPreferenceConditionRow(
+                        2L, 21L, 103L, 1003L, "소음", "1", "조용함",
+                        LifePatternType.SCALE, "noise.png")));
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(1L, 2L)))
-                .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(2L, 31L, 102L, "흡연")));
+                .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(
+                        2L, 31L, 102L, "흡연", "smoking.png")));
         when(authenticationRepository.findAcceptedByMemberIds(List.of(1L, 2L)))
                 .thenReturn(List.of(
                         new MemberAuthenticationRow(1L, AuthenticationType.STUDENT),
@@ -409,6 +416,8 @@ class RoommateMatchingServiceImplTest {
         assertThat(offer.getOfferProfile().getRegionFullName()).isEqualTo("서울특별시 강남구 역삼동");
         assertThat(offer.getOfferProfile().getRoomTypeName()).isEqualTo("원룸");
         assertThat(offer.getSeekerProfile()).isNull();
+        assertThat(offer.getLifeStyles()).extracting(MatchListDto.Lifestyle::getImageUrl)
+                .containsExactly("cleaning.png");
         assertThat(offer.getLifeStyles()).extracting(MatchListDto.Lifestyle::getName).containsExactly("청결");
         assertThat(offer.getAuthentications()).containsExactly(AuthenticationType.STUDENT);
 
@@ -551,11 +560,16 @@ class RoommateMatchingServiceImplTest {
         when(roomOfferProfileRepository.findAllOfferProfileByMemberIdIn(List.of(targetMemberId)))
                 .thenReturn(List.of(new MatchingOfferProfileRow(targetMemberId, 500, 45, "역삼동", "강남구", "서울특별시", "원룸")));
         when(memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(targetMemberId)))
-                .thenReturn(List.of(new MatchingLifestyleRow(targetMemberId, 11L, 101L, 1001L, "청결", "4", "깔끔함", LifePatternType.SCALE)));
+                .thenReturn(List.of(new MatchingLifestyleRow(
+                        targetMemberId, 11L, 101L, 1001L, "청결", "4", "깔끔함",
+                        LifePatternType.SCALE, "cleaning.png")));
         when(preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(targetMemberId)))
-                .thenReturn(List.of(new MatchingPreferenceConditionRow(targetMemberId, 21L, 103L, 1003L, "소음", "1", "조용함", LifePatternType.SCALE)));
+                .thenReturn(List.of(new MatchingPreferenceConditionRow(
+                        targetMemberId, 21L, 103L, 1003L, "소음", "1", "조용함",
+                        LifePatternType.SCALE, "noise.png")));
         when(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(List.of(targetMemberId)))
-                .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(targetMemberId, 31L, 102L, "흡연")));
+                .thenReturn(List.of(new MatchingPreferenceConditionWeightRow(
+                        targetMemberId, 31L, 102L, "흡연", "smoking.png")));
         when(memberInterestRepository.existsBySenderIdAndReceiverIdAndIsDeletedIsFalse(
                 requesterId, targetMemberId)).thenReturn(true);
         when(roommateScoreService.calculateScore(any(), any()))

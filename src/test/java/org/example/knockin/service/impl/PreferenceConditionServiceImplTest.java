@@ -139,7 +139,7 @@ class PreferenceConditionServiceImplTest {
         // Given
         List<Long> memberIds = List.of(1L, 2L);
         MatchingPreferenceConditionWeightRow row =
-                new MatchingPreferenceConditionWeightRow(1L, 10L, 100L, "청결");
+                new MatchingPreferenceConditionWeightRow(1L, 10L, 100L, "청결", "cleaning.png");
         given(preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(memberIds))
                 .willReturn(List.of(row));
 
@@ -157,7 +157,7 @@ class PreferenceConditionServiceImplTest {
     void findAllConditionWeightByMemberIdReturnsConditionWeightDtos() {
         // Given
         Long memberId = 1L;
-        ConditionWeight conditionWeight = new ConditionWeight(10L, "청결");
+        ConditionWeight conditionWeight = new ConditionWeight(10L, "청결", "cleaning.png");
         given(preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(memberId))
                 .willReturn(List.of(conditionWeight));
 

@@ -754,7 +754,8 @@ class ChatRequestServiceImplTest {
             String description,
             LifePatternType type
     ) {
-        return new MatchingLifestyleRow(memberId, lifestyleId, lifestyleId, lifestyleId, name, value, description, type);
+        return new MatchingLifestyleRow(
+                memberId, lifestyleId, lifestyleId, lifestyleId, name, value, description, type, null);
     }
 
     private BasicInformation basicInformation(Member member, String name) {

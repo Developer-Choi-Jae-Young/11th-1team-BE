@@ -65,7 +65,7 @@ public class BoardDetailDto {
         private String contents;
 
         @Schema(description = "방 추가 옵션 목록")
-        private List<String> roomExtraOptionNames;
+        private List<RoomExtraOptionInfo> roomExtraOptions;
 
         @Schema(description = "생활패턴")
         private List<Lifestyle> lifeStyles;
@@ -117,6 +117,22 @@ public class BoardDetailDto {
         }
 
         @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class RoomExtraOptionInfo {
+            @Schema(description = "고유 식별 ID")
+            private Long extraOptionId;
+
+            @Schema(description = "옵션명")
+            private String name;
+
+            @Schema(description = "이미지 URL")
+            private String imageUrl;
+        }
+
+        @Data
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Lifestyle {
@@ -130,9 +146,12 @@ public class BoardDetailDto {
             private String description;
             @Schema(description = "타입/유형")
             private LifePatternType type;
+            @Schema(description = "이미지 URL")
+            private String imageUrl;
         }
 
         @Data
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Condition {
@@ -146,9 +165,12 @@ public class BoardDetailDto {
             private String description;
             @Schema(description = "타입/유형")
             private LifePatternType type;
+            @Schema(description = "이미지 URL")
+            private String imageUrl;
         }
 
         @Data
+        @Builder
         @NoArgsConstructor
         @AllArgsConstructor
         public static class ConditionWeight {
@@ -156,6 +178,8 @@ public class BoardDetailDto {
             private Long weightConditionId;
             @Schema(description = "이름")
             private String name;
+            @Schema(description = "이미지 URL")
+            private String imageUrl;
         }
 
     }

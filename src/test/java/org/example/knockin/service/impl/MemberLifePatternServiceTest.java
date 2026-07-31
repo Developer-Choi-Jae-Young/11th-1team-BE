@@ -96,7 +96,8 @@ class MemberLifePatternServiceTest {
                 "취침",
                 "23:00",
                 "일찍 자요",
-                LifePatternType.SCALE
+                LifePatternType.SCALE,
+                "sleep.png"
         );
         given(memberLifePatternRepository.findAllLifestyleByMemberIdIn(memberIds)).willReturn(List.of(row));
 
@@ -113,7 +114,8 @@ class MemberLifePatternServiceTest {
     void findLifeStyleDtoByMemberIdReturnsLifestyleDtos() {
         // Given
         Long memberId = 1L;
-        Lifestyle lifestyle = new Lifestyle(10L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE);
+        Lifestyle lifestyle = new Lifestyle(
+                10L, "취침", "23:00", "일찍 자요", LifePatternType.SCALE, "sleep.png");
         given(memberLifePatternRepository.getLifeStyleDto(memberId)).willReturn(List.of(lifestyle));
 
         // When
