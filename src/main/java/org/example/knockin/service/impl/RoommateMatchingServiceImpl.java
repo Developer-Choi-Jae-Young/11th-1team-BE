@@ -82,8 +82,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<MatchingPreferenceConditionRow> matchingPreferenceConditionRows = preferenceConditionService.findRowByMemberIdsIn(memberIds);
         List<MatchingPreferenceConditionWeightRow> matchingPreferenceConditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(memberIds);
         List<MemberAuthenticationRow> authenticationRows = authenticationService.findAcceptedByMemberIds(memberIds);
-        Map<Long, Compatibility> scoresByMemberId = Optional.ofNullable(roommateScoreService.calculateScores(memberId, memberIds))
-                .orElse(Map.of());
+        Map<Long, Compatibility> scoresByMemberId = Optional.ofNullable(roommateScoreService.calculateScores(memberId, memberIds)).orElse(Map.of());
 
         Map<Long, MatchingOfferProfileRow> offerMap = HasMemberId.toMapByMemberId(matchingOfferProfileRows);
         Map<Long, MatchingSeekerProfileRow> seekerMap = HasMemberId.toMapByMemberId(matchingSeekerProfileRows);
@@ -186,6 +185,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .value(row.value())
                 .description(row.description())
                 .type(row.type())
+                .imageUrl(row.imageUrl())
                 .build();
     }
 
@@ -196,6 +196,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
                 .value(row.value())
                 .description(row.description())
                 .type(row.type())
+                .imageUrl(row.imageUrl())
                 .build();
     }
 
@@ -203,6 +204,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         return MatchListDto.ConditionWeight.builder()
                 .conditionWeightId(row.conditionWeightId())
                 .name(row.name())
+                .imageUrl(row.imageUrl())
                 .build();
     }
 

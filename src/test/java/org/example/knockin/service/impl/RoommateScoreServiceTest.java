@@ -107,8 +107,8 @@ class RoommateScoreServiceTest {
         );
 
         List<MatchingPreferenceConditionWeightRow> weights = List.of(
-                new MatchingPreferenceConditionWeightRow(requesterId, 41L, 101L, "청결 민감도"),
-                new MatchingPreferenceConditionWeightRow(requesterId, 42L, 102L, "흡연")
+                new MatchingPreferenceConditionWeightRow(requesterId, 41L, 101L, "청결 민감도", null),
+                new MatchingPreferenceConditionWeightRow(requesterId, 42L, 102L, "흡연", null)
         );
 
         List<Long> lookupMemberIds = List.of(targetId, requesterId);
@@ -375,7 +375,8 @@ class RoommateScoreServiceTest {
                 name,
                 value,
                 value,
-                type
+                type,
+                null
         );
     }
 
@@ -396,7 +397,8 @@ class RoommateScoreServiceTest {
                 name,
                 value,
                 value,
-                type
+                type,
+                null
         );
     }
 

@@ -9,6 +9,7 @@ public record EditFormRow(
         Integer managementCost,
         Long roomTypeId,
         String roomTypeName,
+        String roomTypeImageUrl,
         Long regionId,
         String regionName,
         String parentRegionName,

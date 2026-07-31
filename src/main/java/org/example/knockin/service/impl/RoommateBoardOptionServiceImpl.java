@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
+import org.example.knockin.dto.BoardDetailDto.Response.RoomExtraOptionInfo;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.board.RoommateBoardOption;
 import org.example.knockin.entity.room.RoomExtraOption;
@@ -51,11 +51,7 @@ public class RoommateBoardOptionServiceImpl {
         return roommateBoardOptionRepository.saveAll(roommateBoardOptions);
     }
 
-    public List<String> findExtraOptionNamesByBoardId(Long boardId) {
-        return roommateBoardOptionRepository.getExtraOptionsNameByBoardId(boardId);
-    }
-
-    public List<BoardOptionInfo> findExtraOptionsByBoardId(Long boardId) {
+    public List<RoomExtraOptionInfo> findExtraOptionsByBoardId(Long boardId) {
         return roommateBoardOptionRepository.getExtraOptionsByBoardId(boardId);
     }
 

@@ -11,6 +11,7 @@ public record MatchingLifestyleRow(
         String name,
         String value,
         String description,
-        LifePatternType type
+        LifePatternType type,
+        String imageUrl
 ) implements HasMemberId {
 }

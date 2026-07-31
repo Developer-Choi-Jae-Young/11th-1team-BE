@@ -6,6 +6,7 @@ public record MatchingPreferenceConditionWeightRow(
         Long memberId,
         Long conditionWeightId,
         Long lifePatternId,
-        String name
+        String name,
+        String imageUrl
 ) implements HasMemberId {
 }

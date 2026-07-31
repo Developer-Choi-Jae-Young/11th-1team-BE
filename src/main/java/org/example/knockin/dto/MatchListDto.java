@@ -135,6 +135,8 @@ public class MatchListDto {
         private String description;
         @Schema(description = "타입/유형")
         private LifePatternType type;
+        @Schema(description = "이미지 URL")
+        private String imageUrl;
     }
 
     @Data
@@ -152,6 +154,8 @@ public class MatchListDto {
         private String description;
         @Schema(description = "타입/유형")
         private LifePatternType type;
+        @Schema(description = "이미지 URL")
+        private String imageUrl;
     }
 
     @Data
@@ -163,5 +167,7 @@ public class MatchListDto {
         private Long conditionWeightId;
         @Schema(description = "이름")
         private String name;
+        @Schema(description = "이미지 URL")
+        private String imageUrl;
     }
 }

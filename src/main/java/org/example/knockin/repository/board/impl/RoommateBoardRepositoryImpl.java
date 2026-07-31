@@ -25,11 +25,13 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoBoardDetailDto;
 import org.example.knockin.dto.BoBoardListDto;
 import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.file.QBasicInformationFile;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
+import org.example.knockin.entity.room.QRoomTypeFile;
 import org.example.knockin.global.util.QueryDslUtils;
 import org.example.knockin.repository.board.RoommateBoardRepositoryCustom;
 import org.example.knockin.repository.board.row.BasicInfoRow;
@@ -284,6 +286,9 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         QRegion boardRegion = new QRegion("boardRegion");
         QRegion parentRegion = new QRegion("parentRegion");
         QRegion grandParentRegion = new QRegion("grandParentRegion");
+        QRoomTypeFile selectedRoomTypeFile = new QRoomTypeFile("selectedEditRoomTypeFile");
+        QRoomTypeFile latestRoomTypeFile = new QRoomTypeFile("latestEditRoomTypeFile");
+        QFile roomTypeImageFile = new QFile("editRoomTypeImageFile");
 
         return Optional.ofNullable(jpaQueryFactory
                 .select(Projections.constructor(
@@ -294,6 +299,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.managementCost,
                         roommateBoard.roomType.id,
                         roommateBoard.roomType.name,
+                        roomTypeImageFile.savedFileName,
                         boardRegion.id,
                         boardRegion.name,
                         parentRegion.name,
@@ -308,6 +314,15 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                         roommateBoard.isDeleted.isFalse()
                 )
                 .join(roommateBoard.roomType, roomType)
+                .leftJoin(selectedRoomTypeFile)
+                .on(selectedRoomTypeFile.id.eq(
+                        JPAExpressions
+                                .select(latestRoomTypeFile.id.max())
+                                .from(latestRoomTypeFile)
+                                .where(latestRoomTypeFile.roomType.eq(roomType))
+                ))
+                .leftJoin(selectedRoomTypeFile.file, roomTypeImageFile)
+                .on(roomTypeImageFile.isDeleted.isFalse())
                 .join(roommateBoard.region, boardRegion)
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)

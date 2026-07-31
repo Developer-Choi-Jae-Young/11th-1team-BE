@@ -17,9 +17,9 @@ import org.example.knockin.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight;
 import org.example.knockin.dto.BoardDetailDto.Response.FileDetailDto;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
+import org.example.knockin.dto.BoardDetailDto.Response.RoomExtraOptionInfo;
 import org.example.knockin.dto.BoardDto.Request.FileDto;
 import org.example.knockin.dto.BoardDto.Response;
-import org.example.knockin.dto.BoardEditDto.Response.BoardOptionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RegionInfo;
 import org.example.knockin.dto.BoardEditDto.Response.RoomTypeInfo;
 import org.example.knockin.dto.BoardModifyDto.Request.ExistingFileDto;
@@ -287,7 +287,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         Long ownerId = basicInfoRow.memberId();
 
         List<BoardDetailDto.Response.FileDetailDto> images = roommateBoardFileService.findFileDetailDtoByBoardId(boardId);
-        List<String> roomExtraOptionNames = roommateBoardOptionService.findExtraOptionNamesByBoardId(boardId);
+        List<RoomExtraOptionInfo> roomExtraOptions = roommateBoardOptionService.findExtraOptionsByBoardId(boardId);
         List<Long> scoreLookupMemberIds = List.of(ownerId);
         List<MatchingLifestyleRow> lifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(scoreLookupMemberIds);
         List<MatchingPreferenceConditionRow> conditionRows = preferenceConditionService.findRowByMemberIdsIn(scoreLookupMemberIds);
@@ -321,7 +321,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         return toResponse(
                 basicInfoRow,
                 images,
-                roomExtraOptionNames,
+                roomExtraOptions,
                 lifestyles,
                 conditions,
                 conditionWeights,
@@ -334,21 +334,39 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     private Lifestyle toLifestyle(MatchingLifestyleRow row) {
-        return new Lifestyle(row.lifestyleId(), row.name(), row.value(), row.description(), row.type());
+        return Lifestyle.builder()
+                .lifestyleId(row.lifestyleId())
+                .name(row.name())
+                .value(row.value())
+                .description(row.description())
+                .type(row.type())
+                .imageUrl(row.imageUrl())
+                .build();
     }
 
     private Condition toCondition(MatchingPreferenceConditionRow row) {
-        return new Condition(row.conditionId(), row.name(), row.value(), row.description(), row.type());
+        return Condition.builder()
+                .conditionId(row.conditionId())
+                .name(row.name())
+                .value(row.value())
+                .description(row.description())
+                .type(row.type())
+                .imageUrl(row.imageUrl())
+                .build();
     }
 
     private ConditionWeight toConditionWeight(MatchingPreferenceConditionWeightRow row) {
-        return new ConditionWeight(row.conditionWeightId(), row.name());
+        return ConditionWeight.builder()
+                .weightConditionId(row.conditionWeightId())
+                .name(row.name())
+                .imageUrl(row.imageUrl())
+                .build();
     }
 
     private BoardDetailDto.Response toResponse(
             BasicInfoRow basicInfoRow,
             List<BoardDetailDto.Response.FileDetailDto> images,
-            List<String> roomExtraOptionNames,
+            List<RoomExtraOptionInfo> roomExtraOptions,
             List<Lifestyle> lifestyles,
             List<Condition> conditions,
             List<ConditionWeight> conditionWeights,
@@ -378,7 +396,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .createdAt(basicInfoRow.createdAt())
                 .hits(basicInfoRow.hits())
                 .contents(basicInfoRow.contents())
-                .roomExtraOptionNames(roomExtraOptionNames)
+                .roomExtraOptions(roomExtraOptions)
                 .lifeStyles(lifestyles)
                 .conditions(conditions)
                 .conditionWeights(conditionWeights)
@@ -408,7 +426,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .orElseThrow(() -> new BusinessException(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
 
         List<FileDetailDto> images = roommateBoardFileService.findFileDetailDtoByBoardId(boardId);
-        List<BoardOptionInfo> roomExtraOptions = roommateBoardOptionService.findExtraOptionsByBoardId(boardId);
+        List<RoomExtraOptionInfo> roomExtraOptions = roommateBoardOptionService.findExtraOptionsByBoardId(boardId);
 
         List<Lifestyle> lifestyles = memberLifePatternService.findLifeStyleDtoByMemberId(memberId);
         List<Condition> conditions = preferenceConditionService.findAllConditionByMemberId(memberId);
@@ -420,7 +438,11 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .deposit(row.deposit())
                 .monthlyRent(row.monthlyRent())
                 .managementCost(row.managementCost())
-                .roomType(new RoomTypeInfo(row.roomTypeId(), row.roomTypeName()))
+                .roomType(RoomTypeInfo.builder()
+                        .roomTypeId(row.roomTypeId())
+                        .name(row.roomTypeName())
+                        .imageUrl(row.roomTypeImageUrl())
+                        .build())
                 .region(new RegionInfo(row.regionId(), StringUtils.parseToRegionFullName(
                         row.grandParentRegionName(),
                         row.parentRegionName(),

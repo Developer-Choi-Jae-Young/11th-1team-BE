@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.persistence.EntityManager;
 import org.example.knockin.config.QueryDslConfig;
-import org.example.knockin.dto.BoardEditDto;
 import org.example.knockin.dto.BoardListDto;
+import org.example.knockin.dto.BoardDetailDto.Response.RoomExtraOptionInfo;
 import org.example.knockin.entity.auth.Authentication;
 import org.example.knockin.entity.auth.AuthenticationType;
 import org.example.knockin.entity.auth.LoginProviderType;
@@ -22,6 +22,7 @@ import org.example.knockin.entity.file.BasicInformationFile;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternFile;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.life.MemberLifePattern;
@@ -34,7 +35,9 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
 import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomExtraOption;
+import org.example.knockin.entity.room.RoomExtraOptionFile;
 import org.example.knockin.entity.room.RoomType;
+import org.example.knockin.entity.room.RoomTypeFile;
 import org.example.knockin.repository.auth.AuthenticationRepository;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.board.row.BasicInfoRow;
@@ -45,6 +48,9 @@ import org.example.knockin.repository.board.row.EditFormRow;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.PreferenceConditionRepository;
 import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.life.row.MatchingLifestyleRow;
+import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
+import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -457,6 +463,7 @@ class RoommateBoardRepositoryTest {
         Region district = persistRegion("강남구", 2, city);
         Region dong = persistRegion("역삼동", 3, district);
         RoomType roomType = persistRoomType("원룸");
+        persistRoomTypeFile(roomType, persistFile("one-room.png"));
         RoommateBoard board = persistBoard("수정 게시글", member, roomType, dong,
                 LocalDateTime.of(2026, 7, 1, 9, 0), true);
         entityManager.flush();
@@ -473,6 +480,7 @@ class RoommateBoardRepositoryTest {
         assertThat(row.monthlyRent()).isEqualTo(50);
         assertThat(row.roomTypeId()).isEqualTo(roomType.getId());
         assertThat(row.roomTypeName()).isEqualTo("원룸");
+        assertThat(row.roomTypeImageUrl()).isEqualTo("one-room.png");
         assertThat(row.regionId()).isEqualTo(dong.getId());
         assertThat(row.regionName()).isEqualTo("역삼동");
         assertThat(row.parentRegionName()).isEqualTo("강남구");
@@ -560,14 +568,16 @@ class RoommateBoardRepositoryTest {
     }
 
     @Test
-    @DisplayName("방 추가 옵션 조회는 삭제되지 않은 옵션명만 반환한다")
-    void getExtraOptionsNameByBoardIdReturnsOnlyActiveOptionNames() {
+    @DisplayName("방 추가 옵션 조회는 삭제되지 않은 옵션과 대표 이미지 URL을 반환한다")
+    void getExtraOptionsByBoardIdReturnsOnlyActiveOptionInfos() {
         // Given
         Member member = persistMember("provider-detail-options");
         Region region = persistRegion("역삼동", 3, null);
         RoomType roomType = persistRoomType("원룸");
         RoommateBoard board = persistBoard("옵션 게시글", member, roomType, region, LocalDateTime.of(2026, 7, 1, 9, 0));
-        persistRoommateBoardOption(board, persistRoomExtraOption("풀옵션"));
+        RoomExtraOption activeOption = persistRoomExtraOption("풀옵션");
+        persistRoomExtraOptionFile(activeOption, persistFile("full-option.png"));
+        persistRoommateBoardOption(board, activeOption);
         RoomExtraOption deletedOption = persistRoomExtraOption("삭제된 옵션");
         ReflectionTestUtils.setField(deletedOption, "isDeleted", true);
         persistRoommateBoardOption(board, deletedOption);
@@ -575,29 +585,7 @@ class RoommateBoardRepositoryTest {
         entityManager.clear();
 
         // When
-        List<String> optionNames = roommateBoardOptionRepository.getExtraOptionsNameByBoardId(board.getId());
-
-        // Then
-        assertThat(optionNames).containsExactly("풀옵션");
-    }
-
-    @Test
-    @DisplayName("수정 폼 방 추가 옵션 조회는 삭제되지 않은 옵션의 게시글 옵션 ID와 이름을 반환한다")
-    void getExtraOptionsByBoardIdReturnsOnlyActiveOptionInfos() {
-        // Given
-        Member member = persistMember("provider-edit-options");
-        Region region = persistRegion("역삼동", 3, null);
-        RoomType roomType = persistRoomType("원룸");
-        RoommateBoard board = persistBoard("수정 옵션 게시글", member, roomType, region, LocalDateTime.of(2026, 7, 1, 9, 0));
-        RoommateBoardOption activeOption = persistRoommateBoardOption(board, persistRoomExtraOption("풀옵션"));
-        RoomExtraOption deletedOption = persistRoomExtraOption("삭제된 옵션");
-        ReflectionTestUtils.setField(deletedOption, "isDeleted", true);
-        persistRoommateBoardOption(board, deletedOption);
-        entityManager.flush();
-        entityManager.clear();
-
-        // When
-        List<BoardEditDto.Response.BoardOptionInfo> optionInfos =
+        List<RoomExtraOptionInfo> optionInfos =
                 roommateBoardOptionRepository.getExtraOptionsByBoardId(board.getId());
 
         // Then
@@ -605,6 +593,7 @@ class RoommateBoardRepositoryTest {
                 .satisfies(optionInfo -> {
                     assertThat(optionInfo.getExtraOptionId()).isEqualTo(activeOption.getId());
                     assertThat(optionInfo.getName()).isEqualTo("풀옵션");
+                    assertThat(optionInfo.getImageUrl()).isEqualTo("full-option.png");
                 });
     }
 
@@ -614,8 +603,10 @@ class RoommateBoardRepositoryTest {
         // Given
         Member member = persistMember("provider-detail-lifestyles");
         LifePattern sleepPattern = persistLifePattern("취침", LifePatternType.SCALE, 2);
+        persistLifePatternFile(sleepPattern, persistFile("sleep.png"));
         persistMemberLifePattern(member, persistLifePatternInformation(sleepPattern, "23:00", "일찍 자요"));
         LifePattern visitorPattern = persistLifePattern("방문객", LifePatternType.SINGLE_CHOICE, 1);
+        persistLifePatternFile(visitorPattern, persistFile("visitor.png"));
         persistMemberLifePattern(member, persistLifePatternInformation(visitorPattern, "가끔", "가끔 방문해요"));
         entityManager.flush();
         entityManager.clear();
@@ -623,6 +614,8 @@ class RoommateBoardRepositoryTest {
         // When
         List<org.example.knockin.dto.BoardDetailDto.Response.Lifestyle> lifeStyles =
                 memberLifePatternRepository.getLifeStyleDto(member.getId());
+        List<MatchingLifestyleRow> matchingRows =
+                memberLifePatternRepository.findAllLifestyleByMemberIdIn(List.of(member.getId()));
 
         // Then
         assertThat(lifeStyles)
@@ -636,7 +629,14 @@ class RoommateBoardRepositoryTest {
                     assertThat(lifeStyle.getValue()).isEqualTo("23:00");
                     assertThat(lifeStyle.getDescription()).isEqualTo("일찍 자요");
                     assertThat(lifeStyle.getType()).isEqualTo(LifePatternType.SCALE);
+                    assertThat(lifeStyle.getImageUrl()).isEqualTo("sleep.png");
                 });
+        assertThat(matchingRows)
+                .extracting(MatchingLifestyleRow::name, MatchingLifestyleRow::imageUrl)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("방문객", "visitor.png"),
+                        org.assertj.core.groups.Tuple.tuple("취침", "sleep.png")
+                );
     }
 
     @Test
@@ -645,6 +645,7 @@ class RoommateBoardRepositoryTest {
         // Given
         Member member = persistMember("provider-detail-conditions");
         LifePattern smokingPattern = persistLifePattern("흡연", LifePatternType.BOOLEAN);
+        persistLifePatternFile(smokingPattern, persistFile("smoking.png"));
         persistPreferenceCondition(member, persistLifePatternInformation(smokingPattern, "비흡연", "비흡연 선호"));
         entityManager.flush();
         entityManager.clear();
@@ -652,6 +653,8 @@ class RoommateBoardRepositoryTest {
         // When
         List<org.example.knockin.dto.BoardDetailDto.Response.Condition> conditions =
                 preferenceConditionRepository.getConditionDtoByMemberId(member.getId());
+        List<MatchingPreferenceConditionRow> matchingRows =
+                preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(List.of(member.getId()));
 
         // Then
         assertThat(conditions).singleElement()
@@ -661,7 +664,10 @@ class RoommateBoardRepositoryTest {
                     assertThat(condition.getValue()).isEqualTo("비흡연");
                     assertThat(condition.getDescription()).isEqualTo("비흡연 선호");
                     assertThat(condition.getType()).isEqualTo(LifePatternType.BOOLEAN);
+                    assertThat(condition.getImageUrl()).isEqualTo("smoking.png");
                 });
+        assertThat(matchingRows).singleElement()
+                .satisfies(row -> assertThat(row.imageUrl()).isEqualTo("smoking.png"));
     }
 
     @Test
@@ -671,6 +677,8 @@ class RoommateBoardRepositoryTest {
         Member member = persistMember("provider-detail-condition-weights");
         LifePattern sleepPattern = persistLifePattern("취침", LifePatternType.SCALE, 2);
         LifePattern noisePattern = persistLifePattern("소음", LifePatternType.SCALE, 1);
+        persistLifePatternFile(sleepPattern, persistFile("sleep.png"));
+        persistLifePatternFile(noisePattern, persistFile("noise.png"));
         persistPreferenceConditionWeight(member, sleepPattern);
         persistPreferenceConditionWeight(member, noisePattern);
         entityManager.flush();
@@ -679,6 +687,9 @@ class RoommateBoardRepositoryTest {
         // When
         List<org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight> conditionWeights =
                 preferenceConditionWeightRepository.getConditionWeightDtoByMemberId(member.getId());
+        List<MatchingPreferenceConditionWeightRow> matchingRows =
+                preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(
+                        List.of(member.getId()));
 
         // Then
         assertThat(conditionWeights)
@@ -687,6 +698,16 @@ class RoommateBoardRepositoryTest {
         assertThat(conditionWeights)
                 .extracting(org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight::getWeightConditionId)
                 .doesNotContainNull();
+        assertThat(conditionWeights)
+                .extracting(org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight::getImageUrl)
+                .containsExactlyInAnyOrder("sleep.png", "noise.png");
+        assertThat(matchingRows)
+                .extracting(MatchingPreferenceConditionWeightRow::name,
+                        MatchingPreferenceConditionWeightRow::imageUrl)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("취침", "sleep.png"),
+                        org.assertj.core.groups.Tuple.tuple("소음", "noise.png")
+                );
     }
 
     @Test
@@ -904,6 +925,33 @@ class RoommateBoardRepositoryTest {
                 .build();
         entityManager.persist(file);
         return file;
+    }
+
+    private RoomTypeFile persistRoomTypeFile(RoomType roomType, File file) {
+        RoomTypeFile roomTypeFile = RoomTypeFile.builder()
+                .roomType(roomType)
+                .file(file)
+                .build();
+        entityManager.persist(roomTypeFile);
+        return roomTypeFile;
+    }
+
+    private RoomExtraOptionFile persistRoomExtraOptionFile(RoomExtraOption roomExtraOption, File file) {
+        RoomExtraOptionFile roomExtraOptionFile = RoomExtraOptionFile.builder()
+                .roomExtraOption(roomExtraOption)
+                .file(file)
+                .build();
+        entityManager.persist(roomExtraOptionFile);
+        return roomExtraOptionFile;
+    }
+
+    private LifePatternFile persistLifePatternFile(LifePattern lifePattern, File file) {
+        LifePatternFile lifePatternFile = LifePatternFile.builder()
+                .lifePattern(lifePattern)
+                .file(file)
+                .build();
+        entityManager.persist(lifePatternFile);
+        return lifePatternFile;
     }
 
     private BasicInformationFile persistBasicInformationFile(BasicInformation basicInformation, File file) {
