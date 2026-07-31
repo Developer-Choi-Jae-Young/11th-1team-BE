@@ -59,7 +59,7 @@ public class UserController {
         return CommonResponse.status(HttpStatus.OK).body(onBoardingService.saveAll(request, principalDetails.getMember().getId()));
     }
 
-    @PutMapping(name = "/profile/basic", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/profile/basic", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "기본정보 수정")
     public CommonResponse<ModifyProfileBasicDto.Response> modifyBasicInfo(@Valid @RequestBody ModifyProfileBasicDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file, @AuthenticationPrincipal PrincipalDetails principalDetails) {
         return CommonResponse.status(HttpStatus.OK).body(onBoardingService.modifyBasicInfoLogic(request, principalDetails.getMember().getId(), file));

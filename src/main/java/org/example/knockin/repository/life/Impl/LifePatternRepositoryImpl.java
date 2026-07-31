@@ -1,8 +1,6 @@
 package org.example.knockin.repository.life.Impl;
 
-import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoLifeStylePatternDetailDto;
@@ -18,6 +16,8 @@ import static com.querydsl.core.group.GroupBy.groupBy;
 import static com.querydsl.core.group.GroupBy.list;
 import static org.example.knockin.entity.life.QLifePattern.lifePattern;
 import static org.example.knockin.entity.life.QLifePatternInformation.lifePatternInformation;
+import static org.example.knockin.entity.life.QLifePatternFile.lifePatternFile;
+import static org.example.knockin.entity.file.QFile.file;
 
 @Repository
 @RequiredArgsConstructor
@@ -29,6 +29,8 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
         return jpaQueryFactory
                 .from(lifePattern)
                 .leftJoin(lifePatternInformation).on(lifePatternInformation.lifePattern.id.eq(lifePattern.id))
+                .leftJoin(lifePatternFile).on(lifePatternFile.lifePattern.eq(lifePattern))
+                .leftJoin(file).on(lifePatternFile.file.eq(file))
                 .where(lifePattern.isDeleted.eq(false))
                 .orderBy(lifePattern.sort.asc())
                 .transform(groupBy(lifePattern.id).list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.class,
@@ -36,6 +38,7 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                                         lifePattern.name,
                                         lifePattern.lifePatternDescription,
                                         lifePattern.preferenceDescription,
+                                        file.savedFileName.as("image"),
                                         lifePattern.dtype.as("type"),
                                         list(Projections.fields(MetaLifestylePatternsDto.Response.PatternItem.DetailItem.class,
                                                 lifePatternInformation.id,
@@ -66,8 +69,9 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
     public BoLifeStylePatternDetailDto.Response findLifeStylePattern(Long patternId) {
         return jpaQueryFactory
                 .from(lifePattern)
-                .leftJoin(lifePatternInformation)
-                .on(lifePatternInformation.lifePattern.id.eq(lifePattern.id))
+                .leftJoin(lifePatternInformation).on(lifePatternInformation.lifePattern.id.eq(lifePattern.id))
+                .leftJoin(lifePatternFile).on(lifePatternFile.lifePattern.eq(lifePattern))
+                .leftJoin(file).on(lifePatternFile.file.eq(file))
                 .where(lifePattern.id.eq(patternId), lifePattern.isDeleted.eq(false))
                 .transform(groupBy(lifePattern.id).as(Projections.fields(
                                         BoLifeStylePatternDetailDto.Response.class,
@@ -76,6 +80,7 @@ public class LifePatternRepositoryImpl implements LifePatternRepositoryCustom {
                                         lifePattern.dtype.as("type"),
                                         lifePattern.lifePatternDescription,
                                         lifePattern.preferenceDescription,
+                                        file.savedFileName.as("image"),
                                         list(Projections.fields(BoLifeStylePatternDetailDto.Response.DetailItem.class,
                                                         lifePatternInformation.dvalue.as("values"),
                                                         lifePatternInformation.description)).as("details")))).get(patternId);

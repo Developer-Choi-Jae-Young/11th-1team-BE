@@ -2,10 +2,12 @@ package org.example.knockin.service.impl;
 
 
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.dto.MetaRoomTypesDto;
 import org.example.knockin.entity.room.*;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.RoomTypeErrorCode;
 import org.example.knockin.repository.room.OfferRoomTypeRepository;
+import org.example.knockin.repository.room.RoomTypeFileRepository;
 import org.example.knockin.repository.room.RoomTypeRepository;
 import org.example.knockin.repository.room.SeekerRoomTypeRepository;
 import org.springframework.data.domain.Pageable;
@@ -18,12 +20,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoomTypeServiceImpl {
     private final RoomTypeRepository roomTypeRepository;
+    private final RoomTypeFileRepository roomTypeFileRepository;
     private final OfferRoomTypeRepository offerRoomTypeRepository;
     private final SeekerRoomTypeRepository seekerRoomTypeRepository;
 
     @Transactional
     public RoomType saveRoomType(RoomType roomType) {
         return roomTypeRepository.save(roomType);
+    }
+
+    @Transactional
+    public RoomTypeFile saveRoomTypeFile(RoomTypeFile roomTypeFile) {
+        return roomTypeFileRepository.save(roomTypeFile);
     }
 
     @Transactional
@@ -52,7 +60,7 @@ public class RoomTypeServiceImpl {
         return roomTypeRepository.findByRoomTypes(roomTypes);
     }
 
-    public List<RoomType> findAllByIsDeleted(boolean isDeleted) {
+    public List<MetaRoomTypesDto.Response.RoomTypeItem> findAllByIsDeleted(boolean isDeleted) {
         return roomTypeRepository.findAllByIsDeleted(isDeleted);
     }
 
@@ -76,5 +84,9 @@ public class RoomTypeServiceImpl {
     public RoomSeekerProfile deleteByRoomSeekerProfile(RoomSeekerProfile seekerProfile) {
         seekerRoomTypeRepository.deleteByRoomSeekerProfile(seekerProfile);
         return seekerProfile;
+    }
+
+    public RoomTypeFile findRoomTypeFile(RoomType roomType) {
+        return roomTypeFileRepository.findByRoomType(roomType).orElse(null);
     }
 }

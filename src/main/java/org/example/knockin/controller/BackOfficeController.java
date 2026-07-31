@@ -11,8 +11,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -84,10 +86,10 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLastTerms(request, termsId));
     }
 
-    @PostMapping("/room-add-options")
+    @PostMapping(value = "/room-add-options", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "방 추가 옵션 저장")
-    public CommonResponse<BoRoomAddOptionDto.Response> saveRoomAddOptions(@RequestBody BoRoomAddOptionDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomAddOptions(request));
+    public CommonResponse<BoRoomAddOptionDto.Response> saveRoomAddOptions(@RequestBody BoRoomAddOptionDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomAddOptions(request, file));
     }
 
     @GetMapping("/room-add-options")
@@ -96,10 +98,10 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomAddOptionsList(pageable));
     }
 
-    @PutMapping("/room-add-options/{id}")
+    @PutMapping(value = "/room-add-options/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "방 추가 옵션 수정")
-    public CommonResponse<BoRoomAddOptionDto.Response> modifyRoomAddOptions(@PathVariable Long id, @RequestBody BoRoomAddOptionDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomAddOptions(request, id));
+    public CommonResponse<BoRoomAddOptionDto.Response> modifyRoomAddOptions(@PathVariable Long id, @RequestBody BoRoomAddOptionDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomAddOptions(request, id, file));
     }
 
     @DeleteMapping("/room-add-options/{id}")
@@ -114,10 +116,10 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomAddOptions(id));
     }
 
-    @PostMapping("/room-types")
+    @PostMapping(value = "/room-types", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "방 유형 저장")
-    public CommonResponse<BoRoomTypeDto.Response> saveRoomType(@RequestBody BoRoomTypeDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomType(request));
+    public CommonResponse<BoRoomTypeDto.Response> saveRoomType(@RequestBody BoRoomTypeDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveRoomType(request, file));
     }
 
     @GetMapping("/room-types")
@@ -126,10 +128,10 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findRoomTypeList(pageable));
     }
 
-    @PutMapping("/room-types/{id}")
+    @PutMapping(value = "/room-types/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "방 유형 수정")
-    public CommonResponse<BoRoomTypeDto.Response> modifyRoomType(@PathVariable Long id, @RequestBody BoRoomTypeDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomType(request, id));
+    public CommonResponse<BoRoomTypeDto.Response> modifyRoomType(@PathVariable Long id, @RequestBody BoRoomTypeDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyRoomType(request, id, file));
     }
 
     @DeleteMapping("/room-types/{id}")
@@ -156,16 +158,16 @@ public class BackOfficeController {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.findLifeStylePattern(id));
     }
 
-    @PostMapping("/lifestyle-patterns")
+    @PostMapping(value = "/lifestyle-patterns", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "라이프스타일 패턴 저장")
-    public CommonResponse<BoLifeStylePatternDto.Response> saveLifeStylePattern(@RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveLifeStylePattern(request));
+    public CommonResponse<BoLifeStylePatternDto.Response> saveLifeStylePattern(@RequestBody BoLifeStylePatternDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveLifeStylePattern(request, file));
     }
 
-    @PutMapping("/lifestyle-patterns/{id}")
+    @PutMapping(value = "/lifestyle-patterns/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "라이프스타일 패턴 수정")
-    public CommonResponse<BoLifeStylePatternDto.Response> modifyLifeStylePattern(@PathVariable Long id, @RequestBody BoLifeStylePatternDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLifeStylePattern(request, id));
+    public CommonResponse<BoLifeStylePatternDto.Response> modifyLifeStylePattern(@PathVariable Long id, @RequestBody BoLifeStylePatternDto.Request request, @RequestPart(value = "file", required = false) MultipartFile file) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.modifyLifeStylePattern(request, id, file));
     }
 
     @DeleteMapping("/lifestyle-patterns/{id}")

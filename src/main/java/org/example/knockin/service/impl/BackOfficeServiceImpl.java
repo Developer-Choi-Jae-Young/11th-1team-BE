@@ -5,20 +5,30 @@ import org.example.knockin.dto.*;
 import org.example.knockin.entity.agreement.Agreement;
 import org.example.knockin.entity.agreement.AgreementType;
 import org.example.knockin.entity.alarm.Notification;
+import org.example.knockin.entity.file.BasicInformationFile;
+import org.example.knockin.entity.file.File;
+import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryComment;
 import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternFile;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.room.RoomExtraOption;
+import org.example.knockin.entity.room.RoomExtraOptionFile;
 import org.example.knockin.entity.room.RoomType;
+import org.example.knockin.entity.room.RoomTypeFile;
 import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.BusinessException;
+import org.example.knockin.exception.FileErrorCode;
+import org.example.knockin.service.FileService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -35,6 +45,7 @@ public class BackOfficeServiceImpl {
     private final DeclarationServiceImpl declarationService;
     private final RoommateBoardServiceImpl roommateBoardService;
     private final RoomExtraOptionServiceImpl roomExtraOptionService;
+    private final FileService fileService;
 
     @Transactional
     public BoTermsDto.Response saveTerms(BoTermsDto.Request request) {
@@ -73,9 +84,17 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoRoomTypeDto.Response saveRoomType(BoRoomTypeDto.Request request) {
-        roomTypeService.saveRoomType(RoomType.builder().name(request.getName()).build());
-        return BoRoomTypeDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    public BoRoomTypeDto.Response saveRoomType(BoRoomTypeDto.Request request, MultipartFile file) {
+        try {
+            RoomType roomType = roomTypeService.saveRoomType(RoomType.builder().name(request.getName()).build());
+            if (file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                roomTypeService.saveRoomTypeFile(RoomTypeFile.builder().roomType(roomType).file(fileEntity).build());
+            }
+            return BoRoomTypeDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
     public BoRoomTypeListDto.Response findRoomTypeList(Pageable pageable) {
@@ -85,8 +104,27 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoRoomTypeDto.Response modifyRoomType(BoRoomTypeDto.Request request, Long roomTypeId) {
-        roomTypeService.modifyRoomType(RoomType.builder().name(request.getName()).build(), roomTypeId);
+    public BoRoomTypeDto.Response modifyRoomType(BoRoomTypeDto.Request request, Long roomTypeId, MultipartFile file) {
+        try {
+            RoomType roomType = roomTypeService.findRoomType(roomTypeId);
+            roomTypeService.modifyRoomType(RoomType.builder().name(request.getName()).build(), roomTypeId);
+
+            if(file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                RoomTypeFile roomTypeFile = roomTypeService.findRoomTypeFile(roomType);
+                if(roomTypeFile != null) {
+                    roomTypeFile.modifyFile(fileEntity);
+                } else {
+                    roomTypeService.saveRoomTypeFile(RoomTypeFile.builder()
+                            .file(fileEntity)
+                            .roomType(roomType)
+                            .build());
+                }
+            }
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
+
         return BoRoomTypeDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -98,15 +136,27 @@ public class BackOfficeServiceImpl {
 
     public BoRoomTypeDetailDto.Response findRoomType(Long roomTypeId) {
         RoomType roomType = roomTypeService.findRoomType(roomTypeId);
-        return BoRoomTypeDetailDto.Response.builder().id(roomType.getId()).name(roomType.getName()).build();
+        RoomTypeFile roomTypeFile = roomTypeService.findRoomTypeFile(roomType);
+        String image = (roomTypeFile != null && roomTypeFile.getFile() != null) ? roomTypeFile.getFile().getSavedFileName() : null;
+        return BoRoomTypeDetailDto.Response.builder().id(roomType.getId()).name(roomType.getName()).image(image).build();
     }
 
     @Transactional
-    public BoLifeStylePatternDto.Response saveLifeStylePattern(BoLifeStylePatternDto.Request request) {
-        LifePattern lifePattern = lifeStyleService.saveLifePattern(LifePattern.builder().name(request.getName()).lifePatternDescription(request.getLifePatternDescription()).preferenceDescription(request.getPreferenceDescription()).dtype(request.getType()).sort(request.getSort()).build());
-        List<LifePatternInformation> lifePatternInformationList = request.getDetails().stream().map(item ->
-                LifePatternInformation.builder().lifePattern(lifePattern).dvalue(item.getValues()).description(item.getDescription()).build()).toList();
-        lifeStyleService.saveLifePatternInformation(lifePatternInformationList);
+    public BoLifeStylePatternDto.Response saveLifeStylePattern(BoLifeStylePatternDto.Request request, MultipartFile file) {
+        try {
+            LifePattern lifePattern = lifeStyleService.saveLifePattern(LifePattern.builder().name(request.getName()).lifePatternDescription(request.getLifePatternDescription()).preferenceDescription(request.getPreferenceDescription()).dtype(request.getType()).sort(request.getSort()).build());
+            List<LifePatternInformation> lifePatternInformationList = request.getDetails().stream().map(item ->
+                    LifePatternInformation.builder().lifePattern(lifePattern).dvalue(item.getValues()).description(item.getDescription()).build()).toList();
+            lifeStyleService.saveLifePatternInformation(lifePatternInformationList);
+
+            if (file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                lifeStyleService.saveLifePatternFile(LifePatternFile.builder().lifePattern(lifePattern).file(fileEntity).build());
+            }
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
+
         return BoLifeStylePatternDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -119,12 +169,30 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoLifeStylePatternDto.Response modifyLifeStylePattern(BoLifeStylePatternDto.Request request, Long patternId) {
-        LifePattern lifePattern = lifeStyleService.findLifeStyle(patternId);
-        lifeStyleService.deleteLifeInformationByPattern(lifePattern);
-        request.getDetails().forEach(detail ->
-                lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build()));
-        lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
+    public BoLifeStylePatternDto.Response modifyLifeStylePattern(BoLifeStylePatternDto.Request request, Long patternId, MultipartFile file) {
+        try {
+            LifePattern lifePattern = lifeStyleService.findLifeStyle(patternId);
+            lifeStyleService.deleteLifeInformationByPattern(lifePattern);
+            request.getDetails().forEach(detail ->
+                    lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build()));
+            lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
+
+            if(file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                LifePatternFile lifePatternFile = lifeStyleService.findLifeStyleFile(lifePattern);
+                if(lifePatternFile != null) {
+                    lifePatternFile.modifyFile(fileEntity);
+                } else {
+                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder()
+                            .file(fileEntity)
+                            .lifePattern(lifePattern)
+                            .build());
+                }
+            }
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
+
         return BoLifeStylePatternDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -309,9 +377,17 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoRoomAddOptionDto.Response saveRoomAddOptions(BoRoomAddOptionDto.Request request) {
-        roomExtraOptionService.saveRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build());
-        return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    public BoRoomAddOptionDto.Response saveRoomAddOptions(BoRoomAddOptionDto.Request request, MultipartFile file) {
+        try {
+            RoomExtraOption roomExtraOption = roomExtraOptionService.saveRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build());
+            if (file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                roomExtraOptionService.saveRoomExtraOptionFile(RoomExtraOptionFile.builder().roomExtraOption(roomExtraOption).file(fileEntity).build());
+            }
+            return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
     public BoRoomAddOptionListDto.Response findRoomAddOptionsList(Pageable pageable) {
@@ -321,8 +397,27 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoRoomAddOptionDto.Response modifyRoomAddOptions(BoRoomAddOptionDto.Request request, Long id) {
-        roomExtraOptionService.modifyRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build(), id);
+    public BoRoomAddOptionDto.Response modifyRoomAddOptions(BoRoomAddOptionDto.Request request, Long id, MultipartFile file) {
+        try {
+            RoomExtraOption roomExtraOption = roomExtraOptionService.findRoomAddOptions(id);
+            roomExtraOptionService.modifyRoomExtraOption(RoomExtraOption.builder().name(request.getName()).build(), id);
+
+            if(file != null && !file.isEmpty()) {
+                File fileEntity = fileService.save(file, FileType.ETC);
+                RoomExtraOptionFile roomExtraOptionFile = roomExtraOptionService.findRoomExtraOptionFile(roomExtraOption);
+                if(roomExtraOptionFile != null) {
+                    roomExtraOptionFile.modifyFile(fileEntity);
+                } else {
+                    roomExtraOptionService.saveRoomExtraOptionFile(RoomExtraOptionFile.builder()
+                            .file(fileEntity)
+                            .roomExtraOption(roomExtraOption)
+                            .build());
+                }
+            }
+        } catch (IOException e) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_FAILED);
+        }
+
         return BoRoomAddOptionDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -334,6 +429,8 @@ public class BackOfficeServiceImpl {
 
     public BoRoomAddOptionDetailDto.Response findRoomAddOptions(Long id) {
         RoomExtraOption roomExtraOption = roomExtraOptionService.findRoomAddOptions(id);
-        return BoRoomAddOptionDetailDto.Response.builder().id(roomExtraOption.getId()).name(roomExtraOption.getName()).build();
+        RoomExtraOptionFile roomExtraOptionFile = roomExtraOptionService.findRoomExtraOptionFile(roomExtraOption);
+        String image = (roomExtraOptionFile != null && roomExtraOptionFile.getFile() != null) ? roomExtraOptionFile.getFile().getSavedFileName() : null;
+        return BoRoomAddOptionDetailDto.Response.builder().id(roomExtraOption.getId()).name(roomExtraOption.getName()).image(image).build();
     }
 }

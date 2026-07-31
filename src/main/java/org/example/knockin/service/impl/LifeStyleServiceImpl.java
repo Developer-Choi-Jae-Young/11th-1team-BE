@@ -5,9 +5,11 @@ import org.example.knockin.dto.BoLifeStylePatternDetailDto;
 import org.example.knockin.dto.BoLifeStylePatternListDto;
 import org.example.knockin.dto.MetaLifestylePatternsDto;
 import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternFile;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.LifePatternErrorCode;
+import org.example.knockin.repository.life.LifePatternFileRepository;
 import org.example.knockin.repository.life.LifePatternInformationRepository;
 import org.example.knockin.repository.life.LifePatternRepository;
 import org.springframework.data.domain.Pageable;
@@ -20,11 +22,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LifeStyleServiceImpl {
     private final LifePatternRepository lifePatternRepository;
+    private final LifePatternFileRepository lifePatternFileRepository;
     private final LifePatternInformationRepository lifePatternInformationRepository;
 
     @Transactional
     public LifePattern saveLifePattern(LifePattern lifePattern) {
         return lifePatternRepository.save(lifePattern);
+    }
+
+    @Transactional
+    public LifePatternFile saveLifePatternFile(LifePatternFile lifePatternFile) {
+        return lifePatternFileRepository.save(lifePatternFile);
     }
 
     @Transactional
@@ -60,6 +68,10 @@ public class LifeStyleServiceImpl {
 
     public LifePattern findLifeStyle(Long patternId) {
         return lifePatternRepository.findById(patternId).orElseThrow(() -> new BusinessException(LifePatternErrorCode.LIFE_PATTERN_NOT_FOUNT));
+    }
+
+    public LifePatternFile findLifeStyleFile(LifePattern lifePattern) {
+        return lifePatternFileRepository.findByLifePattern(lifePattern).orElse(null);
     }
 
     public List<LifePattern> findAllById(List<Long> lifeStyles) {

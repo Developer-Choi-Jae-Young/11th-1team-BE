@@ -1,5 +1,6 @@
 package org.example.knockin.service.impl;
  
+import org.example.knockin.dto.MetaRoomAddOptionsDto;
 import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.repository.room.RoomExtraOptionRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -26,9 +27,9 @@ class RoomExtraOptionServiceImplTest {
     private RoomExtraOptionServiceImpl roomExtraOptionService;
  
     @Test
-    @DisplayName("ID 목록으로 방 추가옵션 조회 테스트")
+    @DisplayName("ID 목록으로 방 추가옵션 목록 조회 테스트")
     void findAllByIdTest() {
-        List<Long> ids = List.of(1L, 2L);
+        List<Long> ids = List.of(1L);
         RoomExtraOption option = mock(RoomExtraOption.class);
         given(roomExtraOptionRepository.findAllById(ids)).willReturn(List.of(option));
  
@@ -41,10 +42,11 @@ class RoomExtraOptionServiceImplTest {
     @Test
     @DisplayName("삭제 상태별 방 추가옵션 목록 조회 테스트")
     void findAllByIsDeletedTest() {
-        RoomExtraOption option = mock(RoomExtraOption.class);
+        MetaRoomAddOptionsDto.Response.RoomAddOptionItem option = MetaRoomAddOptionsDto.Response.RoomAddOptionItem.builder()
+                .id(1L).name("에어컨").image("http://example.com/icon.png").build();
         given(roomExtraOptionRepository.findAllByIsDeleted(false)).willReturn(List.of(option));
  
-        List<RoomExtraOption> result = roomExtraOptionService.findAllByIsDeleted(false);
+        List<MetaRoomAddOptionsDto.Response.RoomAddOptionItem> result = roomExtraOptionService.findAllByIsDeleted(false);
  
         assertThat(result).hasSize(1);
         verify(roomExtraOptionRepository).findAllByIsDeleted(false);
