@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -352,6 +353,37 @@ class RoommateRequestServiceImplTest {
         );
 
         assertSocketResponse(chatRoomId, response);
+    }
+
+    @Test
+    @DisplayName("요청자나 피요청자에게 현재 룸메이트가 있으면 요청 수락을 거부한다")
+    void acceptRequiredRejectsWhenRoommateAlreadyExists() {
+        // Given
+        Long requestId = 1000L;
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        Member requester = member(requesterId);
+        Member requestee = member(requesteeId);
+        RoommateMatchingRequired roommateRequest = persistedRoommateRequest(
+                roommateRequest(requester, requestee, chattingRoom(10L), RoommateRequiredStatus.PENDING),
+                requestId
+        );
+
+        when(roommateMatchingRequiredRepository.findById(requestId)).thenReturn(Optional.of(roommateRequest));
+        when(myRoommateRepository.isExistRoomMate(requester)).thenReturn(false);
+        when(myRoommateRepository.isExistRoomMate(requestee)).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> roommateRequestService.acceptRequired(requesteeId, requestId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RequiredErrorCode.ROOMMATE_ALREADY_EXISTS));
+
+        assertThat(roommateRequest.getStatus()).isEqualTo(RoommateRequiredStatus.PENDING);
+        verify(myRoommateRepository).isExistRoomMate(requester);
+        verify(myRoommateRepository).isExistRoomMate(requestee);
+        verify(myRoommateRepository, never()).save(any(MyRoommate.class));
+        verifyNoInteractions(memberPrivacyService, basicInformationRepository, roommateMatchingRequiredAlarmRepository,
+                alarmService, pushNotificationService, messagingTemplate);
     }
 
     @Test

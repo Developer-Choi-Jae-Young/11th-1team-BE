@@ -108,11 +108,16 @@ public class RoommateRequestServiceImpl {
         }
 
         validateRequired(roommateMatchingRequired);
-        roommateMatchingRequired.accept();
-        myRoomMateService.save(roommateMatchingRequired);
 
         Member requester = roommateMatchingRequired.getRequester();
         Member requestee = roommateMatchingRequired.getRequestee();
+        if (myRoomMateService.isExistRoomMate(requester) || myRoomMateService.isExistRoomMate(requestee)) {
+            throw new BusinessException(RequiredErrorCode.ROOMMATE_ALREADY_EXISTS);
+        }
+
+        roommateMatchingRequired.accept();
+        myRoomMateService.save(roommateMatchingRequired);
+
         changePrivacyStateToPrivate(requester, requestee);
         sendAlarms(requester, requestee, roommateMatchingRequired);
 
