@@ -290,7 +290,7 @@ class RoommateRequestServiceImplTest {
     }
 
     @Test
-    @DisplayName("피요청자가 요청을 수락하면 상태를 수락으로 변경하고 내 룸메이트와 알림과 채팅방 소켓 이벤트를 저장한다")
+    @DisplayName("피요청자가 요청을 수락하면 양쪽을 비공개로 변경하고 내 룸메이트와 알림과 채팅방 소켓 이벤트를 저장한다")
     void acceptRequiredChangesStatusAndPublishesSideEffects() {
         // Given
         Long requestId = 1000L;
@@ -308,9 +308,13 @@ class RoommateRequestServiceImplTest {
         when(roommateMatchingRequiredRepository.findById(requestId)).thenReturn(Optional.of(roommateRequest));
         when(basicInformationRepository.findLatestBasicInformation(requestee))
                 .thenReturn(Optional.of(basicInformation(requestee, "이수현")));
+        MemberPrivacy requesterPrivacy = MemberPrivacy.builder()
+                .type(MemberPrivacyType.PUBLIC)
+                .build();
         MemberPrivacy requesteePrivacy = MemberPrivacy.builder()
                 .type(MemberPrivacyType.PUBLIC)
                 .build();
+        when(memberPrivacyService.findByMemberId(requesterId)).thenReturn(List.of(requesterPrivacy));
         when(memberPrivacyService.findByMemberId(requesteeId)).thenReturn(List.of(requesteePrivacy));
 
         // When
@@ -328,7 +332,9 @@ class RoommateRequestServiceImplTest {
         verify(myRoommateRepository).save(myRoommateCaptor.capture());
         assertThat(myRoommateCaptor.getValue().getRoommateMatchingRequired()).isSameAs(roommateRequest);
         assertThat(myRoommateCaptor.getValue().getIsDeleted()).isFalse();
+        assertThat(requesterPrivacy.getType()).isEqualTo(MemberPrivacyType.PRIVATE);
         assertThat(requesteePrivacy.getType()).isEqualTo(MemberPrivacyType.PRIVATE);
+        verify(memberPrivacyService).findByMemberId(requesterId);
         verify(memberPrivacyService).findByMemberId(requesteeId);
 
         ArgumentCaptor<RoommateMatchingRequiredAlarm> alarmCaptor = ArgumentCaptor.forClass(RoommateMatchingRequiredAlarm.class);

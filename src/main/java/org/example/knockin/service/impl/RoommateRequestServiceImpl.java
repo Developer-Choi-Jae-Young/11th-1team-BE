@@ -113,15 +113,21 @@ public class RoommateRequestServiceImpl {
 
         Member requester = roommateMatchingRequired.getRequester();
         Member requestee = roommateMatchingRequired.getRequestee();
+        changePrivacyStateToPrivate(requester, requestee);
         sendAlarms(requester, requestee, roommateMatchingRequired);
 
         Response response = toDto(roommateMatchingRequired);
         sendRequestMessage(roommateMatchingRequired.getChattingRoom().getId(), response);
 
-        MemberPrivacy memberPrivacy = memberPrivacyService.findByMemberId(memberId).getFirst();
-        memberPrivacy.changeState(MemberPrivacyType.PRIVATE);
-
         return response;
+    }
+
+    private void changePrivacyStateToPrivate(Member requester, Member requestee) {
+        MemberPrivacy requesterPrivacy = memberPrivacyService.findByMemberId(requester.getId()).getFirst();
+        MemberPrivacy requesteePrivacy = memberPrivacyService.findByMemberId(requestee.getId()).getFirst();
+
+        requesterPrivacy.changeState(MemberPrivacyType.PRIVATE);
+        requesteePrivacy.changeState(MemberPrivacyType.PRIVATE);
     }
 
     @Transactional
