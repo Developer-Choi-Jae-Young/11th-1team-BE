@@ -151,8 +151,8 @@ public class UserController {
 
     @GetMapping("/verifications")
     @Operation(summary = "내 인증 현황 조회")
-    public CommonResponse<MyVerificationListDto.Response> findVerificationList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(new MyVerificationListDto.Response());
+    public CommonResponse<MyVerificationListDto.Response> findVerificationList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(onBoardingService.findVerificationList(pageable, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/notification-settings")
@@ -163,8 +163,8 @@ public class UserController {
 
     @PatchMapping("/notification-settings")
     @Operation(summary = "알림 설정 수정")
-    public CommonResponse<AlarmSettingDto.Response> modifyAlaramSetting(@RequestBody AlarmSettingDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.modifyAlaramSetting(request, principalDetails.getMember().getId()));
+    public CommonResponse<AlarmSettingDto.Response> modifyAlarmSetting(@RequestBody AlarmSettingDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.modifyAlarmSetting(request, principalDetails.getMember().getId()));
     }
 
     @GetMapping("/notices")

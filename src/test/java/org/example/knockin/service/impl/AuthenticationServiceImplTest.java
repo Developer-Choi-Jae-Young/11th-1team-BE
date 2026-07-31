@@ -409,4 +409,37 @@ class AuthenticationServiceImplTest {
         assertThat(approve.getStatus()).isEqualTo(ApproveType.REJECT);
         assertThat(approve.getRejectReason()).isEqualTo(rejectReason);
     }
+
+    @Test
+    @DisplayName("내 인증 현황 목록 조회 성공 테스트")
+    void findVerificationListSuccessTest() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        Member member = Member.builder().id(1L).build();
+        MyVerificationListDto.Response.AuthInfo studentAuth = MyVerificationListDto.Response.AuthInfo.builder()
+                .isAccepted(true)
+                .email("student@univ.ac.kr")
+                .createAt(LocalDateTime.now())
+                .build();
+        MyVerificationListDto.Response.AuthInfo employeeAuth = MyVerificationListDto.Response.AuthInfo.builder()
+                .isAccepted(false)
+                .email("employee@company.com")
+                .createAt(LocalDateTime.now())
+                .build();
+
+        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT)).willReturn(studentAuth);
+        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY)).willReturn(employeeAuth);
+
+        // when
+        MyVerificationListDto.Response response = authenticationService.findVerificationList(pageable, member);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getStudentAuth()).isNotNull();
+        assertThat(response.getStudentAuth().getIsAccepted()).isTrue();
+        assertThat(response.getStudentAuth().getEmail()).isEqualTo("student@univ.ac.kr");
+        assertThat(response.getEmployeeAuth()).isNotNull();
+        assertThat(response.getEmployeeAuth().getIsAccepted()).isFalse();
+        assertThat(response.getEmployeeAuth().getEmail()).isEqualTo("employee@company.com");
+    }
 }

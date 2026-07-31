@@ -6,15 +6,14 @@ import static org.example.knockin.entity.auth.QAuthenticationApprove.authenticat
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.BoVerificationApproveListDto;
-import org.example.knockin.dto.BoVerificationCancelListDto;
-import org.example.knockin.dto.BoVerificationWaitingDetailDto;
-import org.example.knockin.dto.BoVerificationWaitingListDto;
+import org.example.knockin.dto.*;
 import org.example.knockin.entity.auth.ApproveType;
 import org.example.knockin.entity.auth.AuthenticationType;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.auth.AuthenticationRepositoryCustom;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.jspecify.annotations.NullMarked;
@@ -126,5 +125,24 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authentication.id.eq(id))
                 .fetchOne();
+    }
+
+    @Override
+    public MyVerificationListDto.Response.AuthInfo findVerificationList(Pageable pageable, Member memberEntity, AuthenticationType authenticationType) {
+        return jpaQueryFactory
+                .select(Projections.fields(MyVerificationListDto.Response.AuthInfo.class,
+                        authenticationApprove.status,
+                        authentication.email,
+                        authentication.createdAt.as("createAt")
+                ))
+                .from(authentication)
+                .leftJoin(authenticationApprove).on(authenticationApprove.authentication.eq(authentication))
+                .where(
+                        authentication.member.eq(memberEntity),
+                        authentication.isDeleted.isFalse(),
+                        authentication.type.eq(authenticationType)
+                )
+                .orderBy(authentication.createdAt.desc())
+                .fetchFirst();
     }
 }

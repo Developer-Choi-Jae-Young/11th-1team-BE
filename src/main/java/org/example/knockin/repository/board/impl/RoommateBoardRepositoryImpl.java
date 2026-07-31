@@ -253,31 +253,67 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
 
     @Override
     public Page<MyRoommateBoardRow> findMyBoardList(Pageable page, Member memberEntity) {
+        QRegion boardRegion = new QRegion("searchBoardRegion");
+        QRegion parentRegion = new QRegion("searchParentRegion");
+        QRegion grandParentRegion = new QRegion("searchGrandParentRegion");
+        QBasicInformation latestBasicInformation = new QBasicInformation("searchLatestBasicInformation");
+        QBasicInformationFile latestBasicInformationFile = new QBasicInformationFile("searchLatestBasicInformationFile");
+
         List<MyRoommateBoardRow> content = jpaQueryFactory
-                .select(Projections.constructor(MyRoommateBoardRow.class,
+                .select(Projections.constructor(
+                        MyRoommateBoardRow.class,
                         roommateBoard.id,
                         roommateBoard.title,
                         roommateBoard.deposit,
                         roommateBoard.monthlyRent,
-                        roommateBoard.createdAt,
-                        basicInformation.name,
-                        file.savedFileName,
+                        roommateBoard.managementCost,
+                        roommateBoard.comeableDate,
+                        roommateBoard.hits,
                         roomType.name,
-                        roommateBoard.region
+                        boardRegion.name,
+                        parentRegion.name,
+                        grandParentRegion.name,
+                        member.id,
+                        latestBasicInformation.name,
+                        file.savedFileName,
+                        latestBasicInformation.birth,
+                        latestBasicInformation.gender,
+                        roommateBoard.createdAt
                 ))
                 .from(roommateBoard)
-                .leftJoin(roommateBoardFile).on(roommateBoardFile.roommateBoard.eq(roommateBoard).and(roommateBoardFile.isThumbnail.isTrue()))
-                .leftJoin(roommateBoardFile.file, file)
-                .leftJoin(basicInformation).on(basicInformation.id.eq(JPAExpressions.select(basicInformation.id.max())
-                        .from(basicInformation).where(basicInformation.member.eq(roommateBoard.member))))
-                .leftJoin(roommateBoard.roomType, roomType)
-                .where(roommateBoard.member.eq(memberEntity), roommateBoard.isDeleted.isFalse())
-                .offset(page.getOffset()).limit(page.getPageSize()).orderBy(toBoardOrderSpecifiers(page.getSort())).fetch();
+                .join(roommateBoard.roomType, roomType)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .join(roommateBoard.member, member)
+                .leftJoin(member.basicInformations, latestBasicInformation)
+                .on(latestBasicInformationIdEq(latestBasicInformation))
+                .leftJoin(basicInformationFile)
+                .on(basicInformationFile.id.eq(
+                        JPAExpressions
+                                .select(latestBasicInformationFile.id.max())
+                                .from(latestBasicInformationFile)
+                                .where(latestBasicInformationFile.basicInformation.id.eq(latestBasicInformation.id))
+                ))
+                .leftJoin(basicInformationFile.file, file)
+                .on(file.isDeleted.isFalse())
+                .where(member.eq(memberEntity))
+                .orderBy(toBoardOrderSpecifiers(page.getSort()))
+                .offset(page.getOffset())
+                .limit(page.getPageSize())
+                .fetch();
 
-        Long total = jpaQueryFactory.select(roommateBoard.count()).from(roommateBoard)
-                .where(roommateBoard.member.eq(memberEntity), roommateBoard.isDeleted.isFalse()).fetchOne();
+        Long total = jpaQueryFactory
+                .select(roommateBoard.count())
+                .from(roommateBoard)
+                .join(roommateBoard.roomType, roomType)
+                .join(roommateBoard.region, boardRegion)
+                .leftJoin(boardRegion.parent, parentRegion)
+                .leftJoin(parentRegion.parent, grandParentRegion)
+                .where(member.eq(memberEntity))
+                .fetchOne();
 
-        return new PageImpl<>(content, page, total != null ? total : 0L);
+        return new PageImpl<>(content, page, total == null ? 0 : total);
     }
 
     public Optional<EditFormRow> getEditRow(Long boardId) {
