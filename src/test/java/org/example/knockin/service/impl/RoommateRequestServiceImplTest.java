@@ -39,6 +39,7 @@ import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.room.MyRoommateRepository;
 import org.example.knockin.repository.room.RoommateMatchingRequiredAlarmRepository;
 import org.example.knockin.repository.room.RoommateMatchingRequiredRepository;
+import org.example.knockin.service.RoommateScoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -86,6 +87,12 @@ class RoommateRequestServiceImplTest {
     @Mock
     private PushNotificationServiceImpl pushNotificationService;
 
+    @Mock
+    private RoommateScoreService roommateScoreService;
+
+    @Mock
+    private MyRoommateScoreServiceImpl myRoommateScoreService;
+
     @InjectMocks
     private RoommateRequestServiceImpl roommateRequestService;
 
@@ -94,10 +101,10 @@ class RoommateRequestServiceImplTest {
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         MyRoomMateServiceImpl myRoomMateService = new MyRoomMateServiceImpl(
                 myRoommateRepository,
+                roommateScoreService,
                 null,
                 null,
-                null,
-                null,
+                myRoommateScoreService,
                 null,
                 null
         );

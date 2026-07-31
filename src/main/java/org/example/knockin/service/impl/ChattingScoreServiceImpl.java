@@ -15,4 +15,8 @@ public class ChattingScoreServiceImpl {
     public List<ChattingScore> saveAll(List<ChattingScore> chattingScores) {
         return chattingScoreRepository.saveAll(chattingScores);
     }
+
+    public List<ChattingScore> findByChattingRequiredIdAndMemberId(Long chattingRequiredId, Long memberId) {
+        return chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(chattingRequiredId, memberId);
+    }
 }

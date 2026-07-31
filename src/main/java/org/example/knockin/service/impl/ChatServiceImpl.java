@@ -16,6 +16,7 @@ import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomMessageEvent;
 import org.example.knockin.dto.ChatSocketResponse;
+import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
@@ -26,6 +27,7 @@ import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.Member;
@@ -241,7 +243,7 @@ public class ChatServiceImpl {
         chatRoomMessageService.markUnreadMessagesAsRead(chatRoomId, memberId);
 
         Member opponentMember = chatRoomMemberService.findPartnerMember(chatRoomMember, chatRoomId);
-        ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chatRoomMember, opponentMember);
+        ChatRoomDetailDto.ProfileInfo opponentProfile = getOpponentProfileInfo(chattingRoom, chatRoomMember, opponentMember);
         List<ChatRoomDetailDto.ChatMessage> messages = chatRoomMessageService.findChatMessageDto(chatRoomId);
         List<RoommateMatchingRequiredInfo> matchingRequiredList = roommateMatchingRequiredService.findRequiredDto(chattingRoom);
         boolean blocked = blockService.isBlockedBetween(memberId, opponentMember.getId());
@@ -256,9 +258,11 @@ public class ChatServiceImpl {
                 .build();
     }
 
-    private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChatRoomMember me, Member opponentMember) {
+    private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChattingRoom chattingRoom, ChatRoomMember me, Member opponentMember) {
         ChattingRoomBasicInfoRow row = basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentMember.getId());
-        Integer score = roommateScoreService.calculateSimpleScore(me.getMember().getId(), opponentMember.getId());
+        Long memberId = me.getMember().getId();
+        List<ChattingScore> chattingScores = chattingScoreService.findByChattingRequiredIdAndMemberId(chattingRoom.getChattingRequired().getId(), memberId);
+        Integer score = calculateChattingScore(memberId, opponentMember.getId(), chattingScores);
 
         return ChatRoomDetailDto.ProfileInfo.builder()
                 .id(row.memberId())
@@ -268,6 +272,15 @@ public class ChatServiceImpl {
                 .memberProfileImageUrl(row.profileImageUrl())
                 .score(score)
                 .build();
+    }
+
+    private Integer calculateChattingScore(Long memberId, Long opponentMemberId, List<ChattingScore> chattingScores) {
+        if (chattingScores.isEmpty()) {
+            return roommateScoreService.calculateSimpleScore(memberId, opponentMemberId);
+        }
+
+        Compatibility compatibility = roommateScoreService.calculateChattingCompatibility(memberId, chattingScores);
+        return compatibility.getTotalScore();
     }
 
     @Transactional

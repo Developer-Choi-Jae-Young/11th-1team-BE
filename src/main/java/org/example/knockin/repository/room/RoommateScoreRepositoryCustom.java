@@ -4,5 +4,5 @@ import java.util.List;
 import org.example.knockin.entity.room.RoommateScore;
 
 public interface RoommateScoreRepositoryCustom {
-    List<RoommateScore> findWithScoreDetailsByMyRoommateId(Long myRoommateId);
+    List<RoommateScore> findWithScoreDetailsByMyRoommateIdAndMemberId(Long myRoommateId, Long memberId);
 }

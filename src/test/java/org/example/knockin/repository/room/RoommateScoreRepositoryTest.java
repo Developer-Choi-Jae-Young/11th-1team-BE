@@ -44,7 +44,7 @@ class RoommateScoreRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("내 룸메이트 점수 상세 조회는 궁합 계산에 필요한 연관 정보를 함께 조회한다")
+    @DisplayName("내 룸메이트 점수 상세 조회는 평가자 방향의 점수와 계산에 필요한 연관 정보를 함께 조회한다")
     void findWithScoreDetailsByMyRoommateIdFetchesAssociationsForCompatibilityCalculation() {
         // Given
         Member evaluator = persistMember("score-evaluator");
@@ -53,13 +53,18 @@ class RoommateScoreRepositoryTest {
         LifePattern lifePattern = persistLifePattern("청결 민감도", 1);
         LifePatternInformation information = persistLifePatternInformation(lifePattern, "3");
         MemberLifePatternLog lifePatternLog = persistMemberLifePatternLog(evaluator, information);
+        MemberLifePatternLog targetLifePatternLog = persistMemberLifePatternLog(target, information);
         PreferenceConditionWeightLog weightLog = persistPreferenceConditionWeightLog(evaluator, lifePattern);
         persistRoommateScore(myRoommate, lifePatternLog, weightLog, 80);
+        persistRoommateScore(myRoommate, targetLifePatternLog, null, 20);
         entityManager.flush();
         entityManager.clear();
 
         // When
-        List<RoommateScore> scores = roommateScoreRepository.findWithScoreDetailsByMyRoommateId(myRoommate.getId());
+        List<RoommateScore> scores = roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(
+                myRoommate.getId(),
+                evaluator.getId()
+        );
         RoommateScore score = scores.getFirst();
 
         // Then

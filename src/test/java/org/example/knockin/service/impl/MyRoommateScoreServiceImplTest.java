@@ -25,19 +25,35 @@ class MyRoommateScoreServiceImplTest {
     private MyRoommateScoreServiceImpl myRoommateScoreService;
 
     @Test
+    @DisplayName("룸메이트 점수 목록을 저장한다")
+    void saveAllSavesRoommateScores() {
+        // Given
+        List<RoommateScore> roommateScores = List.of(RoommateScore.builder().score(80).build());
+        when(roommateScoreRepository.saveAll(roommateScores)).thenReturn(roommateScores);
+
+        // When
+        List<RoommateScore> result = myRoommateScoreService.saveAll(roommateScores);
+
+        // Then
+        assertThat(result).isSameAs(roommateScores);
+        verify(roommateScoreRepository).saveAll(roommateScores);
+    }
+
+    @Test
     @DisplayName("내 룸메이트 ID로 점수 상세 목록을 조회한다")
     void findByRoommateIdReturnsScoreDetails() {
         // Given
         Long myRoommateId = 10L;
         RoommateScore roommateScore = RoommateScore.builder().score(80).build();
-        when(roommateScoreRepository.findWithScoreDetailsByMyRoommateId(myRoommateId))
+        Long memberId = 1L;
+        when(roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId))
                 .thenReturn(List.of(roommateScore));
 
         // When
-        List<RoommateScore> result = myRoommateScoreService.findByRoommateId(myRoommateId);
+        List<RoommateScore> result = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
 
         // Then
         assertThat(result).containsExactly(roommateScore);
-        verify(roommateScoreRepository).findWithScoreDetailsByMyRoommateId(myRoommateId);
+        verify(roommateScoreRepository).findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId);
     }
 }

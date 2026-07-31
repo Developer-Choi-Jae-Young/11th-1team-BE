@@ -25,6 +25,7 @@ import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomMessageEvent;
 import org.example.knockin.dto.ChatSocketResponse;
+import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
@@ -285,6 +286,7 @@ class ChatServiceImplTest {
                         .updatedAt(LocalDateTime.of(2026, 6, 23, 10, 30))
                         .build()
         );
+        List<ChattingScore> chattingScores = List.of(ChattingScore.builder().score(87).build());
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
@@ -300,7 +302,10 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(2L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
-        when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
+        when(chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(100L, memberId))
+                .thenReturn(chattingScores);
+        when(roommateScoreService.calculateChattingCompatibility(memberId, chattingScores))
+                .thenReturn(new Compatibility(87, List.of()));
         when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
         when(myRoomMateService.isExistRoomMate(opponent)).thenReturn(true);
 
@@ -313,12 +318,13 @@ class ChatServiceImplTest {
         assertThat(response.getOpponentProfile().getAge()).isEqualTo(DateUtils.calculateAge(opponentBirth));
         assertThat(response.getOpponentProfile().getGender()).isEqualTo(Gender.FEMALE);
         assertThat(response.getOpponentProfile().getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
-        assertThat(response.getOpponentProfile().getScore()).isEqualTo(100);
+        assertThat(response.getOpponentProfile().getScore()).isEqualTo(87);
         assertThat(response.getMessages()).isSameAs(messages);
         assertThat(response.getMatchingRequiredList()).isSameAs(matchingRequiredList);
         assertThat(response.isBlocked()).isTrue();
         assertThat(response.isOpponentHasRoommate()).isTrue();
         verify(myRoomMateService).isExistRoomMate(opponent);
+        verify(roommateScoreService, never()).calculateSimpleScore(memberId, opponent.getId());
 
         InOrder detailOrder = inOrder(
                 chattingRoomRepository,
@@ -383,6 +389,8 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(0L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(List.of());
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(List.of());
+        when(chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(100L, memberId))
+                .thenReturn(List.of());
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
         when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(false);
 
@@ -1086,7 +1094,8 @@ class ChatServiceImplTest {
     }
 
     private ChattingRoom chattingRoom() {
-        return ChattingRoom.builder().build();
+        ChattingRequired chattingRequired = ChattingRequired.builder().id(100L).build();
+        return ChattingRoom.builder().chattingRequired(chattingRequired).build();
     }
 
     private ChattingRoom persistedChattingRoom(ChattingRoom chattingRoom, Long id) {

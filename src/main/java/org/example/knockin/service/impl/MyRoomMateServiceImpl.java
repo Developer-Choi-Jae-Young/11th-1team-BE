@@ -6,7 +6,6 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.CalendarDto;
 import org.example.knockin.dto.CalendarEditDto;
-import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.HouseRuleDetailDto;
 import org.example.knockin.dto.HouseRuleDto;
 import org.example.knockin.dto.HouseRuleListDto;
@@ -54,7 +53,9 @@ public class MyRoomMateServiceImpl {
                 .roommateMatchingRequired(roommateMatchingRequired)
                 .isDeleted(false)
                 .build();
-        return myRoommateRepository.save(myRoommate);
+        MyRoommate savedMyRoommate = myRoommateRepository.save(myRoommate);
+        myRoommateScoreService.saveAll(roommateScoreService.createRoommateScores(savedMyRoommate));
+        return savedMyRoommate;
     }
 
     @Transactional(readOnly = true)
@@ -69,9 +70,10 @@ public class MyRoomMateServiceImpl {
         MyRoommateInfo myRoommateInfo = toMyRoommateInfo(basicInfoRow);
 
         Long myRoommateId = myRoommate.getId();
-        List<RoommateScore> roommateScores = myRoommateScoreService.findByRoommateId(myRoommateId);
-        Compatibility compatibility = roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores);
-        Integer totalScore = compatibility.getTotalScore();
+        List<RoommateScore> roommateScores = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
+        Integer totalScore = roommateScores.isEmpty()
+                ? roommateScoreService.calculateSimpleScore(memberId, opponentId)
+                : roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores).getTotalScore();
 
         Long chatRoomId = roommateMatchingRequired.getChattingRoom().getId();
 
