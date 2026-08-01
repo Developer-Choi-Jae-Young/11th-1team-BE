@@ -124,7 +124,7 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                 .join(member).on(authentication.member.eq(member))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(member))
                 .where(authentication.id.eq(id))
-                .fetchOne();
+                .fetchFirst();
     }
 
     @Override
