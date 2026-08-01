@@ -96,7 +96,7 @@ class NotificationSettingServiceImplTest {
         given(alarmSettingRepository.findByIdAndMember(100L, member)).willReturn(setting);
 
         // when
-        AlarmSettingDto.Response response = notificationSettingService.modifyAlaramSetting(request, memberId);
+        AlarmSettingDto.Response response = notificationSettingService.modifyAlarmSetting(request, memberId);
 
         // then
         assertThat(response).isNotNull();
@@ -113,7 +113,7 @@ class NotificationSettingServiceImplTest {
         given(memberService.findById(memberId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> notificationSettingService.modifyAlaramSetting(request, memberId))
+        assertThatThrownBy(() -> notificationSettingService.modifyAlarmSetting(request, memberId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
 

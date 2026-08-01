@@ -191,4 +191,14 @@ public class AuthenticationServiceImpl {
     public List<MemberAuthenticationRow> findAcceptedByMemberIds(List<Long> memberIds) {
         return authenticationRepository.findAcceptedByMemberIds(memberIds);
     }
+
+    public MyVerificationListDto.Response findVerificationList(Pageable pageable, Member member) {
+        MyVerificationListDto.Response.AuthInfo studentAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT);
+        MyVerificationListDto.Response.AuthInfo employeeAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY);
+
+        return MyVerificationListDto.Response.builder()
+                .studentAuth(studentAuth)
+                .employeeAuth(employeeAuth)
+                .build();
+    }
 }

@@ -31,7 +31,7 @@ public class NotificationSettingServiceImpl {
     }
 
     @Transactional
-    public AlarmSettingDto.Response modifyAlaramSetting(AlarmSettingDto.Request request, Long memberId) {
+    public AlarmSettingDto.Response modifyAlarmSetting(AlarmSettingDto.Request request, Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByIdAndMember(request.getSettingId(), member);
         alarmSetting.updateEnable(request.getEnabled());

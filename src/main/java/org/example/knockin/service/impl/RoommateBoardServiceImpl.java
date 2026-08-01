@@ -605,19 +605,56 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     public Page<MyBoardListDto.Response.BoardItem> getMyBoardList(Pageable pageable, Member member) {
         Page<MyRoommateBoardRow> rawPage = roommateBoardRepository.findMyBoardList(pageable, member);
 
-        List<MyBoardListDto.Response.BoardItem> boardItems = rawPage.getContent().stream().map(row -> {
-            String fullRegionName = getFullRegionName(row.getRegionEntity());
+        List<Long> boardIds = rawPage.stream().map(MyRoommateBoardRow::getBoardId).toList();
+        List<Long> memberIds = rawPage.stream().map(MyRoommateBoardRow::getMemberId).distinct().toList();
 
+        Map<Long, String> thumbnailByBoardId = roommateBoardFileService.findThumbnailsByBoardIds(boardIds).stream()
+                .collect(Collectors.toMap(
+                        BoardThumbnailRow::boardId,
+                        BoardThumbnailRow::imageUrl,
+                        (first, second) -> first
+                ));
+        Map<Long, List<AuthenticationType>> authenticationsByMemberId =
+                authenticationService.findAcceptedByMemberIds(memberIds).stream()
+                        .collect(Collectors.groupingBy(
+                                MemberAuthenticationRow::memberId,
+                                Collectors.mapping(MemberAuthenticationRow::type, Collectors.toList())
+                        ));
+        Set<Long> interestedBoardIds = findInterestedBoardIds(member.getId(), boardIds);
+
+        Map<Long, Long> activeInterestCountByBoardId =
+                roommateBoardInterestService.findActiveInterestCountsByBoardIds(boardIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                BoardInterestCountRow::boardId,
+                                BoardInterestCountRow::count,
+                                (first, second) -> first));
+
+        List<MyBoardListDto.Response.BoardItem> boardItems = rawPage.getContent().stream().map(row -> {
             return MyBoardListDto.Response.BoardItem.builder()
-                    .boardId(row.getBoardId())
+                    .id(row.getBoardId())
+                    .imageUrl(thumbnailByBoardId.get(row.getBoardId()))
                     .title(row.getTitle())
                     .deposit(row.getDeposit())
                     .monthlyRent(row.getMonthlyRent())
-                    .createdAt(row.getCreatedAt())
+                    .managementCost(row.getManagementCost())
+                    .roomTypes(List.of(row.getRoomTypeName()))
+                    .comeableDate(row.getComeableDate())
+                    .regionFullName(StringUtils.parseToRegionFullName(
+                            row.getGrandParentRegionName(),
+                            row.getParentRegionName(),
+                            row.getRegionName()
+                    ))
+                    .memberId(row.getMemberId())
                     .memberName(row.getMemberName())
-                    .image(row.getImage())
-                    .region(fullRegionName)
-                    .roomTypes(row.getRoomTypeName())
+                    .memberProfileImageUrl(row.getMemberProfileImageUrl())
+                    .memberAge(row.getMemberBirth() == null ? null : DateUtils.calculateAge(row.getMemberBirth()))
+                    .gender(row.getMemberGender())
+                    .authentications(authenticationsByMemberId.getOrDefault(row.getMemberId(), List.of()))
+                    .hits(row.getHits())
+                    .badges(getBadges(activeInterestCountByBoardId.getOrDefault(row.getBoardId(), 0L)))
+                    .interested(interestedBoardIds.contains(row.getBoardId()))
+                    .createdAt(row.getCreatedAt())
                     .build();
         }).toList();
 

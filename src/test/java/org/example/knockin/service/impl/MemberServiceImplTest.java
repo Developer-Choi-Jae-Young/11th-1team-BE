@@ -180,4 +180,20 @@ class MemberServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", MemberErrorCode.MEMBER_NOT_FOUND);
     }
+
+    @Test
+    @DisplayName("로그인 계정 권한(Role) 조회 성공 테스트")
+    void findMyAccountRoleSuccessTest() {
+        // given
+        Long memberId = 1L;
+        Member member = Member.builder().id(memberId).role(MemberRole.ADMIN).build();
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
+
+        // when
+        MyAccountDto.Response response = memberService.findMyAccountRole(memberId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getRole()).isEqualTo(MemberRole.ADMIN);
+    }
 }

@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class OnBoardingServiceImpl {
+    private final AuthenticationServiceImpl authenticationService;
     private final BasicInformationServiceImpl basicInformationService;
     private final MemberServiceImpl memberService;
     private final MemberAgreementServiceImpl memberAgreementService;
@@ -682,5 +683,10 @@ public class OnBoardingServiceImpl {
     public MyProfileAllDto.Response.UserInfo findProfileInfo(Long memberId) {
         Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
         return memberService.findProfileInfo(member);
+    }
+
+    public MyVerificationListDto.Response findVerificationList(Pageable pageable, Long memberId) {
+        Member member = memberService.findById(memberId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        return authenticationService.findVerificationList(pageable, member);
     }
 }
