@@ -43,7 +43,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         String userNameAttributeName = userRequest.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
-        if (userNameAttributeName.isBlank()) {
+        if (userNameAttributeName == null ||userNameAttributeName.isBlank()) {
             userNameAttributeName = "sub";
         }
 

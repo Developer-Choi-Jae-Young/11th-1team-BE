@@ -2,6 +2,7 @@ package org.example.knockin.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.global.api.CommonResponse;
@@ -40,7 +41,7 @@ public class BackOfficeController {
 
     @PostMapping("/type/terms")
     @Operation(summary = "약관 유형 저장")
-    public CommonResponse<BoTypeTermsDto.Response> saveTermType(BoTypeTermsDto.Request request) {
+    public CommonResponse<BoTypeTermsDto.Response> saveTermType(@Valid @RequestBody BoTypeTermsDto.Request request) {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.saveTermType(request));
     }
 
