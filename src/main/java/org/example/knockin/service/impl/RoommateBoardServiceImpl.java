@@ -689,6 +689,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         }
 
         roommateBoard.softDelete();
+        roommateBoardRepository.save(roommateBoard);
         return new Response(LocalDateTime.now());
     }
 
