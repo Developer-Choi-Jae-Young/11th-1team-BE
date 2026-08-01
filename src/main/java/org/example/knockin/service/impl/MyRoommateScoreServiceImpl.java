@@ -12,7 +12,11 @@ public class MyRoommateScoreServiceImpl {
 
     private final RoommateScoreRepository roommateScoreRepository;
 
-    public List<RoommateScore> findByRoommateId(Long myRoommateId) {
-        return roommateScoreRepository.findWithScoreDetailsByMyRoommateId(myRoommateId);
+    public List<RoommateScore> saveAll(List<RoommateScore> roommateScores) {
+        return roommateScoreRepository.saveAll(roommateScores);
+    }
+
+    public List<RoommateScore> findByRoommateIdAndMemberId(Long myRoommateId, Long memberId) {
+        return roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId);
     }
 }

@@ -473,6 +473,7 @@ class RoommateBoardServiceImplTest {
 
         // Then
         assertThat(board.getIsDeleted()).isTrue();
+        verify(roommateBoardRepository).save(board);
         assertThat(response.getUpdatedAt()).isNotNull();
     }
 

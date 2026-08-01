@@ -2,8 +2,10 @@ package org.example.knockin.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -76,6 +78,31 @@ class MyRoomMateServiceImplTest {
     private MyRoomMateServiceImpl myRoomMateService;
 
     @Test
+    @DisplayName("룸메이트를 저장하면 확정 시점의 양방향 궁합 점수도 저장한다")
+    void saveCreatesAndSavesRoommateScores() {
+        // Given
+        Member requester = Member.builder().id(1L).build();
+        Member requestee = Member.builder().id(2L).build();
+        RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
+                .requester(requester)
+                .requestee(requestee)
+                .status(RoommateRequiredStatus.ACCEPTED)
+                .build();
+        List<RoommateScore> roommateScores = List.of(RoommateScore.builder().score(80).build());
+
+        when(myRoommateRepository.save(any(MyRoommate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(roommateScoreService.createRoommateScores(any(MyRoommate.class))).thenReturn(roommateScores);
+
+        // When
+        MyRoommate savedMyRoommate = myRoomMateService.save(matchingRequired);
+
+        // Then
+        assertThat(savedMyRoommate.getRoommateMatchingRequired()).isSameAs(matchingRequired);
+        verify(roommateScoreService).createRoommateScores(savedMyRoommate);
+        verify(myRoommateScoreService).saveAll(roommateScores);
+    }
+
+    @Test
     @DisplayName("룸메이트가 존재하면 true를 반환한다")
     void isExistRoomMateTest() {
         // given
@@ -108,7 +135,7 @@ class MyRoomMateServiceImplTest {
 
         when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
         when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
-        when(myRoommateScoreService.findByRoommateId(10L)).thenReturn(roommateScores);
+        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(roommateScores);
         when(roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores))
                 .thenReturn(new Compatibility(92, List.of()));
 
@@ -125,8 +152,36 @@ class MyRoomMateServiceImplTest {
         assertThat(response.getMyRoommateInfo().getGender()).isEqualTo(Gender.FEMALE);
         assertThat(response.getMyRoommateInfo().getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
         verify(basicInformationService).findChattingRoomBasicInfoRowByMemberId(opponentId);
-        verify(myRoommateScoreService).findByRoommateId(10L);
+        verify(myRoommateScoreService).findByRoommateIdAndMemberId(10L, memberId);
         verify(roommateScoreService).calculateRoommateCompatibility(memberId, roommateScores);
+    }
+
+    @Test
+    @DisplayName("저장된 룸메이트 점수가 없으면 현재 프로필 궁합 점수를 반환한다")
+    void findMyRoommateFallsBackToCurrentScoreWhenSnapshotDoesNotExist() {
+        // Given
+        Long memberId = 1L;
+        Long opponentId = 2L;
+        MyRoommate myRoommate = myRoommate(10L, memberId, opponentId, 100L);
+        ChattingRoomBasicInfoRow basicInfoRow = new ChattingRoomBasicInfoRow(
+                opponentId,
+                "상대방",
+                LocalDate.of(2000, 1, 1),
+                Gender.FEMALE,
+                "opponent-profile.jpg"
+        );
+
+        when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
+        when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
+        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(List.of());
+        when(roommateScoreService.calculateSimpleScore(memberId, opponentId)).thenReturn(76);
+
+        // When
+        MyRoommateCardDto.Response response = myRoomMateService.findMyRoommate(memberId);
+
+        // Then
+        assertThat(response.getScore()).isEqualTo(76);
+        verify(roommateScoreService, never()).calculateRoommateCompatibility(any(), any());
     }
 
     @Test
