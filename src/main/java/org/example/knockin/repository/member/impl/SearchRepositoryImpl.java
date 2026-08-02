@@ -22,7 +22,7 @@ public class SearchRepositoryImpl implements SearchRepositoryCustom {
     @Override
     public List<PopularSearchDto.Response.RankItem> findPopSearch() {
         return jpaQueryFactory
-                .select(Projections.constructor(PopularSearchDto.Response.RankItem.class,
+                .select(Projections.fields(PopularSearchDto.Response.RankItem.class,
                         search.keyword
                 ))
                 .from(search)

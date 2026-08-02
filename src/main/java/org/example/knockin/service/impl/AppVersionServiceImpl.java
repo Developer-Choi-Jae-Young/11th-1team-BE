@@ -50,12 +50,18 @@ public class AppVersionServiceImpl {
     }
 
     public AppVersionDto.Response findAppAndroidVersionLatest() {
-        AppVersion appVersion = appVersionRepository.findByPlatformTypeOrderByCreatedAtDesc(PlatformType.ANDROID).getFirst();
+        AppVersion appVersion = appVersionRepository.findByPlatformTypeOrderByCreatedAtDesc(PlatformType.ANDROID).stream().findFirst().orElse(null);
+        if (appVersion == null) {
+            return AppVersionDto.Response.builder().build();
+        }
         return AppVersionDto.Response.builder().id(appVersion.getId()).version(appVersion.getVersion()).minVersion(appVersion.getMinVersion()).createdAt(appVersion.getCreatedAt()).platformType(appVersion.getPlatformType()).updateType(appVersion.getUpdateType()).build();
     }
 
     public AppVersionDto.Response findAppIosVersionLatest() {
-        AppVersion appVersion = appVersionRepository.findByPlatformTypeOrderByCreatedAtDesc(PlatformType.IOS).getFirst();
+        AppVersion appVersion = appVersionRepository.findByPlatformTypeOrderByCreatedAtDesc(PlatformType.IOS).stream().findFirst().orElse(null);
+        if (appVersion == null) {
+            return AppVersionDto.Response.builder().build();
+        }
         return AppVersionDto.Response.builder().id(appVersion.getId()).version(appVersion.getVersion()).minVersion(appVersion.getMinVersion()).createdAt(appVersion.getCreatedAt()).platformType(appVersion.getPlatformType()).updateType(appVersion.getUpdateType()).build();
     }
 
