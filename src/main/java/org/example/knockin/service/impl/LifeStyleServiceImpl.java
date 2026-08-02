@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -75,10 +76,16 @@ public class LifeStyleServiceImpl {
     }
 
     public List<LifePattern> findAllById(List<Long> lifeStyles) {
+        if (lifeStyles == null || lifeStyles.isEmpty()) {
+            return Collections.emptyList();
+        }
         return lifePatternRepository.findAllById(lifeStyles);
     }
 
     public List<LifePatternInformation> findByLifeStyles(List<Long> lifeStyles) {
+        if (lifeStyles == null || lifeStyles.isEmpty()) {
+            return Collections.emptyList();
+        }
         return lifePatternInformationRepository.findByLifeStyles(lifeStyles);
     }
 
@@ -87,6 +94,9 @@ public class LifeStyleServiceImpl {
     }
 
     public List<LifePatternInformation> findLifePatternInformationAllById(List<Long> lifestyleIds) {
+        if (lifestyleIds == null || lifestyleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
         return lifePatternInformationRepository.findAllById(lifestyleIds);
     }
 

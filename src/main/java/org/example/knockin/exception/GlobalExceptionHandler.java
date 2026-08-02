@@ -13,6 +13,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -20,14 +21,14 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public CommonResponse<?> handleBusinessException(BusinessException e) {
-        log.warn("BusinessException: {}", e.getMessage());
+    public CommonResponse<?> handleBusinessException(BusinessException e, HttpServletRequest request) {
+        log.warn("[{}] {} - BusinessException: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
         return handleExceptionInternal(e.getErrorCode(), e.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public CommonResponse<?> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("IllegalArgumentException: {}", e.getMessage());
+    public CommonResponse<?> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
+        log.warn("[{}] {} - IllegalArgumentException: {}", request.getMethod(), request.getRequestURI(), e.getMessage(), e);
         return handleExceptionInternal(CommonErrorCode.BAD_REQUEST);
     }
 
@@ -37,39 +38,42 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException.class,
             BindException.class
     })
-    public CommonResponse<?> handleBadRequestException(Exception e) {
-        log.warn("Bad request: {}", e.getMessage());
+    public CommonResponse<?> handleBadRequestException(Exception e, HttpServletRequest request) {
+        log.warn("[{}] {} - Bad request: {}", request.getMethod(), request.getRequestURI(), e.getMessage(), e);
         return handleExceptionInternal(CommonErrorCode.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public CommonResponse<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    public CommonResponse<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .distinct()
                 .collect(Collectors.joining(", "));
+        log.warn("[{}] {} - Validation failed: {}", request.getMethod(), request.getRequestURI(), message);
         return handleExceptionInternal(CommonErrorCode.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public CommonResponse<?> handleMethodNotAllowedException(
-            HttpRequestMethodNotSupportedException e
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request
     ) {
-        log.warn("Method not allowed: {}", e.getMessage());
+        log.warn("[{}] {} - Method not allowed: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
         return handleExceptionInternal(CommonErrorCode.METHOD_NOT_ALLOWED);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public CommonResponse<?> handleUnsupportedMediaTypeException(
-            HttpMediaTypeNotSupportedException e
+            HttpMediaTypeNotSupportedException e,
+            HttpServletRequest request
     ) {
-        log.warn("Unsupported media type: {}", e.getMessage());
+        log.warn("[{}] {} - Unsupported media type: {}", request.getMethod(), request.getRequestURI(), e.getMessage());
         return handleExceptionInternal(CommonErrorCode.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @ExceptionHandler(Exception.class)
-    public CommonResponse<?> handleException(Exception e) {
-        log.error("Unhandled exception", e);
+    public CommonResponse<?> handleException(Exception e, HttpServletRequest request) {
+        log.error("[{}] {} - Unhandled exception", request.getMethod(), request.getRequestURI(), e);
         return handleExceptionInternal(CommonErrorCode.INTERNAL_SERVER_ERROR);
     }
 
