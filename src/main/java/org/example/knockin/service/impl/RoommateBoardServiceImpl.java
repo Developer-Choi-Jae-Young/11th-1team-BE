@@ -70,6 +70,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardRepository roommateBoardRepository;
     private final MemberServiceImpl memberService;

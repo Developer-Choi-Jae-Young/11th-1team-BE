@@ -19,7 +19,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AgreementServiceImpl {
     private final AgreementRepository agreementRepository;
     private final AgreementLogRepository agreementLogRepository;
@@ -52,6 +51,7 @@ public class AgreementServiceImpl {
         return agreementEntity;
     }
 
+    @Transactional(readOnly = true)
     public List<BoTermsListDto.Response.TermsItem> findAgreementList(Pageable pageable, Long agreementTypeId) {
         return agreementLogRepository.findByAgreemnetIsCurrent(true, pageable, agreementTypeId).stream().map(item ->
                 BoTermsListDto.Response.TermsItem.builder().title(item.getAgreement().getTitle()).createAt(item.getAgreement().getCreatedAt()).id(item.getAgreement().getId()).isCurrent(item.getIsCurrent()).build()).toList();

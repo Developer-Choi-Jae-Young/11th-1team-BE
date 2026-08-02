@@ -35,8 +35,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MemberServiceImpl {
     private final MemberRepository memberRepository;
     private final Oauth2DeleteFactory oauth2DeleteFactory;

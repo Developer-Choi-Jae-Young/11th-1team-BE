@@ -15,8 +15,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MetaServiceImpl {
     private final LifeStyleServiceImpl lifeStyleService;
     private final RegionServiceImpl regionService;
