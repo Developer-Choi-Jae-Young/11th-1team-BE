@@ -29,9 +29,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class OnBoardingServiceImpl {
     private final AuthenticationServiceImpl authenticationService;
     private final BasicInformationServiceImpl basicInformationService;
