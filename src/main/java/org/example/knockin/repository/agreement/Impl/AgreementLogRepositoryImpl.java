@@ -26,6 +26,7 @@ public class AgreementLogRepositoryImpl implements AgreementLogRepositoryCustom 
     @Override
     public List<AgreementLog> findByAgreemnetIsCurrent(boolean isCurrent, Pageable pageable, Long agreementTypeId) {
         return jpaQueryFactory.selectFrom(agreementLog)
+                .join(agreementLog.agreement, agreement).fetchJoin()
                 .where(agreementLog.id.in(JPAExpressions.select(agreementLog.id)
                                         .from(agreementLog)
                                         .join(agreementLog.agreement, agreement)

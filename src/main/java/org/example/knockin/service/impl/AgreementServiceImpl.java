@@ -19,6 +19,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AgreementServiceImpl {
     private final AgreementRepository agreementRepository;
     private final AgreementLogRepository agreementLogRepository;

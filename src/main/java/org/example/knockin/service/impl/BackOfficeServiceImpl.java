@@ -32,8 +32,11 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BackOfficeServiceImpl {
     private final AgreementServiceImpl agreementService;
     private final RoomTypeServiceImpl roomTypeService;
