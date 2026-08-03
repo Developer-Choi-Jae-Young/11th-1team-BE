@@ -427,8 +427,8 @@ class AuthenticationServiceImplTest {
                 .createAt(LocalDateTime.now())
                 .build();
 
-        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT)).willReturn(studentAuth);
-        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY)).willReturn(employeeAuth);
+        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT)).willReturn(Optional.of(studentAuth));
+        given(authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY)).willReturn(Optional.of(employeeAuth));
 
         // when
         MyVerificationListDto.Response response = authenticationService.findVerificationList(pageable, member);

@@ -193,8 +193,8 @@ public class AuthenticationServiceImpl {
     }
 
     public MyVerificationListDto.Response findVerificationList(Pageable pageable, Member member) {
-        MyVerificationListDto.Response.AuthInfo studentAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT);
-        MyVerificationListDto.Response.AuthInfo employeeAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY);
+        MyVerificationListDto.Response.AuthInfo studentAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.STUDENT).orElse(null);
+        MyVerificationListDto.Response.AuthInfo employeeAuth = authenticationRepository.findVerificationList(pageable, member, AuthenticationType.COMPANY).orElse(null);
 
         return MyVerificationListDto.Response.builder()
                 .studentAuth(studentAuth)

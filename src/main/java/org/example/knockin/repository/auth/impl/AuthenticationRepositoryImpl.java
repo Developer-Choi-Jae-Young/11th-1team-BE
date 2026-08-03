@@ -9,6 +9,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.auth.ApproveType;
@@ -128,8 +129,8 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
     }
 
     @Override
-    public MyVerificationListDto.Response.AuthInfo findVerificationList(Pageable pageable, Member memberEntity, AuthenticationType authenticationType) {
-        return jpaQueryFactory
+    public Optional<MyVerificationListDto.Response.AuthInfo> findVerificationList(Pageable pageable, Member memberEntity, AuthenticationType authenticationType) {
+        return Optional.ofNullable(jpaQueryFactory
                 .select(Projections.fields(MyVerificationListDto.Response.AuthInfo.class,
                         authenticationApprove.status,
                         authentication.email,
@@ -143,6 +144,6 @@ public class AuthenticationRepositoryImpl implements AuthenticationRepositoryCus
                         authentication.type.eq(authenticationType)
                 )
                 .orderBy(authentication.createdAt.desc())
-                .fetchFirst();
+                .fetchFirst());
     }
 }

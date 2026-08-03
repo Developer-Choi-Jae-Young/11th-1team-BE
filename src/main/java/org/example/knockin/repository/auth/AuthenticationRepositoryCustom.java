@@ -8,6 +8,8 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Optional;
+
 public interface AuthenticationRepositoryCustom {
     List<AuthenticationType> getAcceptedAuthenticationTypeByMemberId(Long memberId);
 
@@ -21,5 +23,5 @@ public interface AuthenticationRepositoryCustom {
 
     BoVerificationWaitingDetailDto.Response findVerifications(Long id);
 
-    MyVerificationListDto.Response.AuthInfo findVerificationList(Pageable pageable, Member member, AuthenticationType authenticationType);
+    Optional<MyVerificationListDto.Response.AuthInfo> findVerificationList(Pageable pageable, Member member, AuthenticationType authenticationType);
 }
