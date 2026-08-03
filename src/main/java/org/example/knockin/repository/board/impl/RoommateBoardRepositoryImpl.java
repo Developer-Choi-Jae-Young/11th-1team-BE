@@ -308,11 +308,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
         Long total = jpaQueryFactory
                 .select(roommateBoard.count())
                 .from(roommateBoard)
-                .join(roommateBoard.roomType, roomType)
-                .join(roommateBoard.region, boardRegion)
-                .leftJoin(boardRegion.parent, parentRegion)
-                .leftJoin(parentRegion.parent, grandParentRegion)
-                .where(member.eq(memberEntity))
+                .where(roommateBoard.member.eq(memberEntity))
                 .fetchOne();
 
         return new PageImpl<>(content, page, total == null ? 0 : total);
