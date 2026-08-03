@@ -39,7 +39,13 @@ public class FcmServiceImpl {
                     .build());
             log.info("Successfully send Notification: {}", response);
         } catch (FirebaseMessagingException e) {
-            log.error("Fail to send Notification : {}", e.getMessage());
+            log.error(
+                    "FCM 전송 실패: messagingErrorCode={}, errorCode={}, message={}",
+                    e.getMessagingErrorCode(),
+                    e.getErrorCode(),
+                    e.getMessage(),
+                    e
+            );
             throw new BusinessException(AlarmErrorCode.PUSH_ALARM_SEND_FAIL);
         }
     }
@@ -64,7 +70,13 @@ public class FcmServiceImpl {
                     .build());
             log.info("Successfully send Notification: {}", response);
         } catch (FirebaseMessagingException e) {
-            log.error("Fail to send Notification : {}", e.getMessage());
+            log.error(
+                    "FCM 전송 실패: messagingErrorCode={}, errorCode={}, message={}",
+                    e.getMessagingErrorCode(),
+                    e.getErrorCode(),
+                    e.getMessage(),
+                    e
+            );
             throw new BusinessException(AlarmErrorCode.PUSH_ALARM_SEND_FAIL);
         }
     }

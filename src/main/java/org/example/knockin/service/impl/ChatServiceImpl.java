@@ -292,8 +292,7 @@ public class ChatServiceImpl {
         validateActiveRoomDoesNotExist(requesterId, request.getRequesteeId());
         validateChatRoomLimit(requesterId, request.getRequesteeId());
 
-        RoommateBoard roommateBoard = roommateBoardService.findById(request.getBoardId());
-        ChattingRequired chattingRequired = chattingRequiredService.saveAccepted(requester, requestee, roommateBoard);
+        ChattingRequired chattingRequired = chattingRequiredService.saveAccepted(requester, requestee, null);
         ChattingRoom chattingRoom = chattingRoomService.save(chattingRequired);
         chatRoomMemberService.saveAll(chattingRoom, List.of(requester, requestee));
         String contents = request.getChatMessage().getContents();
