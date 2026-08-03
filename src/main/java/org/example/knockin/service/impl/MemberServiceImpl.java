@@ -279,4 +279,15 @@ public class MemberServiceImpl {
         Member member = findByIdOrThrow(memberId);
         return MyAccountDto.Response.builder().role(member.getRole()).build();
     }
+
+    public State findStateByMemberId(Long memberId) {
+        return stateRepository.findByMemberId(memberId).getFirst();
+    }
+
+    public void validateMemberState(Long memberId) {
+        State state = findStateByMemberId(memberId);
+        if (!state.getStates().equals(MemberState.ACTIVE)) {
+            throw new BusinessException(MemberErrorCode.NOT_ACTIVE_MEMBER);
+        }
+    }
 }

@@ -254,6 +254,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .from(member)
                 .where(
                         member.isDelete.isFalse(),
+                        memberIsActive(),
                         memberPrivacy.type.eq(MemberPrivacyType.PUBLIC),
                         memberIdNotIn(excludeMemberIds),
                         likedBy(likedByMemberId),
@@ -420,6 +421,17 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
 
     private BooleanExpression providerTypeEq(LoginProviderType providerType) {
         return providerType != null ? member.providerType.eq(providerType) : null;
+    }
+
+    private BooleanExpression memberIsActive() {
+        return JPAExpressions
+                .selectOne()
+                .from(state)
+                .where(
+                        state.member.id.eq(member.id),
+                        state.states.eq(MemberState.ACTIVE)
+                )
+                .exists();
     }
 
     private BooleanExpression memberIdNotIn(List<Long> memberIds) {
