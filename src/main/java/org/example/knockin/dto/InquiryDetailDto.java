@@ -56,7 +56,7 @@ public class InquiryDetailDto {
                 @Schema(description = "작성자")
                 private String writer;
                 @Schema(description = "날짜 및 시간")
-                private LocalDateTime createAt;
+                private LocalDateTime replyCreateAt;
             }
         }
     }

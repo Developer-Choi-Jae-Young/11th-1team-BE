@@ -44,37 +44,26 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
 
     @Override
     public InquiryDetailDto.Response.InquiryDetail findMyInquiry(Boolean isDeleted, Member memberEntity, Long inquiryId) {
-        InquiryDetailDto.Response.InquiryDetail detail = jpaQueryFactory
-                .select(Projections.fields(InquiryDetailDto.Response.InquiryDetail.class,
-                        inquiry.id,
-                        inquiry.title,
-                        inquiry.contents,
-                        basicInformation.name.as("writer"),
-                        new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status"),
-                        inquiry.createdAt.as("createAt"),
-                        inquiry.inquiryCategory.title.as("type")
-                ))
+        return jpaQueryFactory
                 .from(inquiry)
                 .leftJoin(inquiry.inquiryCategory)
                 .leftJoin(inquiryComment).on(inquiryComment.inquiry.eq(inquiry))
                 .leftJoin(basicInformation).on(basicInformation.member.eq(inquiry.member))
                 .where(inquiry.id.eq(inquiryId), inquiry.isDeleted.eq(isDeleted), inquiry.member.eq(memberEntity))
-                .fetchFirst();
-
-        if (detail != null) {
-            List<InquiryDetailDto.Response.InquiryDetail.Reply> replies = jpaQueryFactory
-                    .select(Projections.fields(InquiryDetailDto.Response.InquiryDetail.Reply.class,
-                            inquiryComment.id,
-                            inquiryComment.contents,
-                            inquiryComment.createdAt.as("createAt")
-                    ))
-                    .from(inquiryComment)
-                    .where(inquiryComment.inquiry.id.eq(inquiryId))
-                    .fetch();
-            detail.setReply(replies);
-        }
-
-        return detail;
+                .transform(groupBy(inquiry.id).list(
+                        Projections.fields(InquiryDetailDto.Response.InquiryDetail.class,
+                                inquiry.id,
+                                inquiry.title,
+                                inquiry.contents,
+                                basicInformation.name.as("writer"),
+                                new CaseBuilder().when(inquiryComment.id.isNull()).then("답변 대기중").otherwise("답변 완료").as("status"),
+                                inquiry.createdAt.as("createAt"),
+                                inquiry.inquiryCategory.title.as("type"),
+                                list(Projections.fields(InquiryDetailDto.Response.InquiryDetail.Reply.class,
+                                        inquiryComment.id,
+                                        inquiryComment.contents,
+                                        inquiryComment.createdAt.as("replyCreateAt"))).as("reply"))
+                )).stream().findFirst().orElse(null);
     }
 
     @Override
