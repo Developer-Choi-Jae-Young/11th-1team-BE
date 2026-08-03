@@ -312,7 +312,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .join(roommateBoard.region, boardRegion)
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
-                .where(member.eq(memberEntity))
+                .where(roommateBoard.member.eq(memberEntity))
                 .fetchOne();
 
         return new PageImpl<>(content, page, total == null ? 0 : total);

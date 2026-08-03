@@ -62,7 +62,7 @@ public class InquiryRepositoryImpl implements InquiryRepositoryCustom {
                                 list(Projections.fields(InquiryDetailDto.Response.InquiryDetail.Reply.class,
                                         inquiryComment.id,
                                         inquiryComment.contents,
-                                        inquiryComment.createdAt.as("createAt"))).as("reply"))
+                                        inquiryComment.createdAt.as("replyCreateAt"))).as("reply"))
                 )).stream().findFirst().orElse(null);
     }
 
