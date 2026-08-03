@@ -24,7 +24,7 @@ public class ChatRequestController {
     private final ChatRequestServiceImpl chatRequestService;
 
     @GetMapping("")
-    @Operation(summary = "채팅 요청 목록 조회")
+    @Operation(summary = "채팅 요청 목록 조회", deprecated = true)
     public CommonResponse<List<ChatRequestListDto.Response>> findChatRequestList(
             @AuthenticationPrincipal PrincipalDetails details
     ) {
@@ -34,7 +34,7 @@ public class ChatRequestController {
     }
 
     @GetMapping("/{requestId}")
-    @Operation(summary = "채팅 요청 상세 조회")
+    @Operation(summary = "채팅 요청 상세 조회", deprecated = true)
     public CommonResponse<ChatRequestDetailDto.Response> findChatRequest(
             @AuthenticationPrincipal PrincipalDetails details,
             @PathVariable Long requestId
@@ -45,7 +45,7 @@ public class ChatRequestController {
     }
 
     @PostMapping("")
-    @Operation(summary = "채팅 요청 저장")
+    @Operation(summary = "채팅 요청 저장", deprecated = true)
     public CommonResponse<ChatRequestDto.Response> saveChatRequest(
             @AuthenticationPrincipal PrincipalDetails details,
             @Valid @RequestBody ChatRequestDto.Request request
@@ -57,7 +57,7 @@ public class ChatRequestController {
 
 
     @PostMapping("/{requestId}/accept")
-    @Operation(summary = "채팅 요청 수락")
+    @Operation(summary = "채팅 요청 수락", deprecated = true)
     public CommonResponse<ChatRequestDto.Response> saveChatRequestAccept(
             @AuthenticationPrincipal PrincipalDetails details,
             @PathVariable Long requestId
@@ -68,7 +68,7 @@ public class ChatRequestController {
     }
 
     @PostMapping("/{requestId}/reject")
-    @Operation(summary = "채팅 요청 거절")
+    @Operation(summary = "채팅 요청 거절", deprecated = true)
     public CommonResponse<ChatRequestDto.Response> saveChatRequestReject(
             @AuthenticationPrincipal PrincipalDetails details,
             @PathVariable Long requestId
@@ -79,7 +79,7 @@ public class ChatRequestController {
     }
 
     @PostMapping("/{requestId}/cancel")
-    @Operation(summary = "채팅 요청 취소")
+    @Operation(summary = "채팅 요청 취소", deprecated = true)
     public CommonResponse<ChatRequestDto.Response> saveChatRequestCancel(
             @AuthenticationPrincipal PrincipalDetails details,
             @PathVariable Long requestId
