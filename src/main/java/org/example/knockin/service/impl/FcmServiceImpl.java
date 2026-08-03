@@ -4,9 +4,7 @@ import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.entity.member.Member;
-import org.example.knockin.exception.AlarmErrorCode;
-import org.example.knockin.exception.BusinessException;
-import org.example.knockin.repository.member.MemberRepository;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,6 +18,7 @@ public class FcmServiceImpl {
         send("테스트", "테스트",  fcmToken);
     }
 
+    @Async
     public void send(String title, String body, String fcmToken) {
         try {
             String response = firebaseMessaging.send(Message.builder()
@@ -46,10 +45,10 @@ public class FcmServiceImpl {
                     e.getMessage(),
                     e
             );
-            throw new BusinessException(AlarmErrorCode.PUSH_ALARM_SEND_FAIL);
         }
     }
 
+    @Async
     public void send(String title, String body, String fcmToken, String deepLinkInfo) {
         try {
             String response = firebaseMessaging.send(Message.builder()
@@ -77,7 +76,6 @@ public class FcmServiceImpl {
                     e.getMessage(),
                     e
             );
-            throw new BusinessException(AlarmErrorCode.PUSH_ALARM_SEND_FAIL);
         }
     }
 }
