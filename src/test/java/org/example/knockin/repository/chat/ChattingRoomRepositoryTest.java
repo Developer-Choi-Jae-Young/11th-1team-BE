@@ -107,6 +107,37 @@ class ChattingRoomRepositoryTest {
     }
 
     @Test
+    @DisplayName("상대 회원의 프로필 이미지가 없어도 채팅방 목록에 포함한다")
+    void findByMemberIdReturnsRoomWhenOpponentHasNoProfileImage() {
+        // Given
+        Member viewer = persistMember("viewer-without-opponent-profile-image");
+        Member opponent = persistMember("opponent-without-profile-image");
+        BasicInformation basicInformation = BasicInformation.builder()
+                .member(opponent)
+                .name("프로필없는상대")
+                .birth(LocalDate.of(2000, 1, 1))
+                .gender(Gender.MALE)
+                .email("opponent-without-profile@example.com")
+                .build();
+        entityManager.persist(basicInformation);
+
+        ChattingRoom room = persistChattingRoom(viewer, opponent, ChattingRequiredStatus.ACCEPTED);
+        persistChatRoomMember(room, viewer, false);
+        persistChatRoomMember(room, opponent, false);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        List<ChatRoomListRow> responses = chattingRoomRepository.findListRowsByMemberId(viewer.getId());
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.getFirst().chatRoomId()).isEqualTo(room.getId());
+        assertThat(responses.getFirst().memberName()).isEqualTo("프로필없는상대");
+        assertThat(responses.getFirst().memberProfileImageUrl()).isNull();
+    }
+
+    @Test
     @DisplayName("채팅방 목록은 해당 방의 마지막 메시지를 함께 반환한다")
     void findByMemberIdReturnsLastMessage() {
         // Given

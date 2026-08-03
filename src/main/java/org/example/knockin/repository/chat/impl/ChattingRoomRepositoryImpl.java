@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.chat.QChatRoomMessage;
 import org.example.knockin.entity.chat.QChatRoomMember;
 import org.example.knockin.entity.file.QBasicInformationFile;
+import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.member.QMember;
 import org.example.knockin.entity.room.QRoommateMatchingRequired;
@@ -35,6 +36,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
         QChatRoomMember opponentRoomMember = new QChatRoomMember("opponentRoomMember");
         QBasicInformation basicInformationSub = new QBasicInformation("basicInformationSub");
         QBasicInformationFile basicInformationFileSub = new QBasicInformationFile("basicInformationFileSub");
+        QFile profileImageFile = new QFile("profileImageFile");
         QChatRoomMessage latestMessage = new QChatRoomMessage("latestMessage");
         QChatRoomMessage latestMessageSub = new QChatRoomMessage("latestMessageSub");
         QRoommateMatchingRequired latestRoommateRequired = new QRoommateMatchingRequired("latestRoommateRequired");
@@ -46,7 +48,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                         chattingRoom.id,
                         opponentMember.id,
                         basicInformation.name,
-                        basicInformationFile.file.savedFileName,
+                        profileImageFile.savedFileName,
                         chattingRoom.createdAt,
                         latestRoommateRequired.status,
                         new CaseBuilder()
@@ -92,6 +94,7 @@ public class ChattingRoomRepositoryImpl implements ChattingRoomRepositoryCustom 
                                 .from(basicInformationFileSub)
                                 .where(basicInformationFileSub.basicInformation.eq(basicInformation))
                 ))
+                .leftJoin(basicInformationFile.file, profileImageFile)
                 .leftJoin(latestRoommateRequired)
                 .on(latestRoommateRequired.id.eq(
                         JPAExpressions
