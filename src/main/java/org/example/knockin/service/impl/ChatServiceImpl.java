@@ -155,6 +155,7 @@ public class ChatServiceImpl {
         Member sender = senderChatRoomMember.getMember();
         Member receiver = chatRoomMemberService.findPartnerMember(senderChatRoomMember, chatRoomId);
         validateNotBlocked(senderId, receiver.getId());
+        memberService.validateMemberState(receiver.getId());
 
         ChattingRoom chattingRoom = chattingRoomService.findByIdOrThrow(chatRoomId);
         MessageType type = request.getType();
@@ -317,6 +318,10 @@ public class ChatServiceImpl {
         if (blockService.isBlockedBetween(firstMemberId, secondMemberId)) {
             throw new BusinessException(ChattingErrorCode.MESSAGE_BLOCKED);
         }
+    }
+
+    private void validateState() {
+
     }
 
     private void validateActiveRoomDoesNotExist(Long requesterId, Long requesteeId) {

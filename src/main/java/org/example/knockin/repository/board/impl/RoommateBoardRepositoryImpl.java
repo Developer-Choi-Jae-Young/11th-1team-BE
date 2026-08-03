@@ -8,6 +8,7 @@ import static org.example.knockin.entity.file.QFile.file;
 import static org.example.knockin.entity.member.QBasicInformation.basicInformation;
 import static org.example.knockin.entity.member.QBlock.block;
 import static org.example.knockin.entity.member.QMember.member;
+import static org.example.knockin.entity.member.QState.state;
 import static org.example.knockin.entity.room.QRegion.region;
 import static org.example.knockin.entity.room.QRoomType.roomType;
 
@@ -29,6 +30,7 @@ import org.example.knockin.entity.file.QFile;
 import org.example.knockin.entity.file.QBasicInformationFile;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.member.QBasicInformation;
 import org.example.knockin.entity.room.QRegion;
 import org.example.knockin.entity.room.QRoomTypeFile;
@@ -69,6 +71,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 depositBetween(request.getMinDeposit(), request.getMaxDeposit()),
                 monthlyRentBetween(request.getMinMounthRent(), request.getMaxMounthRent()),
                 isNotDeleted(),
+                writerIsActive(),
                 comeableDateNotExpired(endDate),
                 likedOnly(request.getLikedOnly(), requesterId),
                 notBlockedBetween(requesterId)
@@ -477,6 +480,17 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
 
     private BooleanExpression isNotDeleted() {
         return roommateBoard.isDeleted.isFalse();
+    }
+
+    private BooleanExpression writerIsActive() {
+        return JPAExpressions
+                .selectOne()
+                .from(state)
+                .where(
+                        state.member.id.eq(roommateBoard.member.id),
+                        state.states.eq(MemberState.ACTIVE)
+                )
+                .exists();
     }
 
     private BooleanExpression comeableDateNotExpired(LocalDateTime endDate) {

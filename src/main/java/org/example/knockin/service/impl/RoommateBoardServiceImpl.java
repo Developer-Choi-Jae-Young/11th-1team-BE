@@ -695,6 +695,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     @Override
+    @Transactional
     public ReportDto.Response reportBoard(ReportDto.Request request, Long boardId, Long memberId) {
 
         RoommateBoard roommateBoard = roommateBoardRepository.findById(boardId)

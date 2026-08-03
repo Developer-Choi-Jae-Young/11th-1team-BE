@@ -18,6 +18,8 @@ import org.example.knockin.entity.member.MemberInterest;
 import org.example.knockin.entity.member.MemberPrivacy;
 import org.example.knockin.entity.member.MemberPrivacyType;
 import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.member.MemberState;
+import org.example.knockin.entity.member.State;
 import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomOfferProfile;
 import org.example.knockin.repository.member.row.MatchingBasicInfoRow;
@@ -105,6 +107,33 @@ class MemberRepositoryInterestFilterTest {
     }
 
     @Test
+    @DisplayName("매칭 목록은 비활성 회원을 제외한다")
+    void findMatchingBasicRowExcludesInactiveMembers() {
+        // Given
+        Member requester = persistMember("state-requester");
+        Region region = persistRegion("서초동");
+        Member activeCandidate = persistPublicCandidate("active-state-candidate", "활성회원", region);
+        Member inactiveCandidate = persistPublicCandidate(
+                "inactive-state-candidate", "비활성회원", region, MemberState.INACTIVE);
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        List<MatchingBasicInfoRow> result = memberRepository.findMatchingBasicRow(
+                List.of(requester.getId()),
+                20,
+                null,
+                requester.getId()
+        );
+
+        // Then
+        assertThat(result)
+                .extracting(MatchingBasicInfoRow::memberId)
+                .containsExactly(activeCandidate.getId())
+                .doesNotContain(inactiveCandidate.getId());
+    }
+
+    @Test
     @DisplayName("상세 관심 여부는 해제된 관심 이력을 활성 상태로 보지 않는다")
     void existsActiveInterestIgnoresDeletedHistory() {
         // Given
@@ -124,7 +153,16 @@ class MemberRepositoryInterestFilterTest {
     }
 
     private Member persistPublicCandidate(String providerId, String name, Region region) {
-        Member member = persistMember(providerId);
+        return persistPublicCandidate(providerId, name, region, MemberState.ACTIVE);
+    }
+
+    private Member persistPublicCandidate(
+            String providerId,
+            String name,
+            Region region,
+            MemberState memberState
+    ) {
+        Member member = persistMember(providerId, memberState);
         entityManager.persist(MemberPrivacy.builder()
                 .member(member)
                 .type(MemberPrivacyType.PUBLIC)
@@ -148,6 +186,10 @@ class MemberRepositoryInterestFilterTest {
     }
 
     private Member persistMember(String providerId) {
+        return persistMember(providerId, MemberState.ACTIVE);
+    }
+
+    private Member persistMember(String providerId, MemberState memberState) {
         Member member = Member.builder()
                 .providerType(LoginProviderType.KAKAO)
                 .providerId(providerId)
@@ -155,6 +197,10 @@ class MemberRepositoryInterestFilterTest {
                 .isDelete(false)
                 .build();
         entityManager.persist(member);
+        entityManager.persist(State.builder()
+                .member(member)
+                .states(memberState)
+                .build());
         return member;
     }
 

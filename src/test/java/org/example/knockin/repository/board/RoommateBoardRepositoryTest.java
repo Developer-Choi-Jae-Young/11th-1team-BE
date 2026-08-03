@@ -33,6 +33,8 @@ import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
+import org.example.knockin.entity.member.MemberState;
+import org.example.knockin.entity.member.State;
 import org.example.knockin.entity.room.Region;
 import org.example.knockin.entity.room.RoomExtraOption;
 import org.example.knockin.entity.room.RoomExtraOptionFile;
@@ -399,6 +401,36 @@ class RoommateBoardRepositoryTest {
                 .extracting(BoardBaseRow::title)
                 .containsExactlyInAnyOrder("차단 해제 작성자 게시글", "노출 작성자 게시글")
                 .doesNotContain("내가 차단한 작성자 게시글", "나를 차단한 작성자 게시글");
+    }
+
+    @Test
+    @DisplayName("게시글 목록은 비활성 회원이 작성한 게시글을 제외한다")
+    void searchExcludesBoardsWrittenByInactiveMembers() {
+        // Given
+        LocalDateTime visibleEndDate = LocalDateTime.of(2026, 6, 1, 12, 0);
+        Member activeOwner = persistMember("provider-active-owner");
+        Member inactiveOwner = persistMember("provider-inactive-owner", MemberState.INACTIVE);
+        RoomType roomType = persistRoomType("원룸");
+        Region region = persistRegion("서초동", 3, null);
+        persistBoard("활성 회원 게시글", activeOwner, roomType, region, visibleEndDate.plusDays(1));
+        persistBoard("비활성 회원 게시글", inactiveOwner, roomType, region, visibleEndDate.plusDays(2));
+        entityManager.flush();
+        entityManager.clear();
+
+        // When
+        Page<BoardBaseRow> result = roommateBoardRepository.search(
+                defaultRequest(),
+                PageRequest.of(0, 20),
+                visibleEndDate,
+                null
+        );
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent())
+                .extracting(BoardBaseRow::title)
+                .containsExactly("활성 회원 게시글")
+                .doesNotContain("비활성 회원 게시글");
     }
 
     @Test
@@ -831,6 +863,10 @@ class RoommateBoardRepositoryTest {
     }
 
     private Member persistMember(String providerId) {
+        return persistMember(providerId, MemberState.ACTIVE);
+    }
+
+    private Member persistMember(String providerId, MemberState memberState) {
         Member member = Member.builder()
                 .providerType(LoginProviderType.KAKAO)
                 .providerId(providerId)
@@ -838,6 +874,10 @@ class RoommateBoardRepositoryTest {
                 .isDelete(false)
                 .build();
         entityManager.persist(member);
+        entityManager.persist(State.builder()
+                .member(member)
+                .states(memberState)
+                .build());
         return member;
     }
 
