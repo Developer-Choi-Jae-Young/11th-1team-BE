@@ -2,7 +2,7 @@ package org.example.knockin.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -26,10 +26,12 @@ public class BoardDto {
         private String contents;
 
         @NotNull
+        @Max(2000)
         @Schema(description = "보증금")
         private int deposit;
 
         @NotNull
+        @Max(500)
         @Schema(description = "월세")
         private int mountlyRent;
 
