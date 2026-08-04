@@ -291,17 +291,17 @@ public class BackOfficeServiceImpl {
     }
 
     @Transactional
-    public BoMemberCancelDto.Response deleteMember(Long id) {
+    public BoMemberCancelDto.Response deleteMember(Long id, BoMemberCancelDto.Request request) {
         Member member = memberService.findById(id).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        memberService.setMemberState(member, MemberState.INACTIVE);
+        memberService.setMemberState(member, MemberState.INACTIVE, request.getRejectReason());
         return BoMemberCancelDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional
-    public BoMemberCancelDto.Response unDeleteMember(Long id) {
+    public BoMemberUnCancelDto.Response unDeleteMember(Long id) {
         Member member = memberService.findById(id).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        memberService.setMemberState(member, MemberState.ACTIVE);
-        return BoMemberCancelDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+        memberService.setMemberState(member, MemberState.ACTIVE, "");
+        return BoMemberUnCancelDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
     @Transactional

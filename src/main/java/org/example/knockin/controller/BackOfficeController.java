@@ -359,13 +359,13 @@ public class BackOfficeController {
 
     @PatchMapping("/member/cancel/{id}")
     @Operation(summary = "회원 정지")
-    public CommonResponse<BoMemberCancelDto.Response> deleteMember(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteMember(id));
+    public CommonResponse<BoMemberCancelDto.Response> deleteMember(@PathVariable Long id, @RequestBody BoMemberCancelDto.Request request) {
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteMember(id, request));
     }
 
     @PatchMapping("/member/uncancel/{id}")
     @Operation(summary = "회원 정지해제")
-    public CommonResponse<BoMemberCancelDto.Response> unDeleteMember(@PathVariable Long id) {
+    public CommonResponse<BoMemberUnCancelDto.Response> unDeleteMember(@PathVariable Long id) {
         return CommonResponse.status(HttpStatus.OK).body(backOfficeService.unDeleteMember(id));
     }
 

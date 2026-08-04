@@ -35,7 +35,7 @@ public class RoomExtraOptionServiceImpl {
     }
 
     public List<RoomExtraOption> findRoomExtraOptionList(Pageable pageable) {
-        return roomExtraOptionRepository.findAll(pageable).stream().toList();
+        return roomExtraOptionRepository.findAllByIsDeleted(false, pageable).stream().toList();
     }
 
     @Transactional

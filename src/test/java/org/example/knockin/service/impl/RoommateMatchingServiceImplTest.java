@@ -134,7 +134,7 @@ class RoommateMatchingServiceImplTest {
                 memberLifePatternService,
                 preferenceConditionService,
                 authenticationService,
-                new DeclarationServiceImpl(memberDeclarationRepository, null),
+                new DeclarationServiceImpl(memberDeclarationRepository, null, null),
                 roommateScoreService
         );
     }

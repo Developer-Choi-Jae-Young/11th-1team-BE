@@ -302,7 +302,7 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 ))
                 .leftJoin(basicInformationFile.file, file)
                 .on(file.isDeleted.isFalse())
-                .where(member.eq(memberEntity))
+                .where(member.eq(memberEntity), roommateBoard.isDeleted.isFalse())
                 .orderBy(toBoardOrderSpecifiers(page.getSort()))
                 .offset(page.getOffset())
                 .limit(page.getPageSize())

@@ -10,13 +10,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
-public class BoMemberCancelDto {
+public class BoMemberUnCancelDto {
     @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
     public static class Request {
-        private String rejectReason;
     }
 
     @Data

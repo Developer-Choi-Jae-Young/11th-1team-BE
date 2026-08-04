@@ -36,7 +36,13 @@ public class State {
     @Column(length = 500)
     private String rejectReason;
 
-    public void changeState(MemberState state) {
-        this.states = state;
+    public void activeState() {
+        this.states = MemberState.ACTIVE;
+        this.rejectReason = "";
+    }
+
+    public void rejectState(String rejectReason) {
+        this.states = MemberState.INACTIVE;
+        this.rejectReason = rejectReason;
     }
 }

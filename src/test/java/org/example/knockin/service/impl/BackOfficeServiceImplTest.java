@@ -783,17 +783,18 @@ class BackOfficeServiceImplTest {
     void deleteMemberSuccessTest() {
         // given
         Long id = 1L;
+        BoMemberCancelDto.Request request = BoMemberCancelDto.Request.builder().rejectReason("사유").build();
         Member member = mock(Member.class);
 
         given(memberService.findById(id)).willReturn(Optional.of(member));
 
         // when
-        BoMemberCancelDto.Response response = backOfficeService.deleteMember(id);
+        BoMemberCancelDto.Response response = backOfficeService.deleteMember(id, request);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(memberService).setMemberState(member, MemberState.INACTIVE);
+        verify(memberService).setMemberState(member, MemberState.INACTIVE, "정지사유");
     }
 
     @Test
@@ -801,10 +802,11 @@ class BackOfficeServiceImplTest {
     void deleteMemberNotFoundTest() {
         // given
         Long id = 1L;
+        BoMemberCancelDto.Request request = BoMemberCancelDto.Request.builder().rejectReason("사유").build();
         given(memberService.findById(id)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> backOfficeService.deleteMember(id))
+        assertThatThrownBy(() -> backOfficeService.deleteMember(id, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
     }

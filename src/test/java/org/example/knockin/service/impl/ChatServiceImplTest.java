@@ -8,6 +8,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +45,8 @@ import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.member.MemberState;
+import org.example.knockin.entity.member.State;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.ChattingErrorCode;
@@ -61,6 +64,7 @@ import org.example.knockin.repository.chat.ChattingScoreRepository;
 import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.MemberRepository;
+import org.example.knockin.repository.member.StateRepository;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.repository.auth.row.MemberAuthenticationRow;
 import org.example.knockin.repository.chat.row.ChatRoomListRow;
@@ -143,6 +147,9 @@ class ChatServiceImplTest {
     @Mock
     private MyRoomMateServiceImpl myRoomMateService;
 
+    @Mock
+    private StateRepository stateRepository;
+
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -154,11 +161,12 @@ class ChatServiceImplTest {
                 null,
                 null,
                 null,
-                null,
+                stateRepository,
                 null,
                 null,
                 null
         );
+        lenient().when(stateRepository.findByMemberId(any())).thenReturn(List.of(State.builder().states(MemberState.ACTIVE).build()));
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
                 roommateBoardRepository,

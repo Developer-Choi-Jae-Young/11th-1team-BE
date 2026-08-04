@@ -108,7 +108,7 @@ class RoomTypeServiceImplTest {
         RoomType roomType1 = RoomType.builder().id(1L).name("원룸").build();
         RoomType roomType2 = RoomType.builder().id(2L).name("투룸").build();
 
-        given(roomTypeRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(roomType1, roomType2)));
+        given(roomTypeRepository.findAllByIsDeleted(false, pageable)).willReturn(new PageImpl<>(List.of(roomType1, roomType2)));
 
         // when
         List<RoomType> result = roomTypeService.findRoomTypeList(pageable);
