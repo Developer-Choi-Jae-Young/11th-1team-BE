@@ -3,6 +3,8 @@ package org.example.knockin.entity.payment;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.knockin.entity.member.Member;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -19,5 +21,5 @@ public class Point {
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 }

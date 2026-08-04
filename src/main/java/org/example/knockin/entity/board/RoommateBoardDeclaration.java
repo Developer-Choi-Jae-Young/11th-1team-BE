@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.CreatedAtEntity;
 import org.example.knockin.global.entity.DeclarationType;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -25,7 +26,7 @@ public class RoommateBoardDeclaration extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_board_id", nullable = false)

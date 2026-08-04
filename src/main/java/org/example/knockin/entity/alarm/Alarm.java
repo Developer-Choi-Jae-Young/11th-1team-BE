@@ -11,6 +11,8 @@ import lombok.experimental.SuperBuilder;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.CreatedAtEntity;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Getter
@@ -29,7 +31,7 @@ public class Alarm extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(  action = OnDeleteAction.CASCADE) private Member member;
 
     @Column(name = "title", nullable = false, length = 50)
     private String title;

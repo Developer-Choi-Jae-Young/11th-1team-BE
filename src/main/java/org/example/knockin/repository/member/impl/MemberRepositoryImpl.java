@@ -260,7 +260,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         likedBy(likedByMemberId),
                         notBlockedBetween(requesterId)
                 )
-                .join(member.memberPrivacy, memberPrivacy)
+                .leftJoin(memberPrivacy)
+                .on(memberPrivacy.member.eq(member))
                 .leftJoin(basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
@@ -324,7 +325,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                         member.isDelete.isFalse(),
                         memberPrivacy.type.eq(MemberPrivacyType.PUBLIC)
                 )
-                .join(member.memberPrivacy, memberPrivacy)
+                .leftJoin(memberPrivacy)
+                .on(memberPrivacy.member.eq(member))
                 .leftJoin(basicInformation)
                 .on(basicInformation.id.eq(
                         JPAExpressions
