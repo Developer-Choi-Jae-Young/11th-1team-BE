@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
 import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.CreatedAtEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Getter
@@ -35,10 +37,12 @@ public class ChattingRequired extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requester", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requestee", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member requestee;
 
     @ManyToOne(fetch = FetchType.LAZY)
