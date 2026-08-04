@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -29,10 +31,12 @@ public class MemberInterest {
 
     @ManyToOne
     @JoinColumn(name = "sender_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member sender;
 
     @ManyToOne
     @JoinColumn(name = "receiver_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member receiver;
 
     @ColumnDefault("false")

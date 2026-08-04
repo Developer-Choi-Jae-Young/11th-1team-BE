@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import lombok.*;
 import org.example.knockin.global.entity.CreatedAtEntity;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Builder
 @Getter
@@ -27,10 +29,12 @@ public class Block extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blocker_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member blocker;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blocked_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member blocked;
 
     @Builder.Default
