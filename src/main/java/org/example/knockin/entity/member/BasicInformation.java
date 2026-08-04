@@ -18,6 +18,9 @@ import lombok.*;
 import org.example.knockin.dto.ModifyProfileBasicDto;
 import org.example.knockin.global.entity.BaseEntity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @Builder
@@ -32,7 +35,7 @@ public class BasicInformation extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @Column(name = "name", nullable = false, length = 10)
     private String name;

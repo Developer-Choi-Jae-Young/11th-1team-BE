@@ -13,7 +13,8 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.BaseEntity;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -35,7 +36,7 @@ public class MemberLifePattern extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "life_pattern_information_id", nullable = false)

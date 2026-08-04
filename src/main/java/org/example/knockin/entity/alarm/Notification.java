@@ -14,7 +14,8 @@ import org.example.knockin.dto.BoNoticeDto;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.BaseEntity;
 import org.hibernate.annotations.ColumnDefault;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -30,7 +31,7 @@ public class Notification extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @Column(name = "title", length = 50)
     private String title;

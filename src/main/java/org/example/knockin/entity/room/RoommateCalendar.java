@@ -20,7 +20,8 @@ import org.example.knockin.dto.CalendarDto;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.global.entity.BaseEntity;
 import org.hibernate.annotations.ColumnDefault;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Entity
 @Builder
@@ -39,7 +40,7 @@ public class RoommateCalendar extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false, comment = "작성자")
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_calendar_category_id", nullable = false)

@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -27,7 +29,7 @@ public class State {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false, unique = true)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", length = 20)

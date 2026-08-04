@@ -3,7 +3,8 @@ package org.example.knockin.entity.life;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.knockin.entity.member.Member;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Entity
 @Builder
@@ -17,7 +18,7 @@ public class PreferenceConditionWeightLog {
 
     @ManyToOne
     @JoinColumn(name = "member_id")
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @ManyToOne
     @JoinColumn(name = "life_pattern_id")

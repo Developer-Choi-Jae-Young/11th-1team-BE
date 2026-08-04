@@ -15,7 +15,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.global.entity.CreatedAtEntity;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Entity
 @Builder
@@ -30,7 +31,7 @@ public class Search extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @Column(name = "keyword", nullable = false, length = 100)
     private String keyword;
