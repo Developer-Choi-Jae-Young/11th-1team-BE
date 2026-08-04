@@ -9,6 +9,9 @@ import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.alarm.AlarmType;
 
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @SuperBuilder
@@ -18,5 +21,6 @@ import org.example.knockin.entity.alarm.AlarmType;
 public class RoommateMatchingRequiredAlarm extends Alarm{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_matching_required_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateMatchingRequired roommateMatchingRequired;
 }

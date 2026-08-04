@@ -15,6 +15,9 @@ import lombok.experimental.SuperBuilder;
 import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.alarm.AlarmType.Values;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @SuperBuilder
@@ -25,5 +28,6 @@ import org.example.knockin.entity.alarm.AlarmType.Values;
 public class RoommateCalendarAlarm extends Alarm {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_calendar_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateCalendar roommateCalendar;
 }

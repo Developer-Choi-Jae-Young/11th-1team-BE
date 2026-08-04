@@ -15,6 +15,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -31,6 +33,7 @@ public class ExcludeRoommateCalendar {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "repeat_roommate_calendar_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RepeatRoommateCalendar repeatRoommateCalendar;
 
     @Column(name = "exclude_at")

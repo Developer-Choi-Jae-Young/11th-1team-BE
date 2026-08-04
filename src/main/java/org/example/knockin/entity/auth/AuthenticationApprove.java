@@ -12,6 +12,8 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import org.example.knockin.global.entity.CreatedAtEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -27,6 +29,7 @@ public class AuthenticationApprove extends CreatedAtEntity {
     @MapsId
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "authentication_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Authentication authentication;
 
     @Enumerated(EnumType.STRING)

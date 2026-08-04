@@ -61,10 +61,14 @@ import static org.example.knockin.entity.member.QMemberDeclaration.memberDeclara
 import static com.querydsl.core.group.GroupBy.groupBy;
 import static com.querydsl.core.group.GroupBy.list;
 
+import jakarta.persistence.EntityManager;
+import org.springframework.transaction.annotation.Transactional;
+
 @Repository
 @RequiredArgsConstructor
 public class MemberRepositoryImpl implements MemberRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
+    private final EntityManager entityManager;
 
     @Override
     public Optional<Member> findMemberByProvider(String providerId, LoginProviderType providerType) {

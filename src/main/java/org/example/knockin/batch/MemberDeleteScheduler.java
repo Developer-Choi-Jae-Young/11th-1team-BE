@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class MemberDeleteScheduler {
     private final MemberServiceImpl memberService;
 
-    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
     public void run() {
         memberService.hardDeleteMember();
     }

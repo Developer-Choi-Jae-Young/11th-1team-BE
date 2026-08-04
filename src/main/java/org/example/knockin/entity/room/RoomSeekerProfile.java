@@ -11,12 +11,16 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.example.knockin.dto.ModifyProfileRoomInfoDto;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "room_seeker_profile")
 @DiscriminatorValue(RoomProfileType.Values.SEEKER)
+@OnDelete(action = OnDeleteAction.CASCADE)
 public class RoomSeekerProfile extends RoomProfile {
     @Column(name = "min_deposit", nullable = false)
     private Integer minDeposit;

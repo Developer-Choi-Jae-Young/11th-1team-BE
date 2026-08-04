@@ -9,12 +9,16 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.example.knockin.dto.ModifyProfileRoomInfoDto;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "room_offer_profile")
 @DiscriminatorValue(RoomProfileType.Values.OFFER)
+@OnDelete(action = OnDeleteAction.CASCADE)
 public class RoomOfferProfile extends RoomProfile {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)

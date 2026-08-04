@@ -15,6 +15,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.entity.room.RoomExtraOption;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Getter
@@ -31,6 +33,7 @@ public class RoommateBoardOption {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_board_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateBoard roommateBoard;
 
     @ManyToOne(fetch = FetchType.LAZY)
