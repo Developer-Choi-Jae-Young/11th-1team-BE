@@ -47,9 +47,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         if(ObjectUtils.isEmpty(principalDetails)) throw new BusinessException(AuthErrorCode.ILLEGAL_LOGIN_ACCESS);
         Member member = principalDetails.getMember();
         AuthResponse authResponse = memberService.findMemberForLogin(member, accessToken);
-        CommonResponse<AuthResponse> commonResponse = CommonResponse.status(HttpStatus.OK).body(authResponse);
+        CommonResponse<AuthResponse> commonResponse = formatCommonResponse(authResponse);
 
         if (request.getAttribute("isSdkLogin") != null) {
+            if (authResponse.getDeleteInfo().isDelete()) {
+                authResponse.setAccessToken(null);
+                response.setStatus(AuthErrorCode.MEMBER_IS_DELETE.getHttpStatus().value());
+            }
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(objectMapper.writeValueAsString(commonResponse));
         } else {
@@ -67,6 +71,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
             httpCookieOAuth2AuthorizationRequestRepository.clearCookies(request, response);
             response.sendRedirect(targetUrl);
+        }
+    }
+
+    private CommonResponse<AuthResponse> formatCommonResponse(AuthResponse authResponse) {
+        if (authResponse.getDeleteInfo().isDelete()) {
+            return CommonResponse.status(AuthErrorCode.MEMBER_IS_DELETE.getHttpStatus()).body(authResponse);
+        } else {
+            return CommonResponse.status(HttpStatus.OK).body(authResponse);
         }
     }
 }
