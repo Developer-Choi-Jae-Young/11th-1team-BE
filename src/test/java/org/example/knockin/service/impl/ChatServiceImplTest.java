@@ -8,7 +8,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +31,6 @@ import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
 import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.auth.AuthenticationType;
-import org.example.knockin.entity.board.RoommateBoard;
 import org.example.knockin.entity.chat.ChatRoomFile;
 import org.example.knockin.entity.chat.ChatRoomMember;
 import org.example.knockin.entity.chat.ChatRoomMessage;
@@ -52,7 +50,6 @@ import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.ChattingErrorCode;
 import org.example.knockin.exception.FileErrorCode;
 import org.example.knockin.exception.MemberErrorCode;
-import org.example.knockin.exception.RoommateBoardErrorCode;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.board.RoommateBoardRepository;
 import org.example.knockin.repository.chat.ChatRoomFileRepository;
@@ -130,6 +127,9 @@ class ChatServiceImplTest {
     private MemberRepository memberRepository;
 
     @Mock
+    private StateRepository stateRepository;
+
+    @Mock
     private RoommateScoreService roommateScoreService;
 
     @Mock
@@ -147,9 +147,6 @@ class ChatServiceImplTest {
     @Mock
     private MyRoomMateServiceImpl myRoomMateService;
 
-    @Mock
-    private StateRepository stateRepository;
-
     @InjectMocks
     private ChatServiceImpl chatService;
 
@@ -166,7 +163,9 @@ class ChatServiceImplTest {
                 null,
                 null
         );
-        lenient().when(stateRepository.findByMemberId(any())).thenReturn(List.of(State.builder().states(MemberState.ACTIVE).build()));
+        org.mockito.Mockito.lenient()
+                .when(stateRepository.findByMemberId(any(Long.class)))
+                .thenReturn(List.of(State.builder().states(MemberState.ACTIVE).build()));
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
         RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
                 roommateBoardRepository,
@@ -450,7 +449,6 @@ class ChatServiceImplTest {
         Long boardId = 10L;
         Member requester = member(requesterId);
         Member requestee = member(requesteeId);
-        RoommateBoard roommateBoard = RoommateBoard.builder().id(boardId).build();
         ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, boardId, "안녕하세요");
         LocalDateTime messageCreatedAt = LocalDateTime.of(2026, 6, 24, 10, 0);
 
@@ -459,7 +457,6 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(false);
         when(chattingRoomRepository.countActiveRoomsByMemberId(requesterId)).thenReturn(14L);
         when(chattingRoomRepository.countActiveRoomsByMemberId(requesteeId)).thenReturn(0L);
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.of(roommateBoard));
         when(chattingRequiredRepository.save(any(ChattingRequired.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(chattingRoomRepository.save(any(ChattingRoom.class)))
@@ -482,7 +479,7 @@ class ChatServiceImplTest {
         verify(chattingRequiredRepository).save(requiredCaptor.capture());
         assertThat(requiredCaptor.getValue().getRequester()).isSameAs(requester);
         assertThat(requiredCaptor.getValue().getRequestee()).isSameAs(requestee);
-        assertThat(requiredCaptor.getValue().getRoommateBoard()).isSameAs(roommateBoard);
+        assertThat(requiredCaptor.getValue().getRoommateBoard()).isNull();
         assertThat(requiredCaptor.getValue().getStatus()).isEqualTo(ChattingRequiredStatus.ACCEPTED);
 
         ArgumentCaptor<ChattingRoom> roomCaptor = ArgumentCaptor.forClass(ChattingRoom.class);
@@ -505,6 +502,7 @@ class ChatServiceImplTest {
         assertThat(messageCaptor.getValue().getType()).isEqualTo(MessageType.TEXT);
         verify(roommateScoreService).createChattingScores(requiredCaptor.getValue());
         verify(chattingScoreRepository).saveAll(chattingScores);
+        verifyNoInteractions(roommateBoardRepository);
     }
 
     @Test
@@ -576,31 +574,6 @@ class ChatServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(ChattingErrorCode.ROOM_LIMIT_EXCEEDED));
         verifyNoInteractions(roommateBoardRepository, chattingRequiredRepository, chatRoomMemberRepository, chatRoomMessageRepository);
-    }
-
-    @Test
-    @DisplayName("요청한 게시글이 없으면 채팅방을 생성하지 않는다")
-    void createChattingRoomRejectsMissingRoommateBoard() {
-        // Given
-        Long requesterId = 1L;
-        Long requesteeId = 2L;
-        Long boardId = 10L;
-        Member requester = member(requesterId);
-        Member requestee = member(requesteeId);
-        ChatRoomCreateDto.Request request = chatRoomCreateRequest(requesteeId, boardId, "안녕하세요");
-
-        when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
-        when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
-        when(chattingRoomRepository.existsActiveRoomBetweenMembers(requesterId, requesteeId)).thenReturn(false);
-        when(chattingRoomRepository.countActiveRoomsByMemberId(requesterId)).thenReturn(0L);
-        when(chattingRoomRepository.countActiveRoomsByMemberId(requesteeId)).thenReturn(0L);
-        when(roommateBoardRepository.findById(boardId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> chatService.createChattingRoom(requesterId, request))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        exception -> assertThat(exception.getErrorCode()).isEqualTo(RoommateBoardErrorCode.ROOMMATE_BOARD_NOT_FOUND));
-        verifyNoInteractions(chattingRequiredRepository, chatRoomMemberRepository, chatRoomMessageRepository);
     }
 
     @Test
@@ -868,6 +841,36 @@ class ChatServiceImplTest {
                 chatRoomMessageRepository,
                 chatRoomFileRepository,
                 publisher,
+                messagingTemplate
+        );
+    }
+
+    @Test
+    @DisplayName("수신자가 비활성 상태이면 기존 채팅방에서도 메시지를 전송할 수 없다")
+    void sendUserMessageRejectsInactiveReceiver() {
+        // Given
+        Long chatId = 10L;
+        Long senderId = 1L;
+        Member sender = member(senderId);
+        Member receiver = member(2L);
+        ChatRoomMember roomMember = activeRoomMember(sender, chattingRoom());
+        ChatMessageDto.Request request = textMessageRequest();
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatId, senderId))
+                .thenReturn(Optional.of(roomMember));
+        when(chatRoomMemberRepository.findPartnerMember(roomMember, chatId)).thenReturn(receiver);
+        when(stateRepository.findByMemberId(receiver.getId()))
+                .thenReturn(List.of(State.builder().states(MemberState.INACTIVE).member(receiver).build()));
+
+        // When & Then
+        assertThatThrownBy(() -> chatService.sendUserMessage(chatId, request, senderId))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(MemberErrorCode.NOT_ACTIVE_MEMBER));
+        verifyNoInteractions(
+                chattingRoomRepository,
+                chatRoomMessageRepository,
+                chatRoomFileRepository,
+                publisher,
+                pushNotificationService,
                 messagingTemplate
         );
     }
