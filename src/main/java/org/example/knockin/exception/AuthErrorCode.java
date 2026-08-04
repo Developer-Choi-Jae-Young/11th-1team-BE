@@ -19,7 +19,9 @@ public enum AuthErrorCode implements ErrorCode {
     APPLE_TOKEN_PARSE_ERROR(10, HttpStatus.UNAUTHORIZED, "Apple id_token 파싱 중 오류가 발생했습니다."),
     NOT_SUPPORT_SOCIAL_LOGIN(11, HttpStatus.UNAUTHORIZED, "Apple id_token 파싱 중 오류가 발생했습니다."),
     ACCESS_TOKEN_OMISSION(12, HttpStatus.UNAUTHORIZED, "Access Token이 누락되었습니다."),
-    APPLE_CLIENT_SECRET_MAKE_FAIL(13, HttpStatus.UNAUTHORIZED, "Apple client_secret 생성 실패했습니다.");
+    APPLE_CLIENT_SECRET_MAKE_FAIL(13, HttpStatus.UNAUTHORIZED, "Apple client_secret 생성 실패했습니다."),
+    MEMBER_IS_DELETE(14, HttpStatus.UNAUTHORIZED, "이용이 정지된 계정입니다. "),
+    ;
 
     private final Integer no;
     private final HttpStatus httpStatus;
