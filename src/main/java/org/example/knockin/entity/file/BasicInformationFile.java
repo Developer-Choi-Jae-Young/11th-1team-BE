@@ -11,6 +11,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 import org.example.knockin.entity.member.BasicInformation;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Getter
@@ -27,6 +29,7 @@ public class BasicInformationFile {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "basic_information_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private BasicInformation basicInformation;
 
     @ManyToOne(fetch = FetchType.LAZY)

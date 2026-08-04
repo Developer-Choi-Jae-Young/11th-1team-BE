@@ -92,7 +92,7 @@ public class MemberServiceImpl {
 
     @Transactional
     public void hardDeleteMember() {
-        LocalDateTime thresholdDate = LocalDateTime.now().minusMinutes(1);
+        LocalDateTime thresholdDate = LocalDateTime.now().minusDays(5);
 
         List<Member> memberList = memberRepository.findMemberByDelete();
         List<Member> membersToDelete = memberList.stream().filter(item -> item.getDeletedAt() != null && item.getDeletedAt().isBefore(thresholdDate)).toList();

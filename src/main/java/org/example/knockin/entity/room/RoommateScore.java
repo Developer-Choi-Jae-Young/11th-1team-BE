@@ -19,6 +19,9 @@ import org.example.knockin.entity.life.PreferenceConditionLog;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
 
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Getter
 @Entity
 @Builder
@@ -32,6 +35,7 @@ public class RoommateScore {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "my_roommate_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private MyRoommate myRoommate;
 
     @ManyToOne(fetch = FetchType.LAZY)

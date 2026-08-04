@@ -31,7 +31,7 @@ public class Alarm extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
-    @OnDelete(  action = OnDeleteAction.CASCADE) private Member member;
+    @OnDelete(action = OnDeleteAction.CASCADE) private Member member;
 
     @Column(name = "title", nullable = false, length = 50)
     private String title;

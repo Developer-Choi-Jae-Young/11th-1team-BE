@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.knockin.entity.file.File;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -32,5 +34,6 @@ public class ChatRoomFile {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_message_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ChatRoomMessage chatRoomMessage;
 }

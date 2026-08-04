@@ -30,6 +30,7 @@ public class RoommateBoardDeclaration extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_board_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateBoard roommateBoard;
 
     @Column(name = "reason", length = 500)

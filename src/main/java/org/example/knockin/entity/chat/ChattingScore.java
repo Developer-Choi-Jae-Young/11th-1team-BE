@@ -19,7 +19,8 @@ import lombok.NoArgsConstructor;
 import org.example.knockin.entity.life.MemberLifePatternLog;
 import org.example.knockin.entity.life.PreferenceConditionLog;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -34,6 +35,7 @@ public class ChattingScore {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chatting_required_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ChattingRequired chattingRequired;
 
     @ManyToOne(fetch = FetchType.LAZY)

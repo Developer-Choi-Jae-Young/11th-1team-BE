@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Entity
@@ -29,9 +31,11 @@ public class NotificationAlarm {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alarm_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Alarm alarm;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "notification_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Notification notification;
 }
