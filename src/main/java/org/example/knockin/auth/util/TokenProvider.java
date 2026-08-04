@@ -33,7 +33,7 @@ public class TokenProvider {
     @Value("${jwt.key}")
     private String key;
     private SecretKey secretKey;
-    public static final Duration ACCESS_TOKEN_EXPIRE_DURATION = Duration.ofMinutes(30);
+    public static final Duration ACCESS_TOKEN_EXPIRE_DURATION = Duration.ofDays(7);
     private static final long ACCESS_TOKEN_EXPIRE_TIME = ACCESS_TOKEN_EXPIRE_DURATION.toMillis();
     private static final String KEY_ROLE = "role";
     private static final String KEY_MEMBER_ID = "memberId";
