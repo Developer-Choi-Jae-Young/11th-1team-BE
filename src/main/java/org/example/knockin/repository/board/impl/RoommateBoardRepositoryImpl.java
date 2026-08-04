@@ -104,8 +104,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .leftJoin(basicInformation).on(basicInformation.member.eq(member))
-                .leftJoin(basicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
+                .leftJoin(latestBasicInformation).on(latestBasicInformation.member.eq(member))
+                .leftJoin(latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 //.leftJoin(member.basicInformations, latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 .leftJoin(basicInformationFile)
                 .on(basicInformationFile.id.eq(
@@ -292,8 +292,8 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(boardRegion.parent, parentRegion)
                 .leftJoin(parentRegion.parent, grandParentRegion)
                 .join(roommateBoard.member, member)
-                .leftJoin(basicInformation).on(basicInformation.member.eq(member))
-                .leftJoin(basicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
+                .leftJoin(latestBasicInformation).on(latestBasicInformation.member.eq(member))
+                .leftJoin(latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 //.leftJoin(member.basicInformations, latestBasicInformation).on(latestBasicInformationIdEq(latestBasicInformation))
                 .leftJoin(basicInformationFile)
                 .on(basicInformationFile.id.eq(
