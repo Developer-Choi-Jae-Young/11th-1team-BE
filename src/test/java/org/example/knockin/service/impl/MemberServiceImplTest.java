@@ -116,13 +116,13 @@ class MemberServiceImplTest {
         given(stateRepository.findByMember(member)).willReturn(List.of(state));
 
         // when
-        State result = memberService.setMemberState(member, MemberState.INACTIVE);
+        State result = memberService.setMemberState(member, MemberState.INACTIVE, "정지사유");
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getStates()).isEqualTo(MemberState.INACTIVE);
         verify(stateRepository).findByMember(member);
-        verify(state).changeState(MemberState.INACTIVE);
+        verify(state).rejectState("정지사유");
     }
 
     @Test

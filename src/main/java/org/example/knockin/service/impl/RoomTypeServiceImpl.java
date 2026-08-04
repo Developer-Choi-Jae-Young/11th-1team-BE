@@ -49,7 +49,7 @@ public class RoomTypeServiceImpl {
     }
 
     public List<RoomType> findRoomTypeList(Pageable pageable) {
-        return roomTypeRepository.findAll(pageable).stream().toList();
+        return roomTypeRepository.findAllByIsDeleted(false, pageable).stream().toList();
     }
 
     public RoomType findRoomType(Long roomTypeId) {

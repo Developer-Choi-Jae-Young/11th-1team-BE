@@ -237,11 +237,11 @@ public class MemberServiceImpl {
     }
 
     @Transactional
-    public State setMemberState(Member member, MemberState memberState) {
+    public State setMemberState(Member member, MemberState memberState, String rejectReason) {
         State state = stateRepository.findByMember(member).getFirst();
-        state.changeState(memberState);
 
         if(memberState.equals(MemberState.ACTIVE)) {
+            state.activeState();
             Alarm alarm = Alarm.builder()
                     .title(MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle())
                     .contents(MemberAlarmTemplate.MEMBER_ACTIVE.formatContents())
@@ -253,6 +253,8 @@ public class MemberServiceImpl {
 
             alarmService.sendToClient(member.getId(), MemberAlarmTemplate.MEMBER_ACTIVE.name(), alarm);
             pushNotificationService.send(member, AlarmSettingType.NOTIFICATION, MemberAlarmTemplate.MEMBER_ACTIVE.formatTitle(), MemberAlarmTemplate.MEMBER_ACTIVE.formatContents(), MemberAlarmTemplate.MEMBER_ACTIVE.formatDeepLink());
+        } else {
+            state.rejectState(rejectReason);
         }
 
         return state;

@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 public class DeclarationServiceImpl {
     private final MemberDeclarationRepository memberDeclarationRepository;
     private final RoommateBoardDeclarationRepository roommateBoardDeclarationRepository;
+    private final MemberServiceImpl memberService;
 
     public List<BoReportWaitListDto.Response.ReportInfo> findReportWaitList(Pageable pageable) {
         List<BoReportWaitListDto.Response.ReportInfo> memberReports = memberDeclarationRepository.findReportWaitList(pageable);
@@ -76,7 +77,10 @@ public class DeclarationServiceImpl {
     public void reportSuspended(Long id, ReportType type, String reason) {
         switch (type) {
             case BOARD -> roommateBoardDeclarationRepository.findById(id).orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND)).changeDeclarationType(DeclarationType.SUSPENDED, reason);
-            case MEMBER -> memberDeclarationRepository.findById(id).orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND)).changeDeclarationType(DeclarationType.SUSPENDED, reason);
+            case MEMBER -> {
+                memberDeclarationRepository.findById(id).orElseThrow(() -> new BusinessException(DeclarationErrorCode.DECLARATION_NOT_FOUND)).changeDeclarationType(DeclarationType.SUSPENDED);
+                memberService.findStateByMemberId(id).rejectState(reason);
+            }
         }
     }
 }

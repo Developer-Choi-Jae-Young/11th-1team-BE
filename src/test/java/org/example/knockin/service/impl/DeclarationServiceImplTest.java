@@ -4,6 +4,7 @@ import org.example.knockin.dto.BoReportDoneListDto;
 import org.example.knockin.dto.BoReportWaitListDto;
 import org.example.knockin.entity.board.RoommateBoardDeclaration;
 import org.example.knockin.entity.member.MemberDeclaration;
+import org.example.knockin.entity.member.State;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.DeclarationErrorCode;
 import org.example.knockin.global.entity.DeclarationType;
@@ -37,6 +38,9 @@ class DeclarationServiceImplTest {
 
     @Mock
     private RoommateBoardDeclarationRepository roommateBoardDeclarationRepository;
+
+    @Mock
+    private MemberServiceImpl memberService;
 
     @InjectMocks
     private DeclarationServiceImpl declarationService;
@@ -189,12 +193,15 @@ class DeclarationServiceImplTest {
         // given
         Long id = 1L;
         MemberDeclaration memberDeclaration = spy(MemberDeclaration.builder().id(id).build());
+        State state = mock(State.class);
         given(memberDeclarationRepository.findById(id)).willReturn(Optional.of(memberDeclaration));
- 
+        given(memberService.findStateByMemberId(id)).willReturn(state);
+
         // when
         declarationService.reportSuspended(id, ReportType.MEMBER, "사유");
- 
+
         // then
-        verify(memberDeclaration).changeDeclarationType(DeclarationType.SUSPENDED, "사유");
+        verify(memberDeclaration).changeDeclarationType(DeclarationType.SUSPENDED);
+        verify(state).rejectState("사유");
     }
 }
