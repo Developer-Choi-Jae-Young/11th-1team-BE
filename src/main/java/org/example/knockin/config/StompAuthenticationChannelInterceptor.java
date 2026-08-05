@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.AuthException;
 import org.example.knockin.auth.util.PrincipalMemberResolver;
@@ -20,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StompAuthenticationChannelInterceptor implements ChannelInterceptor {
@@ -37,10 +39,15 @@ public class StompAuthenticationChannelInterceptor implements ChannelInterceptor
             return message;
         }
 
-        switch (accessor.getCommand()) {
-            case CONNECT -> handleConnect(accessor);
-            case SEND -> handleSend(accessor);
-            case SUBSCRIBE -> handleSubscribe(accessor);
+        try {
+            switch (accessor.getCommand()) {
+                case CONNECT -> handleConnect(accessor);
+                case SEND -> handleSend(accessor);
+                case SUBSCRIBE -> handleSubscribe(accessor);
+            }
+        } catch (AuthException e) {
+            log.warn("STOMP 인증 실패 [{}]: {}", e.getErrorCode().name(), e.getErrorCode().getMessage());
+            throw e;
         }
 
         return message;
