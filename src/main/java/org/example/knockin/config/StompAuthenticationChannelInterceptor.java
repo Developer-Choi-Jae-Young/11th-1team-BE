@@ -54,6 +54,7 @@ public class StompAuthenticationChannelInterceptor implements ChannelInterceptor
     }
 
     private void handleConnect(StompHeaderAccessor accessor) {
+        log.info("STOMP 인증 시작");
         String accessToken = resolveAccessToken(accessor);
         Authentication authentication = authenticate(accessToken);
         Date expiresAt = tokenProvider.getExpiration(accessToken);
