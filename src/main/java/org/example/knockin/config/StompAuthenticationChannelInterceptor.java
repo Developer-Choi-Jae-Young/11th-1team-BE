@@ -39,9 +39,10 @@ public class StompAuthenticationChannelInterceptor implements ChannelInterceptor
             return message;
         }
 
+        log.info("STOMP preSend 수신: command={}", accessor.getCommand());
         try {
             switch (accessor.getCommand()) {
-                case CONNECT -> handleConnect(accessor);
+                case CONNECT, STOMP -> handleConnect(accessor);
                 case SEND -> handleSend(accessor);
                 case SUBSCRIBE -> handleSubscribe(accessor);
             }

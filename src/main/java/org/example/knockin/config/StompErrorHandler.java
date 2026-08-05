@@ -2,6 +2,7 @@ package org.example.knockin.config;
 
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.global.api.ErrorResponse;
 import org.example.knockin.exception.AuthErrorCode;
@@ -17,6 +18,7 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 import tools.jackson.databind.ObjectMapper;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class StompErrorHandler extends StompSubProtocolErrorHandler {
@@ -24,6 +26,7 @@ public class StompErrorHandler extends StompSubProtocolErrorHandler {
 
     @Override
     public Message<byte[]> handleClientMessageProcessingError(Message<byte[]> clientMessage, Throwable ex) {
+        log.error("STOMP 클라이언트 메시지 처리 중 에러 발생: {}", ex.getMessage(), ex);
         ErrorCode errorCode = resolveErrorCode(ex);
         byte[] payload = writeErrorPayload(errorCode);
 
