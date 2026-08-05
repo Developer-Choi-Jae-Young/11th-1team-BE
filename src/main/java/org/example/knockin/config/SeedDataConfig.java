@@ -389,8 +389,9 @@ public class SeedDataConfig implements CommandLineRunner {
         InquiryCategory catRoom = InquiryCategory.builder().title("방 등록/매칭").isDeleted(false).build();
         InquiryCategory catAbuse = InquiryCategory.builder().title("불량유저 신고").isDeleted(false).build();
         InquiryCategory catEtc = InquiryCategory.builder().title("기타 문의").isDeleted(false).build();
+        InquiryCategory feedBack = InquiryCategory.builder().title("의견 남기기").isDeleted(false).build();
 
-        inquiryCategoryRepository.saveAll(List.of(catAccount, catRoom, catAbuse, catEtc));
+        inquiryCategoryRepository.saveAll(List.of(catAccount, catRoom, catAbuse, catEtc, feedBack));
 
         // ==================== 전수 JPA 엔티티 E2E 덤프 데이터 생성 ====================
 
