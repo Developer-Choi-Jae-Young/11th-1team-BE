@@ -245,7 +245,7 @@ public class BackOfficeServiceImpl {
     }
 
     public BoNoticeDetailDto.Response findNotice(Long id) {
-        return notificationService.findNotification(id);
+        return notificationService.findBoNotification(id);
     }
 
     @Transactional

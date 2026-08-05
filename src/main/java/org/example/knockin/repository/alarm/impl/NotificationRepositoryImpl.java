@@ -5,6 +5,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoNoticeDetailDto;
 import org.example.knockin.dto.BoNoticeListDto;
+import org.example.knockin.dto.NoticeDetailDto;
 import org.example.knockin.dto.NoticeListDto;
 import org.example.knockin.repository.alarm.NotificationRepositoryCustom;
 import org.springframework.data.domain.Pageable;
@@ -60,10 +61,28 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     }
 
     @Override
-    public BoNoticeDetailDto.Response findNotificationByIsDeleted(Boolean isDeleted, Long id) {
+    public BoNoticeDetailDto.Response findBoNotificationByIsDeleted(Boolean isDeleted, Long id) {
         return jpaQueryFactory
                 .select(Projections.fields(
                         BoNoticeDetailDto.Response.class,
+                        notification.id,
+                        notification.title,
+                        notification.contents,
+                        notification.createdAt.as("createAt"),
+                        basicInformation.name.as("writer")
+                ))
+                .from(notification)
+                .join(notification.member, member)
+                .leftJoin(basicInformation).on(basicInformation.member.eq(member))
+                .where(notification.isDeleted.eq(isDeleted), notification.id.eq(id))
+                .fetchOne();
+    }
+
+    @Override
+    public NoticeDetailDto.Response findNotificationByIsDeleted(Boolean isDeleted, Long id) {
+        return jpaQueryFactory
+                .select(Projections.fields(
+                        NoticeDetailDto.Response.class,
                         notification.id,
                         notification.title,
                         notification.contents,

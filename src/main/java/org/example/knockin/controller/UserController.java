@@ -173,6 +173,12 @@ public class UserController {
         return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNoticeList(pageable));
     }
 
+    @GetMapping("/notices/{id}")
+    @Operation(summary = "공지사항 상세 조회")
+    public CommonResponse<NoticeDetailDto.Response> findNotice(@PathVariable Long id) {
+        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNotice(id));
+    }
+
     @PostMapping("/devices")
     @Operation(summary = "FCM 디바이스 정보 저장 (로그인 직후 호출)")
     public CommonResponse<FcmDto.Response> upsertDeviceProps(

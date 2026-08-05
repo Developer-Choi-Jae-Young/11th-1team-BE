@@ -561,7 +561,7 @@ class BackOfficeServiceImplTest {
         noticeDetail.setTitle("공지 제목");
         expected.setNotice(noticeDetail);
 
-        given(notificationService.findNotification(id)).willReturn(expected);
+        given(notificationService.findBoNotification(id)).willReturn(expected);
 
         // when
         BoNoticeDetailDto.Response response = backOfficeService.findNotice(id);
