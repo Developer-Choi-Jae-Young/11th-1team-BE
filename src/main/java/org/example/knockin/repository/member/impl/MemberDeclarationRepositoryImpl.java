@@ -53,9 +53,7 @@ public class MemberDeclarationRepositoryImpl implements MemberDeclarationReposit
                         memberDeclaration.id,
                         ExpressionUtils.as(Expressions.constant(ReportType.MEMBER.name()), "type"),
                         basicInformation.name.as("reporter"),
-                        memberDeclaration.reporter.id.as("reporterId"),
-                        memberDeclaration.reported.id.as("reportedId"),
-                        memberDeclaration.reason,
+                        memberDeclaration.declarationType,
                         memberDeclaration.createdAt
                 ))
                 .from(memberDeclaration)

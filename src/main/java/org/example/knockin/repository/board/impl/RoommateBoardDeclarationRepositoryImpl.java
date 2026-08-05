@@ -53,10 +53,8 @@ public class RoommateBoardDeclarationRepositoryImpl implements RoommateBoardDecl
                         roommateBoardDeclaration.id,
                         ExpressionUtils.as(Expressions.constant(ReportType.BOARD.name()), "type"),
                         basicInformation.name.as("reporter"),
-                        roommateBoardDeclaration.member.id.as("reporterId"),
-                        roommateBoardDeclaration.roommateBoard.id.as("reportedId"),
-                        roommateBoardDeclaration.reason,
-                        roommateBoardDeclaration.createdAt
+                        roommateBoardDeclaration.createdAt,
+                        roommateBoardDeclaration.declarationType
                 ))
                 .from(roommateBoardDeclaration)
                 .join(roommateBoardDeclaration.member, member)
