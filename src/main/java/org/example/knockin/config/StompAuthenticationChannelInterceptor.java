@@ -39,7 +39,7 @@ public class StompAuthenticationChannelInterceptor implements ChannelInterceptor
             return message;
         }
 
-        log.info("STOMP preSend 수신: command={}", accessor.getCommand());
+        log.info("STOMP preSend 수신: command={}, nativeHeaders={}", accessor.getCommand(), accessor.toNativeHeaderMap());
         try {
             switch (accessor.getCommand()) {
                 case CONNECT, STOMP -> handleConnect(accessor);
