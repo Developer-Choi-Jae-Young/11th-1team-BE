@@ -672,6 +672,35 @@ public class SeedDataConfig implements CommandLineRunner {
         roommateBoardInterestRepository.save(RoommateBoardInterest.builder().member(user2).roommateBoard(board1).isDeleted(false).build());
         roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board1).reason("허위 매물 등록 의심").declarationType(DeclarationType.PENDING).build());
 
+        // 12-1. 추가 테스트용
+        RoommateBoard board2 = RoommateBoard.builder()
+                .member(user1)
+                .title("강남역 인근 깔끔한 원룸 룸메 구합니다! (테스트용, member.id 변경)")
+                .contents("채광 좋고 조용한 원룸입니다. 함께 깨끗하게 쓰실 분 환영해요.")
+                .deposit(500)
+                .monthlyRent(50)
+                .managementCost(5)
+                .roomType(oneRoom)
+                .region(firstDong)
+                .comeableDateNegotiable(true)
+                .comeableDate(LocalDateTime.now().plusDays(7))
+                .isDeleted(false)
+                .hits(10L)
+                .build();
+        roommateBoardRepository.save(board2);
+
+        RoommateBoardOption boardOption3 = RoommateBoardOption.builder()
+                .roommateBoard(board2)
+                .roomExtraOption(fullOption)
+                .build();
+        RoommateBoardOption boardOption4 = RoommateBoardOption.builder()
+                .roommateBoard(board2)
+                .roomExtraOption(elevator)
+                .build();
+
+        roommateBoardOptionRepository.saveAll(List.of(boardOption3, boardOption4));
+        roommateBoardDeclarationRepository.save(RoommateBoardDeclaration.builder().member(user2).roommateBoard(board2).reason("허위 매물 등록 의심 테스트").declarationType(DeclarationType.PENDING).build());
+
         // 13. 1:1 문의 및 답변 (Inquiry & InquiryComment)
         Inquiry inquiry1 = Inquiry.builder()
                 .member(user1)
