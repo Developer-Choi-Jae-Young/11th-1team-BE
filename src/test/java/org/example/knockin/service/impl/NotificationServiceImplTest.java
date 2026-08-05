@@ -2,6 +2,7 @@ package org.example.knockin.service.impl;
 
 import org.example.knockin.dto.BoNoticeDetailDto;
 import org.example.knockin.dto.BoNoticeListDto;
+import org.example.knockin.dto.NoticeDetailDto;
 import org.example.knockin.entity.alarm.Notification;
 import org.example.knockin.repository.alarm.NotificationRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -101,8 +102,8 @@ class NotificationServiceImplTest {
     void findNotificationSuccessTest() {
         // given
         Long id = 1L;
-        BoNoticeDetailDto.Response response = new BoNoticeDetailDto.Response();
-        BoNoticeDetailDto.Response.NoticeDetail noticeDetail = new BoNoticeDetailDto.Response.NoticeDetail();
+        NoticeDetailDto.Response response = new NoticeDetailDto.Response();
+        NoticeDetailDto.Response.NoticeDetail noticeDetail = new NoticeDetailDto.Response.NoticeDetail();
         noticeDetail.setId(id);
         noticeDetail.setTitle("제목");
         noticeDetail.setContents("내용");
@@ -112,7 +113,7 @@ class NotificationServiceImplTest {
         given(notificationRepository.findNotificationByIsDeleted(false, id)).willReturn(response);
 
         // when
-        BoNoticeDetailDto.Response result = notificationService.findNotification(id);
+        NoticeDetailDto.Response result = notificationService.findNotification(id);
 
         // then
         assertThat(result).isNotNull();

@@ -1,10 +1,7 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.dto.AlarmSettingDto;
-import org.example.knockin.dto.BoNoticeListDto;
-import org.example.knockin.dto.MyNotificationSettingsDto;
-import org.example.knockin.dto.NoticeListDto;
+import org.example.knockin.dto.*;
 import org.example.knockin.entity.alarm.AlarmSetting;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.exception.AuthErrorCode;
@@ -40,5 +37,9 @@ public class NotificationSettingServiceImpl {
 
     public NoticeListDto.Response findNoticeList(Pageable pageable) {
         return NoticeListDto.Response.builder().notices(notificationService.findNotificationList(pageable)).build();
+    }
+
+    public NoticeDetailDto.Response findNotice(Long id) {
+        return notificationService.findNotification(id);
     }
 }

@@ -3,6 +3,7 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoNoticeDetailDto;
 import org.example.knockin.dto.BoNoticeListDto;
+import org.example.knockin.dto.NoticeDetailDto;
 import org.example.knockin.dto.NoticeListDto;
 import org.example.knockin.entity.alarm.Notification;
 import org.example.knockin.repository.alarm.NotificationRepository;
@@ -34,7 +35,11 @@ public class NotificationServiceImpl {
         return notificationRepository.findByIdAndIsDeleted(id, false);
     }
 
-    public BoNoticeDetailDto.Response findNotification(Long id) {
+    public BoNoticeDetailDto.Response findBoNotification(Long id) {
+        return notificationRepository.findBoNotificationByIsDeleted(false, id);
+    }
+
+    public NoticeDetailDto.Response findNotification(Long id) {
         return notificationRepository.findNotificationByIsDeleted(false, id);
     }
 }
