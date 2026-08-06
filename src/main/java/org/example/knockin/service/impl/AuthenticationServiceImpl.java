@@ -113,7 +113,7 @@ public class AuthenticationServiceImpl {
     }
 
     private String generateAuthCode() {
-        return UUID.randomUUID().toString().replace("-", "");
+        return String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(1000000));
     }
 
     private String loadMailTemplate(String authToken) {
