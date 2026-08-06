@@ -58,6 +58,15 @@ public class LifeStyleServiceImpl {
         lifePatternInformationRepository.deleteByLifePattern(lifePattern);
     }
 
+    public List<LifePatternInformation> findLifeInformationByPattern(LifePattern lifePattern) {
+        return lifePatternInformationRepository.findByLifePattern(lifePattern);
+    }
+
+    @Transactional
+    public void deleteLifeInformation(LifePatternInformation lifePatternInformation) {
+        lifePatternInformationRepository.delete(lifePatternInformation);
+    }
+
     public BoLifeStylePatternListDto.Response findLifeStylePatternList(Pageable pageable) {
         List<BoLifeStylePatternListDto.Response.PatternItem> patternItemList = lifePatternRepository.findLifeStylePatternList(pageable);
         return BoLifeStylePatternListDto.Response.builder().patterns(patternItemList).build();

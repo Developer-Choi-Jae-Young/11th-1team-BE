@@ -175,9 +175,34 @@ public class BackOfficeServiceImpl {
     public BoLifeStylePatternDto.Response modifyLifeStylePattern(BoLifeStylePatternDto.Request request, Long patternId, MultipartFile file) {
         try {
             LifePattern lifePattern = lifeStyleService.findLifeStyle(patternId);
-            lifeStyleService.deleteLifeInformationByPattern(lifePattern);
-            request.getDetails().forEach(detail ->
-                    lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build()));
+            List<LifePatternInformation> existingList = lifeStyleService.findLifeInformationByPattern(lifePattern);
+            List<BoLifeStylePatternDto.Request.DetailItem> details = request.getDetails();
+
+            if (details != null) {
+                int existingSize = existingList.size();
+                int detailSize = details.size();
+
+                for (int i = 0; i < detailSize; i++) {
+                    BoLifeStylePatternDto.Request.DetailItem detail = details.get(i);
+                    if (i < existingSize) {
+                        LifePatternInformation existing = existingList.get(i);
+                        existing.modifyLifePatternInformation(detail.getValues(), detail.getDescription());
+                    } else {
+                        lifeStyleService.saveLifeInformation(LifePatternInformation.builder()
+                                .lifePattern(lifePattern)
+                                .dvalue(detail.getValues())
+                                .description(detail.getDescription())
+                                .build());
+                    }
+                }
+
+                if (existingSize > detailSize) {
+                    for (int i = detailSize; i < existingSize; i++) {
+                        lifeStyleService.deleteLifeInformation(existingList.get(i));
+                    }
+                }
+            }
+
             lifePattern.modifyLifePattern(request.getName(), request.getType(), request.getSort(), request.getLifePatternDescription(), request.getPreferenceDescription());
 
             if(file != null && !file.isEmpty()) {
