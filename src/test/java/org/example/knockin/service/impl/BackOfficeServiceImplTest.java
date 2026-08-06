@@ -373,6 +373,7 @@ class BackOfficeServiceImplTest {
         LifePattern pattern = spy(LifePattern.builder().id(id).name("흡연 여부").dtype(LifePatternType.BOOLEAN).sort(1).build());
 
         given(lifeStyleService.findLifeStyle(id)).willReturn(pattern);
+        given(lifeStyleService.findLifeInformationByPattern(pattern)).willReturn(List.of());
 
         // when
         BoLifeStylePatternDto.Response response = backOfficeService.modifyLifeStylePattern(request, id, null);
@@ -380,7 +381,7 @@ class BackOfficeServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(lifeStyleService).deleteLifeInformationByPattern(pattern);
+        verify(lifeStyleService).findLifeInformationByPattern(pattern);
         verify(lifeStyleService).saveLifeInformation(any(LifePatternInformation.class));
         verify(pattern).modifyLifePattern("흡연 여부 변경", LifePatternType.BOOLEAN, 2, "생활패턴 설명", "선호조건 설명");
     }
