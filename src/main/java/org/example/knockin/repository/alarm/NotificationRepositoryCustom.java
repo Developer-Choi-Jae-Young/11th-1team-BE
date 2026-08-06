@@ -11,6 +11,6 @@ import java.util.List;
 public interface NotificationRepositoryCustom  {
     List<BoNoticeListDto.Response.NoticeItem> findBoNotificationsByIsDeleted(Boolean isDeleted, Pageable pageable);
     List<NoticeListDto.Response.NoticeItem> findNotificationsByIsDeleted(Boolean isDeleted, Pageable pageable);
-    BoNoticeDetailDto.Response findBoNotificationByIsDeleted(Boolean isDeleted, Long id);
-    NoticeDetailDto.Response findNotificationByIsDeleted(Boolean isDeleted, Long id);
+    BoNoticeDetailDto.Response.NoticeDetail findBoNotificationByIsDeleted(Boolean isDeleted, Long id);
+    NoticeDetailDto.Response.NoticeDetail findNotificationByIsDeleted(Boolean isDeleted, Long id);
 }

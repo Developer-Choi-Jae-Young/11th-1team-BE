@@ -110,7 +110,7 @@ class NotificationServiceImplTest {
         noticeDetail.setWriter("작성자");
         response.setNotice(noticeDetail);
 
-        given(notificationRepository.findNotificationByIsDeleted(false, id)).willReturn(response);
+        given(notificationRepository.findNotificationByIsDeleted(false, id)).willReturn(noticeDetail);
 
         // when
         NoticeDetailDto.Response result = notificationService.findNotification(id);

@@ -36,10 +36,14 @@ public class NotificationServiceImpl {
     }
 
     public BoNoticeDetailDto.Response findBoNotification(Long id) {
-        return notificationRepository.findBoNotificationByIsDeleted(false, id);
+        return BoNoticeDetailDto.Response.builder().notice(notificationRepository.findBoNotificationByIsDeleted(false, id)).build();
     }
 
     public NoticeDetailDto.Response findNotification(Long id) {
-        return notificationRepository.findNotificationByIsDeleted(false, id);
+        return NoticeDetailDto.Response.builder().notice(notificationRepository.findNotificationByIsDeleted(false, id)).build();
+    }
+
+    public NoticeListDto.Response findNoticeList(Pageable pageable) {
+        return NoticeListDto.Response.builder().notices(findNotificationList(pageable)).build();
     }
 }

@@ -9,6 +9,7 @@ import org.example.knockin.dto.FcmDto.Response;
 import org.example.knockin.global.api.CommonResponse;
 import org.example.knockin.dto.PrincipalDetails;
 import org.example.knockin.service.impl.MemberServiceImpl;
+import org.example.knockin.service.impl.NotificationServiceImpl;
 import org.example.knockin.service.impl.NotificationSettingServiceImpl;
 import org.example.knockin.service.impl.OnBoardingServiceImpl;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class UserController {
     private final MemberServiceImpl memberService;
     private final OnBoardingServiceImpl onBoardingService;
     private final NotificationSettingServiceImpl notificationSettingService;
+    private final NotificationServiceImpl notificationService;
 
     @DeleteMapping
     @Operation(summary = "회원 탈퇴")
@@ -170,13 +172,13 @@ public class UserController {
     @GetMapping("/notices")
     @Operation(summary = "공지사항 목록 조회")
     public CommonResponse<NoticeListDto.Response> findNoticeList(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNoticeList(pageable));
+        return CommonResponse.status(HttpStatus.OK).body(notificationService.findNoticeList(pageable));
     }
 
     @GetMapping("/notices/{id}")
     @Operation(summary = "공지사항 상세 조회")
     public CommonResponse<NoticeDetailDto.Response> findNotice(@PathVariable Long id) {
-        return CommonResponse.status(HttpStatus.OK).body(notificationSettingService.findNotice(id));
+        return CommonResponse.status(HttpStatus.OK).body(notificationService.findNotification(id));
     }
 
     @PostMapping("/devices")

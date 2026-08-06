@@ -34,12 +34,4 @@ public class NotificationSettingServiceImpl {
         alarmSetting.updateEnable(request.getEnabled());
         return AlarmSettingDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
-
-    public NoticeListDto.Response findNoticeList(Pageable pageable) {
-        return NoticeListDto.Response.builder().notices(notificationService.findNotificationList(pageable)).build();
-    }
-
-    public NoticeDetailDto.Response findNotice(Long id) {
-        return notificationService.findNotification(id);
-    }
 }
