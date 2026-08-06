@@ -61,10 +61,10 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     }
 
     @Override
-    public BoNoticeDetailDto.Response findBoNotificationByIsDeleted(Boolean isDeleted, Long id) {
+    public BoNoticeDetailDto.Response.NoticeDetail findBoNotificationByIsDeleted(Boolean isDeleted, Long id) {
         return jpaQueryFactory
                 .select(Projections.fields(
-                        BoNoticeDetailDto.Response.class,
+                        BoNoticeDetailDto.Response.NoticeDetail.class,
                         notification.id,
                         notification.title,
                         notification.contents,
@@ -79,10 +79,10 @@ public class NotificationRepositoryImpl implements NotificationRepositoryCustom 
     }
 
     @Override
-    public NoticeDetailDto.Response findNotificationByIsDeleted(Boolean isDeleted, Long id) {
+    public NoticeDetailDto.Response.NoticeDetail findNotificationByIsDeleted(Boolean isDeleted, Long id) {
         return jpaQueryFactory
                 .select(Projections.fields(
-                        NoticeDetailDto.Response.class,
+                        NoticeDetailDto.Response.NoticeDetail.class,
                         notification.id,
                         notification.title,
                         notification.contents,
