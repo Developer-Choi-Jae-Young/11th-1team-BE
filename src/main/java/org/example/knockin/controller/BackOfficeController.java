@@ -209,8 +209,9 @@ public class BackOfficeController {
 
     @PatchMapping("/verifications/wait/{id}/cancel")
     @Operation(summary = "인증 반려")
-    public CommonResponse<BoVerificationDto.Response> deleteVerifications(@PathVariable Long id, @RequestBody BoVerificationDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteVerifications(id, request.getRejectReason()));
+    public CommonResponse<BoVerificationDto.Response> deleteVerifications(@PathVariable Long id, @RequestBody(required = false) BoVerificationDto.Request request) {
+        String rejectReason = request != null ? request.getRejectReason() : null;
+        return CommonResponse.status(HttpStatus.OK).body(backOfficeService.deleteVerifications(id, rejectReason));
     }
 
     @PostMapping("/notices")

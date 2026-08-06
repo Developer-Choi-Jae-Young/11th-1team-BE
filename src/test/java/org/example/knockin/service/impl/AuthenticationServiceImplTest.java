@@ -417,12 +417,12 @@ class AuthenticationServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         Member member = Member.builder().id(1L).build();
         MyVerificationListDto.Response.AuthInfo studentAuth = MyVerificationListDto.Response.AuthInfo.builder()
-                .isAccepted(true)
+                .status(ApproveType.ACCEPTED)
                 .email("student@univ.ac.kr")
                 .createAt(LocalDateTime.now())
                 .build();
         MyVerificationListDto.Response.AuthInfo employeeAuth = MyVerificationListDto.Response.AuthInfo.builder()
-                .isAccepted(false)
+                .status(ApproveType.ACCEPTED)
                 .email("employee@company.com")
                 .createAt(LocalDateTime.now())
                 .build();
@@ -436,10 +436,10 @@ class AuthenticationServiceImplTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getStudentAuth()).isNotNull();
-        assertThat(response.getStudentAuth().getIsAccepted()).isTrue();
+        assertThat(response.getStudentAuth().getStatus()).isEqualTo(ApproveType.ACCEPTED);
         assertThat(response.getStudentAuth().getEmail()).isEqualTo("student@univ.ac.kr");
         assertThat(response.getEmployeeAuth()).isNotNull();
-        assertThat(response.getEmployeeAuth().getIsAccepted()).isFalse();
+        assertThat(response.getEmployeeAuth().getStatus()).isEqualTo(ApproveType.ACCEPTED);
         assertThat(response.getEmployeeAuth().getEmail()).isEqualTo("employee@company.com");
     }
 }
