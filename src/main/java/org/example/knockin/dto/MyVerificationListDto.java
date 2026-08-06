@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.knockin.entity.auth.ApproveType;
 import org.example.knockin.entity.auth.AuthenticationType;
 
 import java.time.LocalDateTime;
@@ -32,7 +33,7 @@ public class MyVerificationListDto {
         @NoArgsConstructor
         public static class AuthInfo {
             @Schema(description = "수락 여부")
-            private Boolean isAccepted;
+            private ApproveType status;
             @Schema(description = "이메일")
             private String email;
             @Schema(description = "생성 일시")
