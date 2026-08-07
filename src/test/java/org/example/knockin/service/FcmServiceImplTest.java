@@ -33,22 +33,6 @@ class FcmServiceImplTest {
     private FcmServiceImpl fcmServiceImpl;
 
     @Test
-    @DisplayName("회원에게 알림을 보낼 때 저장된 FCM 토큰을 사용한다")
-    void sendByMemberUsesStoredFcmToken() throws Exception {
-        // given
-        Member member = mock(Member.class);
-        given(member.getFcmToken()).willReturn("fcm-token");
-        given(firebaseMessaging.send(any(Message.class))).willReturn("message-id");
-
-        // when
-        fcmServiceImpl.sendByMember(member);
-
-        // then
-        verify(member).getFcmToken();
-        verify(firebaseMessaging).send(any(Message.class));
-    }
-
-    @Test
     @DisplayName("FCM 전송이 실패해도 호출자에게 예외를 전파하지 않는다")
     void sendDoesNotPropagateFirebaseFailure() throws Exception {
         // given

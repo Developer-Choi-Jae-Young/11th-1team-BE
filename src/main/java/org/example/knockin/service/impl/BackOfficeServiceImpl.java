@@ -188,18 +188,12 @@ public class BackOfficeServiceImpl {
                         LifePatternInformation existing = existingList.get(i);
                         existing.modifyLifePatternInformation(detail.getValues(), detail.getDescription());
                     } else {
-                        lifeStyleService.saveLifeInformation(LifePatternInformation.builder()
-                                .lifePattern(lifePattern)
-                                .dvalue(detail.getValues())
-                                .description(detail.getDescription())
-                                .build());
+                        lifeStyleService.saveLifeInformation(LifePatternInformation.builder().lifePattern(lifePattern).dvalue(detail.getValues()).description(detail.getDescription()).build());
                     }
                 }
 
                 if (existingSize > detailSize) {
-                    for (int i = detailSize; i < existingSize; i++) {
-                        lifeStyleService.deleteLifeInformation(existingList.get(i));
-                    }
+                    existingList.subList(detailSize, existingSize).forEach(lifeStyleService::deleteLifeInformation);
                 }
             }
 
@@ -211,10 +205,7 @@ public class BackOfficeServiceImpl {
                 if(lifePatternFile != null) {
                     lifePatternFile.modifyFile(fileEntity);
                 } else {
-                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder()
-                            .file(fileEntity)
-                            .lifePattern(lifePattern)
-                            .build());
+                    lifeStyleService.saveLifePatternFile(LifePatternFile.builder().file(fileEntity).lifePattern(lifePattern).build());
                 }
             }
         } catch (IOException e) {

@@ -13,11 +13,6 @@ import org.springframework.stereotype.Service;
 public class FcmServiceImpl {
     private final FirebaseMessaging firebaseMessaging;
 
-    public void sendByMember(Member member) {
-        String fcmToken = member.getFcmToken();
-        send("테스트", "테스트",  fcmToken);
-    }
-
     @Async
     public void send(String title, String body, String fcmToken) {
         try {
