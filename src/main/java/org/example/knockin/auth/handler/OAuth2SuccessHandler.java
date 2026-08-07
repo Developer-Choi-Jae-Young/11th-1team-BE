@@ -4,6 +4,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.auth.repository.HttpCookieOAuth2AuthorizationRequestRepository;
@@ -26,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.ObjectMapper;
 
 
@@ -58,18 +60,35 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             response.getWriter().write(objectMapper.writeValueAsString(commonResponse));
         } else {
             String targetUrl = CookieUtils.getCookie(request, HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME).map(Cookie::getValue).orElse(knockInProps.getClientSuccessUrl());
-            boolean secureCookie = knockInProps.getClientSuccessUrl().startsWith("https://");
+            if(targetUrl.startsWith(HttpCookieOAuth2AuthorizationRequestRepository.INAPP_REDIRECT_URI_PARAM)) {
+                UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(targetUrl)
+                        .queryParam("accessToken", accessToken)
+                        .queryParam("basicInfo", authResponse.isBasicInfo())
+                        .queryParam("preferenceInfo", authResponse.isPreferenceInfo())
+                        .queryParam("name", authentication.getName());
 
-            ResponseCookie accessTokenCookie = ResponseCookie.from(TokenConstants.ACCESS_TOKEN_COOKIE_NAME, accessToken)
-                    .secure(secureCookie)
-                    .sameSite(secureCookie ? "None" : "Lax")
-                    .path("/")
-                    .maxAge(TokenProvider.ACCESS_TOKEN_EXPIRE_DURATION)
-                    .build();
+                if (authResponse.getDeleteInfo() != null && authResponse.getDeleteInfo().isDelete()) {
+                    uriBuilder.queryParam("isDelete", true).queryParam("reason", authResponse.getDeleteInfo().getReason());
+                }
 
-            response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-            httpCookieOAuth2AuthorizationRequestRepository.clearCookies(request, response);
-            response.sendRedirect(targetUrl);
+                String redirectUrl = uriBuilder.build().encode(StandardCharsets.UTF_8).toUriString();
+
+                httpCookieOAuth2AuthorizationRequestRepository.clearCookies(request, response);
+                response.sendRedirect(redirectUrl);
+            } else {
+                boolean secureCookie = knockInProps.getClientSuccessUrl().startsWith("https://");
+                ResponseCookie accessTokenCookie = ResponseCookie.from(TokenConstants.ACCESS_TOKEN_COOKIE_NAME, accessToken)
+                        .httpOnly(true)
+                        .secure(secureCookie)
+                        .sameSite(secureCookie ? "None" : "Lax")
+                        .path("/")
+                        .maxAge(TokenProvider.ACCESS_TOKEN_EXPIRE_DURATION)
+                        .build();
+
+                response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+                httpCookieOAuth2AuthorizationRequestRepository.clearCookies(request, response);
+                response.sendRedirect(targetUrl);
+            }
         }
     }
 
