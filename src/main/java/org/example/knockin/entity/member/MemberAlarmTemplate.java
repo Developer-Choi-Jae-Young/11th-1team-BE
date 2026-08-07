@@ -5,7 +5,7 @@ import org.example.knockin.global.entity.AlarmMessageTemplate;
 
 @RequiredArgsConstructor
 public enum MemberAlarmTemplate implements AlarmMessageTemplate {
-    MEMBER_ACTIVE("계정 정지가 해제되었어요", "계정 정지가 해제되었습니다. 서비스를 정상적으로 이용하실 수 있습니다.", "myapp://main"),
+    MEMBER_ACTIVE("계정 정지가 해제되었어요", "계정 정지가 해제되었습니다. 서비스를 정상적으로 이용하실 수 있습니다.", "knockinrn://explore"),
     ;
 
     private final String title;
