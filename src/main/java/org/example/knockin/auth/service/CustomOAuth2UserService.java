@@ -33,7 +33,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         if (OAuth2UserInfoProvider.APPLE.getRegistrationId().equalsIgnoreCase(registrationId)) {
             String idToken = (String) userRequest.getAdditionalParameters().get("id_token");
-            if (idToken.isBlank()) {
+            if (idToken == null || idToken.isBlank()) {
                 idToken = userRequest.getAccessToken().getTokenValue();
             }
 
