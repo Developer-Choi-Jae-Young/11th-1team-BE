@@ -272,7 +272,6 @@ public class MemberServiceImpl {
     public FcmDto.Response upsertFcmProps(Long memberId, FcmDto.Request request) {
         Member member = findByIdOrThrow(memberId);
         member.setFcmProps(request.getDeviceId(), request.getFcmToken(), request.getPlatform());
-        log.info("FCM 디바이스 정보 저장 호출 완료");
         return FcmDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
