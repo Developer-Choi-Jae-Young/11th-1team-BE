@@ -61,7 +61,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             boolean secureCookie = knockInProps.getClientSuccessUrl().startsWith("https://");
 
             ResponseCookie accessTokenCookie = ResponseCookie.from(TokenConstants.ACCESS_TOKEN_COOKIE_NAME, accessToken)
-                    .httpOnly(true)
                     .secure(secureCookie)
                     .sameSite(secureCookie ? "None" : "Lax")
                     .path("/")

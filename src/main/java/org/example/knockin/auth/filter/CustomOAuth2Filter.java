@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.dto.OAuth2SdkRequest;
 import org.example.knockin.auth.handler.OAuth2FailureHandler;
 import org.example.knockin.auth.handler.OAuth2SuccessHandler;
@@ -31,6 +32,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 
+@Slf4j
 @RequiredArgsConstructor
 public class CustomOAuth2Filter extends OncePerRequestFilter {
     private final ClientRegistrationRepository clientRegistrationRepository;
@@ -89,6 +91,7 @@ public class CustomOAuth2Filter extends OncePerRequestFilter {
                 oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
                 return;
             } catch (Exception e) {
+                log.error("로그인 실패: message={}", e.getMessage());
                 SecurityContextHolder.clearContext();
                 request.setAttribute("isSdkLogin", true);
                 AuthenticationException authException = new InternalAuthenticationServiceException(e.getMessage(), e);
