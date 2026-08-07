@@ -1,6 +1,7 @@
 package org.example.knockin.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.dto.*;
 import org.example.knockin.entity.alarm.Alarm;
 import org.example.knockin.entity.alarm.AlarmSetting;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class MemberServiceImpl {
     private final MemberRepository memberRepository;
@@ -270,6 +272,7 @@ public class MemberServiceImpl {
     public FcmDto.Response upsertFcmProps(Long memberId, FcmDto.Request request) {
         Member member = findByIdOrThrow(memberId);
         member.setFcmProps(request.getDeviceId(), request.getFcmToken(), request.getPlatform());
+        log.info("FCM 디바이스 정보 저장 호출 완료");
         return FcmDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
