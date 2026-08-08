@@ -85,6 +85,11 @@ public class MyRoomMateServiceImpl {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public MyRoommate findByMyRoommate(Long memberId) {
+        return myRoommateRepository.findWithRequiredByMemberId(memberId).orElse(null);
+    }
+
     private Long getOpponentId(Long myId, Long memberId1, Long memberId2) {
         if (Objects.equals(myId, memberId1)) return memberId2;
         if (Objects.equals(myId, memberId2)) return memberId1;

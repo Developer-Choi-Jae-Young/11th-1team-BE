@@ -5,6 +5,8 @@ import static org.example.knockin.entity.chat.QChatRoomMember.chatRoomMember;
 import static org.example.knockin.entity.member.QMember.member;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -75,5 +77,15 @@ public class ChatRoomMemberRepositoryImpl implements ChatRoomMemberRepositoryCus
                         chatRoomMember.ne(me)
                 )
                 .fetchFirst());
+    }
+
+    @Override
+    public List<ChatRoomMember> findChatRoomMemberById(Long chatRoomId) {
+        return jpaQueryFactory
+                .select(chatRoomMember)
+                .from(chatRoomMember)
+                .join(chatRoomMember.chattingRoom, chattingRoom)
+                .where(chatRoomMember.chattingRoom.id.eq(chatRoomId))
+                .fetch();
     }
 }
