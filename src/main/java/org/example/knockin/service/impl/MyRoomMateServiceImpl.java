@@ -29,6 +29,7 @@ import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.repository.room.MyRoommateRepository;
 import org.example.knockin.service.RoommateScoreService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MyRoomMateServiceImpl {
     private final MyRoommateRepository myRoommateRepository;
-    private final RoommateScoreService roommateScoreService;
+    private final RoommateScoreService javaRoommateScoreV2Service;
     private final MemberPrivacyServiceImpl memberPrivacyService;
     private final BasicInformationServiceImpl basicInformationService;
     private final MyRoommateScoreServiceImpl myRoommateScoreService;
@@ -54,7 +55,7 @@ public class MyRoomMateServiceImpl {
                 .isDeleted(false)
                 .build();
         MyRoommate savedMyRoommate = myRoommateRepository.save(myRoommate);
-        myRoommateScoreService.saveAll(roommateScoreService.createRoommateScores(savedMyRoommate));
+        myRoommateScoreService.saveAll(javaRoommateScoreV2Service.createRoommateScores(savedMyRoommate));
         return savedMyRoommate;
     }
 
@@ -72,8 +73,8 @@ public class MyRoomMateServiceImpl {
         Long myRoommateId = myRoommate.getId();
         List<RoommateScore> roommateScores = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
         Integer totalScore = roommateScores.isEmpty()
-                ? roommateScoreService.calculateSimpleScore(memberId, opponentId)
-                : roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores).getTotalScore();
+                ? javaRoommateScoreV2Service.calculateSimpleScore(memberId, opponentId)
+                : javaRoommateScoreV2Service.calculateRoommateCompatibility(memberId, roommateScores).getTotalScore();
 
         Long chatRoomId = roommateMatchingRequired.getChattingRoom().getId();
 

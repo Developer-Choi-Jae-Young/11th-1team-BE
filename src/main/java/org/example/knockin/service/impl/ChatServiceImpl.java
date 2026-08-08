@@ -42,6 +42,7 @@ import org.example.knockin.repository.chat.row.ChatRoomListRow;
 import org.example.knockin.repository.chat.row.ChatRoomUnreadCountRow;
 import org.example.knockin.service.FileService;
 import org.example.knockin.service.RoommateScoreService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -70,7 +71,7 @@ public class ChatServiceImpl {
     private final RoommateBoardServiceImpl roommateBoardService;
     private final ChattingRequiredServiceImpl chattingRequiredService;
     private final MemberServiceImpl memberService;
-    private final RoommateScoreService roommateScoreService;
+    private final RoommateScoreService javaRoommateScoreV2Service;
     private final ChattingScoreServiceImpl chattingScoreService;
     private final BlockServiceImpl blockService;
     private final PushNotificationServiceImpl pushNotificationService;
@@ -277,10 +278,10 @@ public class ChatServiceImpl {
 
     private Integer calculateChattingScore(Long memberId, Long opponentMemberId, List<ChattingScore> chattingScores) {
         if (chattingScores.isEmpty()) {
-            return roommateScoreService.calculateSimpleScore(memberId, opponentMemberId);
+            return javaRoommateScoreV2Service.calculateSimpleScore(memberId, opponentMemberId);
         }
 
-        Compatibility compatibility = roommateScoreService.calculateChattingCompatibility(memberId, chattingScores);
+        Compatibility compatibility = javaRoommateScoreV2Service.calculateChattingCompatibility(memberId, chattingScores);
         return compatibility.getTotalScore();
     }
 
@@ -298,7 +299,7 @@ public class ChatServiceImpl {
         chatRoomMemberService.saveAll(chattingRoom, List.of(requester, requestee));
         String contents = request.getChatMessage().getContents();
         ChatRoomMessage chatRoomMessage = chatRoomMessageService.save(contents, requester, chattingRoom, MessageType.TEXT);
-        chattingScoreService.saveAll(roommateScoreService.createChattingScores(chattingRequired));
+        chattingScoreService.saveAll(javaRoommateScoreV2Service.createChattingScores(chattingRequired));
 
         return ChatRoomCreateDto.Response.builder()
                 .chatRoomId(chattingRoom.getId())

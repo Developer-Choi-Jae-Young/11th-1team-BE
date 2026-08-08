@@ -1,36 +1,15 @@
 package org.example.knockin.service.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.Compatibility.LifeStyleInfo;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingScore;
-import org.example.knockin.entity.life.LifePattern;
-import org.example.knockin.entity.life.LifePatternInformation;
-import org.example.knockin.entity.life.LifePatternType;
-import org.example.knockin.entity.life.MemberLifePatternLog;
-import org.example.knockin.entity.life.PreferenceConditionLog;
-import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.entity.room.RoommateScore;
-import org.example.knockin.repository.life.LifePatternInformationRepository;
-import org.example.knockin.repository.life.MemberLifePatternLogRepository;
-import org.example.knockin.repository.life.MemberLifePatternRepository;
-import org.example.knockin.repository.life.PreferenceConditionLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.life.*;
 import org.example.knockin.repository.life.row.LifePatternInformationValueRow;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
@@ -39,9 +18,15 @@ import org.example.knockin.service.RoommateScoreService;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
-public class JavaRoommateScoreService extends RoommateScoreService {
+public class JavaRoommateScoreV2Service extends RoommateScoreService {
     private final MemberLifePatternRepository memberLifePatternRepository;
     private final PreferenceConditionRepository preferenceConditionRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
@@ -50,6 +35,8 @@ public class JavaRoommateScoreService extends RoommateScoreService {
     private final MemberLifePatternLogRepository memberLifePatternLogRepository;
     private final PreferenceConditionLogRepository preferenceConditionLogRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+
+    private static final Long TOTAL_POINT = 100L;
 
     @Override
     public Map<Long, Compatibility> calculateScores(Long requesterId, List<Long> targetMemberIds) {
@@ -375,7 +362,7 @@ public class JavaRoommateScoreService extends RoommateScoreService {
             int maxRawScore
     ) {
         double rawScore = 0.0;
-        List<Compatibility.LifeStyleInfo> lifeStyleInfo = new ArrayList<>();
+        List<LifeStyleInfo> lifeStyleInfo = new ArrayList<>();
 
         for (Map.Entry<Long, MatchingLifestyleRow> entry : requesterLifestyles.entrySet()) {
             Long lifePatternId = entry.getKey();
@@ -394,7 +381,7 @@ public class JavaRoommateScoreService extends RoommateScoreService {
 
             int importanceMultiplier = scorePolicy.importanceMultiplier(requesterImportantPatternIds.contains(lifePatternId));
             rawScore += similarity * importanceMultiplier;
-            lifeStyleInfo.add(new Compatibility.LifeStyleInfo(
+            lifeStyleInfo.add(new LifeStyleInfo(
                     requesterLifestyle.lifePatternId(),
                     requesterLifestyle.name(),
                     scorePolicy.toPercent(similarity)
@@ -645,5 +632,29 @@ public class JavaRoommateScoreService extends RoommateScoreService {
         boolean important() {
             return preferenceConditionWeightLog != null;
         }
+    }
+
+
+
+    public Long calculateScores(List<LifePattern> me, List<LifePattern> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {
+        int lifePatternSize = Math.max(me.size(), target.size());
+        double lifePartternPartPoint = (double) TOTAL_POINT / lifePatternSize;
+        Long totalPoint = 0L;
+
+        for(int i = 0; i < lifePatternSize; i++) {
+            double value = calculateScores(me.get(i), target.get(i));
+            totalPoint += (long) (lifePartternPartPoint * value / TOTAL_POINT);
+        }
+
+        return totalPoint;
+    }
+
+    public double calculateScores(LifePattern me, LifePattern target) {
+        List<LifePatternInformation> lifePatternInformations = lifePatternInformationRepository.findByLifePattern(me);
+        double lifePatternPartPoint = (double) TOTAL_POINT / lifePatternInformations.size();
+
+
+
+        return TOTAL_POINT;
     }
 }

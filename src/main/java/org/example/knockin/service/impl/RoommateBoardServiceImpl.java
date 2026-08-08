@@ -61,6 +61,7 @@ import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeight
 import org.example.knockin.service.RoommateBoardService;
 import org.example.knockin.service.RoommateScoreService;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -75,7 +76,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardRepository roommateBoardRepository;
     private final MemberServiceImpl memberService;
     private final MetaServiceImpl metaService;
-    private final RoommateScoreService roommateScoreService;
+    private final RoommateScoreService javaRoommateScoreV2Service;
     private final RoommateBoardFileServiceImpl roommateBoardFileService;
     private final PreferenceConditionServiceImpl preferenceConditionService;
     private final MemberLifePatternService memberLifePatternService;
@@ -306,7 +307,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
                 .filter(row -> Objects.equals(row.memberId(), ownerId))
                 .map(this::toConditionWeight)
                 .toList();
-        Compatibility compatibility = roommateScoreService.calculateScore(memberId, ownerId);
+        Compatibility compatibility = javaRoommateScoreV2Service.calculateScore(memberId, ownerId);
         List<AuthenticationType> authenticationTypes = authenticationService.findTypesByMemberId(ownerId);
 
         boolean interested = roommateBoardInterestService.existsActiveByBoardIdAndMemberId(boardId, memberId);

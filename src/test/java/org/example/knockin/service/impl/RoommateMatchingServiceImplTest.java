@@ -392,11 +392,11 @@ class RoommateMatchingServiceImplTest {
                 ));
         when(memberInterestRepository.findActiveReceiverIdsBySenderIdAndReceiverIds(viewerId, List.of(1L, 2L)))
                 .thenReturn(List.of(2L));
-        when(roommateScoreService.calculateScores(any(), anyList()))
-                .thenReturn(Map.of(
-                        1L, new Compatibility(80, List.of()),
-                        2L, new Compatibility(60, List.of())
-                ));
+//        when(roommateScoreService.calculateScores(any(), anyList()))
+//                .thenReturn(Map.of(
+//                        1L, new Compatibility(80, List.of()),
+//                        2L, new Compatibility(60, List.of())
+//                ));
 
         // When
         Slice<MatchListDto.Response> response = roommateMatchingService.findMatchingList(viewerId, request);

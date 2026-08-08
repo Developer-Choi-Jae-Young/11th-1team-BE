@@ -23,6 +23,7 @@ import org.example.knockin.repository.chat.row.ChatRequestListRow;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.member.row.ChattingRoomBasicInfoRow;
 import org.example.knockin.service.RoommateScoreService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class ChatRequestServiceImpl {
     private final ChattingRequiredAlarmServiceImpl chattingRequiredAlarmService;
     private final BasicInformationServiceImpl basicInformationService;
     private final MemberLifePatternService memberLifePatternService;
-    private final RoommateScoreService roommateScoreService;
+    private final RoommateScoreService javaRoommateScoreV2Service;
 
     @Transactional(readOnly = true)
     public List<ChatRequestListDto.Response> getPendingChatRequestList(Long memberId) {
@@ -55,7 +56,7 @@ public class ChatRequestServiceImpl {
                 .toList();
         Map<Long, Integer> scoresByMemberId = requesterIds.isEmpty()
                 ? Map.of()
-                : roommateScoreService.calculateSimpleScores(memberId, requesterIds);
+                : javaRoommateScoreV2Service.calculateSimpleScores(memberId, requesterIds);
 
         return requestListRows.stream()
                 .map(row -> toResponse(row, scoresByMemberId.get(row.memberId())))
@@ -94,7 +95,7 @@ public class ChatRequestServiceImpl {
         MemberInfo meInfo = toMemberInfo(myId, basicInfoRowMap.get(myId), lifeStyleRowMap.get(myId));
         MemberInfo opponentInfo = toMemberInfo(opponentId, basicInfoRowMap.get(opponentId), lifeStyleRowMap.get(opponentId));
 
-        Integer score = roommateScoreService.calculateSimpleScore(myId, opponentId);
+        Integer score = javaRoommateScoreV2Service.calculateSimpleScore(myId, opponentId);
 
         return ChatRequestDetailDto.Response.builder()
                 .requiredId(chattingRequired.getId())

@@ -5,23 +5,33 @@ import java.util.Map;
 import org.example.knockin.dto.Compatibility;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingScore;
+import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.entity.room.RoommateScore;
 
-public interface RoommateScoreService {
-    Map<Long, Compatibility> calculateScores(Long requesterId, List<Long> targetMemberIds);
+public abstract class RoommateScoreService {
+    public abstract Map<Long, Compatibility> calculateScores(Long requesterId, List<Long> targetMemberIds);
 
-    Map<Long, Integer> calculateSimpleScores(Long requesterId, List<Long> targetMemberIds);
+    public abstract Map<Long, Integer> calculateSimpleScores(Long requesterId, List<Long> targetMemberIds);
 
-    Compatibility calculateScore(Long requesterId, Long targetMemberId);
+    public abstract Compatibility calculateScore(Long requesterId, Long targetMemberId);
 
-    Integer calculateSimpleScore(Long requesterId, Long targetMemberId);
+    public abstract Integer calculateSimpleScore(Long requesterId, Long targetMemberId);
 
-    List<ChattingScore> createChattingScores(ChattingRequired chattingRequired);
+    public abstract List<ChattingScore> createChattingScores(ChattingRequired chattingRequired);
 
-    List<RoommateScore> createRoommateScores(MyRoommate myRoommate);
+    public abstract List<RoommateScore> createRoommateScores(MyRoommate myRoommate);
 
-    Compatibility calculateChattingCompatibility(Long memberId, List<ChattingScore> chattingScores);
+    public abstract Compatibility calculateChattingCompatibility(Long memberId, List<ChattingScore> chattingScores);
 
-    Compatibility calculateRoommateCompatibility(Long memberId, List<RoommateScore> roommateScores);
+    public abstract Compatibility calculateRoommateCompatibility(Long memberId, List<RoommateScore> roommateScores);
+
+    public Long calculateScores(List<LifePattern> me, List<LifePattern> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {
+        return 100L;
+    }
+
+    public double calculateScores(LifePattern me, LifePattern target) {
+        return 100f;
+    }
 }

@@ -36,6 +36,7 @@ import org.example.knockin.repository.room.row.MatchingSeekerRegionRow;
 import org.example.knockin.repository.room.row.MatchingSeekerRoomTypeRow;
 import org.example.knockin.service.RoommateMatchingService;
 import org.example.knockin.service.RoommateScoreService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -53,7 +54,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
     private final PreferenceConditionServiceImpl preferenceConditionService;
     private final AuthenticationServiceImpl authenticationService;
     private final DeclarationServiceImpl declarationService;
-    private final RoommateScoreService roommateScoreService;
+    private final RoommateScoreService javaRoommateScoreV2Service;
 
     @Override
     @Transactional(readOnly = true)
@@ -82,7 +83,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<MatchingPreferenceConditionRow> matchingPreferenceConditionRows = preferenceConditionService.findRowByMemberIdsIn(memberIds);
         List<MatchingPreferenceConditionWeightRow> matchingPreferenceConditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(memberIds);
         List<MemberAuthenticationRow> authenticationRows = authenticationService.findAcceptedByMemberIds(memberIds);
-        Map<Long, Compatibility> scoresByMemberId = Optional.ofNullable(roommateScoreService.calculateScores(memberId, memberIds)).orElse(Map.of());
+        Map<Long, Compatibility> scoresByMemberId = Optional.ofNullable(javaRoommateScoreV2Service.calculateScores(memberId, memberIds)).orElse(Map.of());
 
         Map<Long, MatchingOfferProfileRow> offerMap = HasMemberId.toMapByMemberId(matchingOfferProfileRows);
         Map<Long, MatchingSeekerProfileRow> seekerMap = HasMemberId.toMapByMemberId(matchingSeekerProfileRows);
@@ -322,7 +323,7 @@ public class RoommateMatchingServiceImpl implements RoommateMatchingService {
         List<MatchingLifestyleRow> lifestyleRows = memberLifePatternService.findMatchingRowByMemberIdsIn(List.of(targetMemberId));
         List<MatchingPreferenceConditionRow> preferenceConditionRows = preferenceConditionService.findRowByMemberIdsIn(List.of(targetMemberId));
         List<MatchingPreferenceConditionWeightRow> preferenceConditionWeightRows = preferenceConditionService.findWeightRowByMemberIdsIn(List.of(targetMemberId));
-        Compatibility compatibility = roommateScoreService.calculateScore(requesterId, targetMemberId);
+        Compatibility compatibility = javaRoommateScoreV2Service.calculateScore(requesterId, targetMemberId);
 
         boolean interested = requesterId != null && memberInterestService.existsActiveBySenderIdAndReceiverId(requesterId, targetMemberId);
 
