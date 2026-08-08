@@ -5,8 +5,8 @@ import org.example.knockin.global.entity.AlarmMessageTemplate;
 
 @RequiredArgsConstructor
 public enum BoardAlarmTemplate implements AlarmMessageTemplate {
-    DELETE_BOARD("게시글 비공개 안내", "게시글이 비공개 처리되었습니다. 사유: %s", "myapp://main"),
-    RECOVER_BOARD("게시글이 다시 노출됩니다", "비공개 처리된 게시글이 다시 노출됩니다.", "myapp://roommate/board/%s"),
+    DELETE_BOARD("게시글 비공개 안내", "게시글이 비공개 처리되었습니다. 사유: %s", "knockinrn://explore"),
+    RECOVER_BOARD("게시글이 다시 노출됩니다", "비공개 처리된 게시글이 다시 노출됩니다.", "knockinrn://room/%s"),
     ;
 
     private final String title;

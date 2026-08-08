@@ -5,7 +5,7 @@ import org.example.knockin.global.entity.AlarmMessageTemplate;
 
 @RequiredArgsConstructor
 public enum InquiryAlarmTemplate implements AlarmMessageTemplate {
-    INQUIRIE_REPLY("문의 답변이 도착했어요", "고객센터에 답변이 등록되었습니다. 확인해보세요.", "myapp://mypage"),
+    INQUIRIE_REPLY("문의 답변이 도착했어요", "고객센터에 답변이 등록되었습니다. 확인해보세요.", "knockinrn://mypage"),
     ;
 
     private final String title;

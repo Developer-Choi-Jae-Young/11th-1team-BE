@@ -5,8 +5,8 @@ import org.example.knockin.global.entity.AlarmMessageTemplate;
 
 @RequiredArgsConstructor
 public enum AuthenticateAlarmTemplate implements AlarmMessageTemplate {
-    SAVE_VERIFICATION("인증 완료!", "신분 인증이 완료되었습니다.", "myapp://mypage"),
-    DELETE_VERIFICATION("인증 반려 안내", "신분 인증이 반려되었습니다. 사유: %s", "myapp://mypage");
+    SAVE_VERIFICATION("인증 완료!", "신분 인증이 완료되었습니다.", "knockinrn://mypage"),
+    DELETE_VERIFICATION("인증 반려 안내", "신분 인증이 반려되었습니다. 사유: %s", "knockinrn://mypage");
 
     private final String title;
     private final String contents;
