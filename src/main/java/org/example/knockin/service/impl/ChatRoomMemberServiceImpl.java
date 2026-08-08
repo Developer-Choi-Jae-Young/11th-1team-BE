@@ -48,4 +48,8 @@ public class ChatRoomMemberServiceImpl {
             throw new BusinessException(ChattingErrorCode.ROOM_MEMBER_NOT_FOUND);
         }
     }
+
+    public List<ChatRoomMember> findChatRoomMemberById(Long chatRoomId) {
+        return chatRoomMemberRepository.findChatRoomMemberById(chatRoomId);
+    }
 }
