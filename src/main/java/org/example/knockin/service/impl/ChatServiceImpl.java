@@ -137,6 +137,8 @@ public class ChatServiceImpl {
 
     @Transactional
     public ChatRoomDto.Response leaveChatRoom(Long memberId, Long chatRoomId) {
+        if(myRoomMateService.findByMyRoommate(memberId) != null) throw new BusinessException(ChattingErrorCode.CANNOT_LEAVE_ROOMMATE_CHAT);
+
         ChatRoomMember roomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId);
         roomMember.left();
 
@@ -151,6 +153,10 @@ public class ChatServiceImpl {
     @Transactional
     public void sendUserMessage(Long chatRoomId, ChatMessageDto.Request request, Long senderId) {
         validateMessageRequest(request);
+        List<ChatRoomMember> chatRoomMemberList = chatRoomMemberService.findChatRoomMemberById(chatRoomId);
+        if (chatRoomMemberList.stream().anyMatch(ChatRoomMember::getIsLeft)) {
+            throw new BusinessException(ChattingErrorCode.CANNOT_SEND_TO_LEFT_MEMBER);
+        }
         ChatRoomMember senderChatRoomMember = chatRoomMemberService.findActiveMemberByRoomIdAndMemberId(chatRoomId, senderId);
         Member sender = senderChatRoomMember.getMember();
         Member receiver = chatRoomMemberService.findPartnerMember(senderChatRoomMember, chatRoomId);
