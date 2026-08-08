@@ -294,4 +294,11 @@ public class MemberServiceImpl {
             throw new BusinessException(MemberErrorCode.NOT_ACTIVE_MEMBER);
         }
     }
+
+    @Transactional
+    public LogOutDto.Response logout(Long id) {
+        Member member = findByIdOrThrow(id);
+        member.clearFcmProps();
+        return LogOutDto.Response.builder().updatedAt(LocalDateTime.now()).build();
+    }
 }

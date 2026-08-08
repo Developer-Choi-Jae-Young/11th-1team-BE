@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Null;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -102,5 +103,11 @@ public class Member extends CreatedAtEntity {
         this.deviceId = deviceId;
         this.fcmToken = fcmToken;
         this.platform = platform;
+    }
+
+    public void clearFcmProps() {
+        this.deviceId = "";
+        this.fcmToken = "";
+        this.platform = null;
     }
 }

@@ -191,6 +191,13 @@ public class UserController {
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃")
+    public CommonResponse<LogOutDto.Response> logout(@AuthenticationPrincipal PrincipalDetails details) {
+        LogOutDto.Response response = memberService.logout(details.getMember().getId());
+        return CommonResponse.status(HttpStatus.OK).body(response);
+    }
+
     @GetMapping("/account")
     @Operation(summary = "내 계정 권한(Role) 조회")
     public CommonResponse<MyAccountDto.Response> findMyAccount(@AuthenticationPrincipal PrincipalDetails principalDetails) {
