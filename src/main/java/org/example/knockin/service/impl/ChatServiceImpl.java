@@ -31,6 +31,7 @@ import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.file.File;
 import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.entity.room.RoommateMatchingRequired;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.ChattingErrorCode;
 import org.example.knockin.exception.FileErrorCode;
@@ -148,6 +149,11 @@ public class ChatServiceImpl {
 
         LocalDateTime now = LocalDateTime.now();
         publisher.publishEvent(new ChatRoomLeftEvent(chatRoomId, now, ROOM_LEAVE_MESSAGE_CONTENTS));
+
+        roommateMatchingRequiredService.findLatest(chatRoomId)
+                .filter(RoommateMatchingRequired::isPending)
+                .ifPresent(RoommateMatchingRequired::cancel);
+
         return new Response(now);
     }
 

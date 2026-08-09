@@ -34,6 +34,8 @@ public class BoLifeStylePatternListDto {
             private String name;
             @Schema(description = "유형")
             private LifePatternType type;
+            @Schema(description = "순서")
+            private Integer sort;
             @Schema(description = "details")
             private List<DetailItem> details;
 

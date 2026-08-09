@@ -217,27 +217,64 @@ class MyRoomMateServiceImplTest {
     }
 
     @Test
-    @DisplayName("내 룸메이트를 삭제하면 룸메이트를 삭제 처리하고 공개범위를 공개로 변경한다")
-    void deleteMyRoommateSoftDeletesMyRoommateAndChangesPrivacyPublic() {
+    @DisplayName("내 룸메이트를 삭제하면 룸메이트를 삭제 처리하고 양쪽 회원의 공개범위를 공개로 변경한다")
+    void deleteMyRoommateSoftDeletesMyRoommateAndChangesBothMembersPrivacyPublic() {
         // Given
         Long myRoommateId = 10L;
-        Long memberId = 1L;
-        MyRoommate myRoommate = myRoommate(myRoommateId, memberId, 2L, 100L);
-        MemberPrivacy memberPrivacy = MemberPrivacy.builder()
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        MyRoommate myRoommate = myRoommate(myRoommateId, requesterId, requesteeId, 100L);
+        MemberPrivacy requesterPrivacy = MemberPrivacy.builder()
+                .type(MemberPrivacyType.PRIVATE)
+                .build();
+        MemberPrivacy requesteePrivacy = MemberPrivacy.builder()
                 .type(MemberPrivacyType.PRIVATE)
                 .build();
 
-        when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
-        when(memberPrivacyService.findByMemberId(memberId)).thenReturn(List.of(memberPrivacy));
+        when(myRoommateRepository.findWithRequiredByMemberId(requesterId)).thenReturn(Optional.of(myRoommate));
+        when(memberPrivacyService.findByMemberId(requesterId)).thenReturn(List.of(requesterPrivacy));
+        when(memberPrivacyService.findByMemberId(requesteeId)).thenReturn(List.of(requesteePrivacy));
 
         // When
-        org.example.knockin.dto.MyRoommateDto.Response response = myRoomMateService.deleteMyRoommate(myRoommateId, memberId);
+        org.example.knockin.dto.MyRoommateDto.Response response = myRoomMateService.deleteMyRoommate(myRoommateId, requesterId);
 
         // Then
         assertThat(myRoommate.getIsDeleted()).isTrue();
-        assertThat(memberPrivacy.getType()).isEqualTo(MemberPrivacyType.PUBLIC);
+        assertThat(requesterPrivacy.getType()).isEqualTo(MemberPrivacyType.PUBLIC);
+        assertThat(requesteePrivacy.getType()).isEqualTo(MemberPrivacyType.PUBLIC);
         assertThat(response.getUpdatedAt()).isNotNull();
-        verify(memberPrivacyService).findByMemberId(memberId);
+        verify(memberPrivacyService).findByMemberId(requesterId);
+        verify(memberPrivacyService).findByMemberId(requesteeId);
+    }
+
+    @Test
+    @DisplayName("요청받은 회원이 룸메이트를 삭제해도 양쪽 회원의 공개범위를 공개로 변경한다")
+    void deleteMyRoommateByRequesteeChangesBothMembersPrivacyPublic() {
+        // Given
+        Long myRoommateId = 10L;
+        Long requesterId = 1L;
+        Long requesteeId = 2L;
+        MyRoommate myRoommate = myRoommate(myRoommateId, requesterId, requesteeId, 100L);
+        MemberPrivacy requesterPrivacy = MemberPrivacy.builder()
+                .type(MemberPrivacyType.PRIVATE)
+                .build();
+        MemberPrivacy requesteePrivacy = MemberPrivacy.builder()
+                .type(MemberPrivacyType.PRIVATE)
+                .build();
+
+        when(myRoommateRepository.findWithRequiredByMemberId(requesteeId)).thenReturn(Optional.of(myRoommate));
+        when(memberPrivacyService.findByMemberId(requesterId)).thenReturn(List.of(requesterPrivacy));
+        when(memberPrivacyService.findByMemberId(requesteeId)).thenReturn(List.of(requesteePrivacy));
+
+        // When
+        myRoomMateService.deleteMyRoommate(myRoommateId, requesteeId);
+
+        // Then
+        assertThat(myRoommate.getIsDeleted()).isTrue();
+        assertThat(requesterPrivacy.getType()).isEqualTo(MemberPrivacyType.PUBLIC);
+        assertThat(requesteePrivacy.getType()).isEqualTo(MemberPrivacyType.PUBLIC);
+        verify(memberPrivacyService).findByMemberId(requesterId);
+        verify(memberPrivacyService).findByMemberId(requesteeId);
     }
 
     @Test
