@@ -45,6 +45,7 @@ import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberState;
 import org.example.knockin.entity.member.State;
+import org.example.knockin.entity.room.RoommateMatchingRequired;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.ChattingErrorCode;
@@ -968,6 +969,7 @@ class ChatServiceImplTest {
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(roommateMatchingRequiredRepository.findLatest(chatRoomId)).thenReturn(Optional.empty());
 
         // When
         ChatRoomDto.Response result = chatService.leaveChatRoom(memberId, chatRoomId);
@@ -989,6 +991,66 @@ class ChatServiceImplTest {
         assertThat(event.chatRoomId()).isEqualTo(chatRoomId);
         assertThat(event.leftAt()).isEqualTo(result.getUpdatedAt());
         assertThat(event.message()).isEqualTo("상대방이 나갔습니다.");
+    }
+
+    @Test
+    @DisplayName("진행 중인 룸메이트 확정 제안이 있을 때 상대방이 채팅방을 나가면 제안을 자동 취소한다")
+    void leaveChatRoomCancelsPendingRoommateRequest() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        ChattingRoom chattingRoom = chattingRoom();
+        ChatRoomMember roomMember = ChatRoomMember.builder()
+                .isLeft(false)
+                .build();
+        RoommateMatchingRequired pendingRequest = RoommateMatchingRequired.builder()
+                .status(RoommateRequiredStatus.PENDING)
+                .build();
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(roommateMatchingRequiredRepository.findLatest(chatRoomId))
+                .thenReturn(Optional.of(pendingRequest));
+
+        // When
+        chatService.leaveChatRoom(memberId, chatRoomId);
+
+        // Then
+        assertThat(roomMember.getIsLeft()).isTrue();
+        assertThat(pendingRequest.getStatus()).isEqualTo(RoommateRequiredStatus.CANCELED);
+        verify(roommateMatchingRequiredRepository).findLatest(chatRoomId);
+    }
+
+    @Test
+    @DisplayName("이미 종료된 룸메이트 확정 제안은 상대방이 채팅방을 나가도 상태를 변경하지 않는다")
+    void leaveChatRoomKeepsCompletedRoommateRequestStatus() {
+        // Given
+        Long chatRoomId = 10L;
+        Long memberId = 1L;
+        ChattingRoom chattingRoom = chattingRoom();
+        ChatRoomMember roomMember = ChatRoomMember.builder()
+                .isLeft(false)
+                .build();
+        RoommateMatchingRequired rejectedRequest = RoommateMatchingRequired.builder()
+                .status(RoommateRequiredStatus.REJECTED)
+                .build();
+        when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
+                .thenReturn(Optional.of(roomMember));
+        when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
+        when(chatRoomMessageRepository.save(any(ChatRoomMessage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(roommateMatchingRequiredRepository.findLatest(chatRoomId))
+                .thenReturn(Optional.of(rejectedRequest));
+
+        // When
+        chatService.leaveChatRoom(memberId, chatRoomId);
+
+        // Then
+        assertThat(roomMember.getIsLeft()).isTrue();
+        assertThat(rejectedRequest.getStatus()).isEqualTo(RoommateRequiredStatus.REJECTED);
+        verify(roommateMatchingRequiredRepository).findLatest(chatRoomId);
     }
 
     @Test
