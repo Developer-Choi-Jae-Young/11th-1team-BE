@@ -6,6 +6,7 @@ import org.example.knockin.dto.Compatibility;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.life.LifePattern;
+import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.entity.room.RoommateScore;
@@ -27,11 +28,11 @@ public abstract class RoommateScoreService {
 
     public abstract Compatibility calculateRoommateCompatibility(Long memberId, List<RoommateScore> roommateScores);
 
-    public Long calculateScores(List<LifePattern> me, List<LifePattern> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {
-        return 100L;
+    public Compatibility calculateScores(List<LifePatternInformation> me, List<LifePatternInformation> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {
+        return Compatibility.builder().build();
     }
 
-    public double calculateScores(LifePattern me, LifePattern target) {
-        return 100f;
+    public Compatibility.LifeStyleInfo calculateScores(LifePatternInformation me, LifePatternInformation target, LifePattern lifePattern) {
+        return Compatibility.LifeStyleInfo.builder().build();
     }
 }
