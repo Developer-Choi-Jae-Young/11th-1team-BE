@@ -113,8 +113,11 @@ public class MyRoomMateServiceImpl {
 
         myRoommate.softDelete();
 
-        MemberPrivacy memberPrivacy = memberPrivacyService.findByMemberId(memberId).getFirst();
-        memberPrivacy.changeState(MemberPrivacyType.PUBLIC);
+        RoommateMatchingRequired required = myRoommate.getRoommateMatchingRequired();
+        MemberPrivacy requesterPrivacy = memberPrivacyService.findByMemberId(required.getRequester().getId()).getFirst();
+        MemberPrivacy requesteePrivacy = memberPrivacyService.findByMemberId(required.getRequestee().getId()).getFirst();
+        requesterPrivacy.changeState(MemberPrivacyType.PUBLIC);
+        requesteePrivacy.changeState(MemberPrivacyType.PUBLIC);
 
         return MyRoommateDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
