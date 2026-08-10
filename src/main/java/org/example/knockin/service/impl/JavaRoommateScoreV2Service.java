@@ -3,26 +3,25 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.knockin.dto.Compatibility;
-import org.example.knockin.dto.Compatibility.LifeStyleInfo;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.life.*;
+import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.entity.room.RoommateScore;
+import org.example.knockin.exception.AuthErrorCode;
 import org.example.knockin.exception.BusinessException;
 import org.example.knockin.exception.EtcErrorCode;
+import org.example.knockin.repository.chat.ChattingScoreRepository;
 import org.example.knockin.repository.life.*;
-import org.example.knockin.repository.life.row.LifePatternInformationValueRow;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
 import org.example.knockin.service.LifePatternTypeScoreCalc;
 import org.example.knockin.service.RoommateScoreService;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,26 +38,46 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
     private final PreferenceConditionLogRepository preferenceConditionLogRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
     private final List<LifePatternTypeScoreCalc> lifePatternTypeScoreCalcList;
+    private final MemberServiceImpl memberServiceImpl;
 
     private static final Long TOTAL_POINT = 100L;
     private static final Integer NON_PREFERENCE_WEIGHT = 1;
     private static final Integer PREFERENCE_WEIGHT = 2;
+    private final ChattingScoreRepository chattingScoreRepository;
 
     @Override
     public Map<Long, Compatibility> calculateScores(Long requesterId, List<Long> targetMemberIds) {
         if (requesterId == null || targetMemberIds == null || targetMemberIds.isEmpty()) return Map.of();
 
-        List<Long> memberIds = includeRequester(targetMemberIds, requesterId);
-        List<MatchingLifestyleRow> lifestyleRows = memberLifePatternRepository.findAllLifestyleByMemberIdIn(memberIds);
-        List<MatchingPreferenceConditionRow> conditionRows = preferenceConditionRepository.findAllPreferenceConditionByMemberIdIn(memberIds);
-        List<MatchingPreferenceConditionWeightRow> conditionWeightRows = preferenceConditionWeightRepository.findAllPreferenceConditionWeightByMemberIdIn(memberIds);
+        Map<Long, Compatibility> resultArray = new HashMap<>();
+        Member me = memberServiceImpl.findById(requesterId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
+        List<MemberLifePattern> myMemberLifePatternList = memberLifePatternRepository.findByMember(me);
+        List<LifePatternInformation> myMemberLifePatternInformationList = myMemberLifePatternList.stream().map(MemberLifePattern::getLifePatternInformation).filter(Objects::nonNull).toList();
+        List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionWeightRepository.findAllByMember(me);
 
-        return null;
+        List<Member> targetList = memberServiceImpl.findAllById(targetMemberIds);
+        Map<Long, List<LifePatternInformation>> targetPreferenceMapById = preferenceConditionRepository.findAllByMemberIn(targetList).stream().filter(item -> item.getMember() != null && item.getLifePatternInformation() != null)
+                .collect(Collectors.groupingBy(item -> item.getMember().getId(), Collectors.mapping(PreferenceCondition::getLifePatternInformation, Collectors.toList())));
+        Map<Long, List<LifePatternInformation>> targetDefaultPatternMapById = memberLifePatternRepository.findAllByMemberIn(targetList).stream().filter(item -> item.getMember() != null && item.getLifePatternInformation() != null)
+                .collect(Collectors.groupingBy(item -> item.getMember().getId(), Collectors.mapping(MemberLifePattern::getLifePatternInformation, Collectors.toList())));
+
+        for(Member target : targetList) {
+            List<LifePatternInformation> preferenceList = targetPreferenceMapById.getOrDefault(target.getId(), List.of());
+            List<LifePatternInformation> defaultList = targetDefaultPatternMapById.getOrDefault(target.getId(), List.of());
+            List<LifePatternInformation> targetFinalLifePatternInformationList = Stream.concat(preferenceList.stream(), defaultList.stream()).filter(Objects::nonNull)
+                    .collect(Collectors.toMap(info -> info.getLifePattern().getId(), info -> info, (preferenceVal, defaultVal) -> preferenceVal))
+                    .values().stream().toList();
+            Compatibility compatibility = calculateScores(myMemberLifePatternInformationList, targetFinalLifePatternInformationList, preferenceConditionWeightList);
+            resultArray.put(target.getId(), compatibility);
+        }
+
+        return resultArray;
     }
 
     @Override
     public Map<Long, Integer> calculateSimpleScores(Long requesterId, List<Long> targetMemberIds) {
-        return null;
+        return calculateScores(requesterId, targetMemberIds).entrySet().stream().filter(entry -> entry.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getTotalScore()));
     }
 
     @Override
@@ -75,7 +94,11 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
 
     @Override
     public List<ChattingScore> createChattingScores(ChattingRequired chattingRequired) {
-        return null;
+        List<ChattingScore> chattingScoreList = new ArrayList<>();
+        Long requesterId = chattingRequired.getRequester().getId();
+        Long requesteeId = chattingRequired.getRequestee().getId();
+
+        return chattingScoreList;
     }
 
     @Override
@@ -93,31 +116,26 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
         return null;
     }
 
-    private List<Long> includeRequester(List<Long> targetMemberIds, Long requesterId) {
-        return Stream.concat(targetMemberIds.stream(), Stream.of(requesterId))
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-    }
-
     public Compatibility calculateScores(List<LifePatternInformation> me, List<LifePatternInformation> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {
+        Map<Long, LifePatternInformation> targetMapByPatternId =
+                target.stream().collect(Collectors.toMap(item -> item.getLifePattern().getId(), item -> item, (first, ignored) -> first));
         int lifePatternMaxSize = Math.max(me.size(), target.size());
-        int lifePatternMinSize = Math.min(me.size(), target.size());
-        double lifePartternPartPoint = (double) TOTAL_POINT / (lifePatternMaxSize + preferenceConditionWeightList.size());
+        double lifePatternPartPoint = (double) TOTAL_POINT / (lifePatternMaxSize + preferenceConditionWeightList.size());
         List<Compatibility.LifeStyleInfo> lifeStyleInfoList = new ArrayList<>();
-        Integer totalScore = 0;
+        int totalScore = 0;
 
-        for(int i = 0; i < lifePatternMaxSize; i++) {
-            LifePattern lifePattern = me.get(i).getLifePattern();
-            if(i > lifePatternMinSize ) {
-                boolean isPreferenceWeight = preferenceConditionWeightList.stream().anyMatch(item -> item.getLifePattern() == lifePattern);
-                int preferenceWeight = isPreferenceWeight ? PREFERENCE_WEIGHT : NON_PREFERENCE_WEIGHT;
+        for(LifePatternInformation myInfo : me) {
+            LifePattern lifePattern = myInfo.getLifePattern();
+            Long patternId = lifePattern.getId();
+            LifePatternInformation targetInfo = targetMapByPatternId.get(patternId);
 
-                Compatibility.LifeStyleInfo lifeStyleInfo = calculateScores(me.get(i), target.get(i), lifePattern);
+            if (targetInfo != null) {
+                Compatibility.LifeStyleInfo lifeStyleInfo = calculateScores(myInfo, targetInfo, lifePattern);
                 lifeStyleInfoList.add(lifeStyleInfo);
-                totalScore += (int) ((lifePartternPartPoint * preferenceWeight) * ((double) lifeStyleInfo.getPercent() / TOTAL_POINT));
+                int preferenceWeight = preferenceConditionWeightList.stream().anyMatch(weight -> weight.getLifePattern().getId() == patternId) ? PREFERENCE_WEIGHT : NON_PREFERENCE_WEIGHT;
+                totalScore += (int) ((lifePatternPartPoint * preferenceWeight) * ((double) lifeStyleInfo.getPercent() / TOTAL_POINT));
             } else {
-                lifeStyleInfoList.add(Compatibility.LifeStyleInfo.builder().id(lifePattern.getId()).name(lifePattern.getName()).percent(0).build());
+                lifeStyleInfoList.add(Compatibility.LifeStyleInfo.builder().id(patternId).name(lifePattern.getName()).percent(0).build());
             }
         }
 
@@ -126,7 +144,6 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
 
     public Compatibility.LifeStyleInfo calculateScores(LifePatternInformation me, LifePatternInformation target, LifePattern lifePattern) {
         if(!me.getLifePattern().equals(target.getLifePattern())) throw new BusinessException(EtcErrorCode.SCORE_CALC_ERROR);
-
 
         Integer similarity = lifePatternTypeScoreCalcList.stream()
                 .filter(item -> item.supports() == lifePattern.getDtype()).findFirst()
