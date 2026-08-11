@@ -8,10 +8,7 @@ import org.example.knockin.entity.life.PreferenceConditionLog;
 import org.example.knockin.entity.life.PreferenceConditionWeight;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
 import org.example.knockin.entity.member.Member;
-import org.example.knockin.repository.life.PreferenceConditionLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.life.*;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
 import org.springframework.stereotype.Service;
@@ -24,8 +21,10 @@ import java.util.List;
 public class PreferenceConditionServiceImpl {
     private final PreferenceConditionRepository preferenceConditionRepository;
     private final PreferenceConditionLogRepository preferenceConditionLogRepository;
+    private final PreferenceConditionLogDegreeRepository preferenceConditionLogDegreeRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+    private final PreferenceConditionWeightLogDegreeRepository preferenceConditionWeightLogDegreeRepository;
 
     @Transactional
     public List<PreferenceCondition> preferenceConditionSaveAll(List<PreferenceCondition> preferenceConditionList) {

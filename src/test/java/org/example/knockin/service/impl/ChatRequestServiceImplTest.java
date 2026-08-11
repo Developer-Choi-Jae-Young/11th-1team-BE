@@ -106,7 +106,7 @@ class ChatRequestServiceImplTest {
                 null
         );
         BasicInformationServiceImpl basicInformationService = new BasicInformationServiceImpl(basicInformationRepository, org.mockito.Mockito.mock(org.example.knockin.repository.file.BasicInformationFileRepository.class));
-        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null);
+        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null);
         RoommateBoardServiceImpl roommateBoardService = new RoommateBoardServiceImpl(
                 roommateBoardRepository,
                 memberService,
@@ -144,7 +144,7 @@ class ChatRequestServiceImplTest {
     void getPendingChatRequestListReturnsRequesterInfoWithTemporaryScore() {
         // Given
         Long memberId = 1L;
-        Member requestee = Member.builder().id(memberId).build();
+        Member requestee = Member.builder().id(memberId).isDelete(false).build();
         LocalDate requesterBirth = LocalDate.of(2000, 1, 1);
         LocalDateTime createdAt = LocalDateTime.of(2026, 6, 23, 10, 0);
         ChatRequestListRow row = new ChatRequestListRow(
@@ -185,7 +185,7 @@ class ChatRequestServiceImplTest {
     void getPendingChatRequestListReturnsEmptyList() {
         // Given
         Long memberId = 1L;
-        Member requestee = Member.builder().id(memberId).build();
+        Member requestee = Member.builder().id(memberId).isDelete(false).build();
         when(memberRepository.findById(memberId)).thenReturn(Optional.of(requestee));
         when(chattingRequiredRepository.findAllPendingByRequestee(requestee)).thenReturn(List.of());
 
@@ -222,8 +222,8 @@ class ChatRequestServiceImplTest {
         Long requesterId = 1L;
         Long requesteeId = 2L;
         LocalDateTime createdAt = LocalDateTime.of(2026, 6, 25, 9, 0);
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requestId, requester, requestee, ChattingRequiredStatus.PENDING, createdAt);
         LocalDate requesteeBirth = LocalDate.of(2001, 1, 1);
         LocalDate requesterBirth = LocalDate.of(2000, 2, 2);
@@ -277,8 +277,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requestId, requester, requestee, ChattingRequiredStatus.ACCEPTED,
                 LocalDateTime.of(2026, 6, 25, 9, 30));
 
@@ -308,8 +308,8 @@ class ChatRequestServiceImplTest {
     void getChatRequestDetailRejectsUnrelatedMember() {
         // Given
         Long requestId = 1000L;
-        Member requester = Member.builder().id(1L).build();
-        Member requestee = Member.builder().id(2L).build();
+        Member requester = Member.builder().id(1L).isDelete(false).build();
+        Member requestee = Member.builder().id(2L).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requester, requestee, ChattingRequiredStatus.PENDING);
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
 
@@ -341,8 +341,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requestId, requester, requestee, ChattingRequiredStatus.PENDING,
                 LocalDateTime.of(2026, 6, 25, 10, 0));
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
@@ -363,8 +363,8 @@ class ChatRequestServiceImplTest {
         Long requesterId = 1L;
         Long requesteeId = 2L;
         Long boardId = 10L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         RoommateBoard roommateBoard = RoommateBoard.builder().id(boardId).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, boardId);
 
@@ -401,8 +401,8 @@ class ChatRequestServiceImplTest {
         // Given
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, null);
 
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
@@ -510,7 +510,7 @@ class ChatRequestServiceImplTest {
         // Given
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, 10L);
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.empty());
@@ -529,8 +529,8 @@ class ChatRequestServiceImplTest {
         // Given
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, 10L);
         ChattingRequired pendingRequest = ChattingRequired.builder()
                 .requester(requestee)
@@ -558,8 +558,8 @@ class ChatRequestServiceImplTest {
         Long requesterId = 1L;
         Long requesteeId = 2L;
         Long boardId = 10L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChatRequestDto.Request request = chatRequest(requesteeId, boardId);
         when(memberRepository.findById(requesterId)).thenReturn(Optional.of(requester));
         when(memberRepository.findById(requesteeId)).thenReturn(Optional.of(requestee));
@@ -582,8 +582,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requester, requestee, ChattingRequiredStatus.PENDING);
 
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
@@ -607,8 +607,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requester, requestee, ChattingRequiredStatus.PENDING);
 
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
@@ -632,8 +632,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         Long requesteeId = 2L;
-        Member requester = Member.builder().id(requesterId).build();
-        Member requestee = Member.builder().id(requesteeId).build();
+        Member requester = Member.builder().id(requesterId).isDelete(false).build();
+        Member requestee = Member.builder().id(requesteeId).isDelete(false).build();
         ChattingRequired chattingRequired = chatRequest(requester, requestee, ChattingRequiredStatus.PENDING);
 
         when(chattingRequiredRepository.findById(requestId)).thenReturn(Optional.of(chattingRequired));
@@ -657,8 +657,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         ChattingRequired chattingRequired = chatRequest(
-                Member.builder().id(requesterId).build(),
-                Member.builder().id(2L).build(),
+                Member.builder().id(requesterId).isDelete(false).build(),
+                Member.builder().id(2L).isDelete(false).build(),
                 ChattingRequiredStatus.PENDING
         );
 
@@ -693,8 +693,8 @@ class ChatRequestServiceImplTest {
         Long requestId = 1000L;
         Long requesterId = 1L;
         ChattingRequired chattingRequired = chatRequest(
-                Member.builder().id(requesterId).build(),
-                Member.builder().id(2L).build(),
+                Member.builder().id(requesterId).isDelete(false).build(),
+                Member.builder().id(2L).isDelete(false).build(),
                 ChattingRequiredStatus.ACCEPTED
         );
 

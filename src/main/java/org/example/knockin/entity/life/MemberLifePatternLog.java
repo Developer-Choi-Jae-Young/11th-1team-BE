@@ -34,4 +34,8 @@ public class MemberLifePatternLog extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "life_pattern_information_id", nullable = false)
     private LifePatternInformation lifePatternInformation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_life_pattern_log_degree_id")
+    private MemberLifePatternLogDegree memberLifePatternLogDegree;
 }

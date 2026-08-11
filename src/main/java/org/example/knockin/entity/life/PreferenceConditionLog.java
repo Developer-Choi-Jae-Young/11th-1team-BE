@@ -34,4 +34,8 @@ public class PreferenceConditionLog extends CreatedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "life_pattern_information_id", nullable = false)
     private LifePatternInformation lifePatternInformation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preference_condition_log_degree_id")
+    private PreferenceConditionLogDegree preferenceConditionLogDegree;
 }
