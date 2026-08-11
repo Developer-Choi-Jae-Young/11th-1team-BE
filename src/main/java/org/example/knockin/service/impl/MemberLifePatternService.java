@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.MemberLifePatternLog;
+import org.example.knockin.entity.life.MemberLifePatternLogDegree;
+import org.example.knockin.entity.life.PreferenceConditionWeightLogDegree;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.life.MemberLifePatternLogDegreeRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
@@ -46,5 +48,14 @@ public class MemberLifePatternService {
 
     public List<Lifestyle> findLifeStyleDtoByMemberId(Long memberId) {
         return memberLifePatternRepository.getLifeStyleDto(memberId);
+    }
+
+    public Long findMaxmemberLifePatternLogDegree(Member member) {
+        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(member);
+    }
+
+    @Transactional
+    public MemberLifePatternLogDegree memberLifePatternLogDegreeSave(Long degree) {
+        return memberLifePatternLogDegreeRepository.save(MemberLifePatternLogDegree.builder().degree(degree).build());
     }
 }
