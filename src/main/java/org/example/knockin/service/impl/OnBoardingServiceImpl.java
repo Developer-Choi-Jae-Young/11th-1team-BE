@@ -74,10 +74,7 @@ public class OnBoardingServiceImpl {
     public List<MemberAgreement> saveMemberAgreement(SaveProfileBasicDto.Request request, Member member) {
         List<MemberAgreement> existing = memberAgreementService.findByMember(member);
         if (!existing.isEmpty()) {
-            ModifyProfileBasicDto.Request modifyRequest = ModifyProfileBasicDto.Request.builder()
-                    .terms(request.getTerms())
-                    .build();
-            modifyAgreement(modifyRequest, member);
+            modifyAgreementForSave(request, member);
             return memberAgreementService.findByMember(member);
         }
         List<MemberAgreement> memberAgreementList = new ArrayList<>();
@@ -274,6 +271,33 @@ public class OnBoardingServiceImpl {
 
     @Transactional
     public void modifyAgreement(ModifyProfileBasicDto.Request request, Member member) {
+        List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
+        List<AgreementLog> memberAgreementList = memberAgreementService.findByMember(member).stream().map(MemberAgreement::getAgreementLog).toList();
+
+        Set<Long> memberAgreementIds = memberAgreementList.stream().map(AgreementLog::getId).collect(Collectors.toSet());
+        List<AgreementLog> skipList = requestAgreementList.stream().filter(reqLog -> memberAgreementIds.contains(reqLog.getId())).toList();
+
+        if (skipList.isEmpty()) {
+            memberAgreementService.findByMember(member).forEach(MemberAgreement::disableAgree);
+        } else {
+            memberAgreementService.findByMemberAndAgreementLogNotIn(member, skipList).forEach(MemberAgreement::disableAgree);
+        }
+
+        requestAgreementList.forEach(item -> {
+            boolean isNotInSkipList = skipList.stream().noneMatch(skipItem -> Objects.equals(skipItem.getId(), item.getId()));
+
+            if (isNotInSkipList) {
+                memberAgreementService.save(MemberAgreement.builder()
+                        .member(member)
+                        .agreementLog(item)
+                        .isAgreed(true)
+                        .build());
+            }
+        });
+    }
+
+    @Transactional
+    public void modifyAgreementForSave(SaveProfileBasicDto.Request request, Member member) {
         List<AgreementLog> requestAgreementList = metaService.findByAgreementLogIsCurrent(request.getTerms());
         List<AgreementLog> memberAgreementList = memberAgreementService.findByMember(member).stream().map(MemberAgreement::getAgreementLog).toList();
 
