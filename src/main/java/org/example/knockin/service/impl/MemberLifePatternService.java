@@ -5,6 +5,7 @@ import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.MemberLifePatternLog;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.repository.life.MemberLifePatternLogDegreeRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
@@ -18,7 +19,7 @@ import java.util.List;
 public class MemberLifePatternService {
     private final MemberLifePatternRepository memberLifePatternRepository;
     private final MemberLifePatternLogRepository memberLifePatternLogRepository;
-
+    private final MemberLifePatternLogDegreeRepository memberLifePatternLogDegreeRepository;
 
     @Transactional
     public List<MemberLifePatternLog> saveMemberLifePatternLogAll(List<MemberLifePatternLog> memberLifePatternLogList) {

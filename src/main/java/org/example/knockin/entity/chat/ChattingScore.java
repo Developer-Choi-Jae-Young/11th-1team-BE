@@ -16,9 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.knockin.entity.life.MemberLifePatternLog;
-import org.example.knockin.entity.life.PreferenceConditionLog;
-import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -39,16 +37,16 @@ public class ChattingScore {
     private ChattingRequired chattingRequired;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preference_condition_log_id")
-    private PreferenceConditionLog preferenceConditionLog;
+    @JoinColumn(name = "preference_condition_log_degree_id")
+    private PreferenceConditionLogDegree preferenceConditionLogDegree;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "life_pattern_information_log_id", nullable = false)
-    private MemberLifePatternLog lifePatternInformationLog;
+    @JoinColumn(name = "member_life_pattern_log_degree_id", nullable = false)
+    private MemberLifePatternLogDegree memberLifePatternLogDegree;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preference_condition_weight_log_id")
-    private PreferenceConditionWeightLog preferenceConditionWeightLog;
+    @JoinColumn(name = "preference_condition_weight_log_degree_id")
+    private PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree;
 
     @Column(name = "score", nullable = false)
     private Integer score;

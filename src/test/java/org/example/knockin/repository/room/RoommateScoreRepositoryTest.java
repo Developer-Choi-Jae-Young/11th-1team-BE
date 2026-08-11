@@ -10,11 +10,7 @@ import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
-import org.example.knockin.entity.life.LifePattern;
-import org.example.knockin.entity.life.LifePatternInformation;
-import org.example.knockin.entity.life.LifePatternType;
-import org.example.knockin.entity.life.MemberLifePatternLog;
-import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
 import org.example.knockin.entity.room.MyRoommate;
@@ -55,8 +51,8 @@ class RoommateScoreRepositoryTest {
         MemberLifePatternLog lifePatternLog = persistMemberLifePatternLog(evaluator, information);
         MemberLifePatternLog targetLifePatternLog = persistMemberLifePatternLog(target, information);
         PreferenceConditionWeightLog weightLog = persistPreferenceConditionWeightLog(evaluator, lifePattern);
-        persistRoommateScore(myRoommate, lifePatternLog, weightLog, 80);
-        persistRoommateScore(myRoommate, targetLifePatternLog, null, 20);
+        persistRoommateScore(myRoommate, null, null, 80);
+        persistRoommateScore(myRoommate, null, null, 20);
         entityManager.flush();
         entityManager.clear();
 
@@ -69,11 +65,8 @@ class RoommateScoreRepositoryTest {
 
         // Then
         assertThat(scores).hasSize(1);
-        assertThat(Hibernate.isInitialized(score.getLifePatternInformationLog())).isTrue();
-        assertThat(Hibernate.isInitialized(score.getLifePatternInformationLog().getMember())).isTrue();
-        assertThat(Hibernate.isInitialized(score.getLifePatternInformationLog().getLifePatternInformation())).isTrue();
-        assertThat(Hibernate.isInitialized(score.getLifePatternInformationLog().getLifePatternInformation().getLifePattern())).isTrue();
-        assertThat(Hibernate.isInitialized(score.getPreferenceConditionWeightLog())).isTrue();
+        assertThat(Hibernate.isInitialized(score.getMemberLifePatternLogDegree())).isTrue();
+        assertThat(Hibernate.isInitialized(score.getPreferenceConditionWeightLogDegree())).isTrue();
 
         entityManager.clear();
         Compatibility compatibility = roommateScoreService().calculateRoommateCompatibility(evaluator.getId(), scores);
@@ -166,14 +159,14 @@ class RoommateScoreRepositoryTest {
 
     private void persistRoommateScore(
             MyRoommate myRoommate,
-            MemberLifePatternLog lifePatternLog,
-            PreferenceConditionWeightLog weightLog,
+            MemberLifePatternLogDegree memberLifePatternLogDegree,
+            PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree,
             Integer score
     ) {
         RoommateScore roommateScore = RoommateScore.builder()
                 .myRoommate(myRoommate)
-                .lifePatternInformationLog(lifePatternLog)
-                .preferenceConditionWeightLog(weightLog)
+                .memberLifePatternLogDegree(memberLifePatternLogDegree)
+                .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
                 .score(score)
                 .build();
         entityManager.persist(roommateScore);
