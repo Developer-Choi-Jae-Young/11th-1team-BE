@@ -51,23 +51,20 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
 
         Map<Long, Compatibility> resultArray = new HashMap<>();
         Member me = memberServiceImpl.findById(requesterId).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
-        List<MemberLifePattern> myMemberLifePatternList = memberLifePatternRepository.findByMember(me);
-        List<LifePatternInformation> myMemberLifePatternInformationList = myMemberLifePatternList.stream().map(MemberLifePattern::getLifePatternInformation).filter(Objects::nonNull).toList();
+        List<LifePatternInformation> myPreferenceList = preferenceConditionRepository.findByMember(me).stream().map(PreferenceCondition::getLifePatternInformation).filter(Objects::nonNull).toList();
+        List<LifePatternInformation> myDefaultList = memberLifePatternRepository.findByMember(me).stream().map(MemberLifePattern::getLifePatternInformation).filter(Objects::nonNull).toList();
+        List<LifePatternInformation> myFinalLifePatternInformationList = Stream.concat(myPreferenceList.stream(), myDefaultList.stream()).filter(item -> item != null && item.getLifePattern() != null && item.getLifePattern().getId() != null)
+                .collect(Collectors.toMap(item -> item.getLifePattern().getId(), item -> item, (preferenceVal, defaultVal) -> preferenceVal))
+                .values().stream().toList();
         List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionWeightRepository.findAllByMember(me);
 
         List<Member> targetList = memberServiceImpl.findAllById(targetMemberIds);
-        Map<Long, List<LifePatternInformation>> targetPreferenceMapById = preferenceConditionRepository.findAllByMemberIn(targetList).stream().filter(item -> item.getMember() != null && item.getLifePatternInformation() != null)
-                .collect(Collectors.groupingBy(item -> item.getMember().getId(), Collectors.mapping(PreferenceCondition::getLifePatternInformation, Collectors.toList())));
         Map<Long, List<LifePatternInformation>> targetDefaultPatternMapById = memberLifePatternRepository.findAllByMemberIn(targetList).stream().filter(item -> item.getMember() != null && item.getLifePatternInformation() != null)
                 .collect(Collectors.groupingBy(item -> item.getMember().getId(), Collectors.mapping(MemberLifePattern::getLifePatternInformation, Collectors.toList())));
 
         for(Member target : targetList) {
-            List<LifePatternInformation> preferenceList = targetPreferenceMapById.getOrDefault(target.getId(), List.of());
-            List<LifePatternInformation> defaultList = targetDefaultPatternMapById.getOrDefault(target.getId(), List.of());
-            List<LifePatternInformation> targetFinalLifePatternInformationList = Stream.concat(preferenceList.stream(), defaultList.stream()).filter(Objects::nonNull)
-                    .collect(Collectors.toMap(info -> info.getLifePattern().getId(), info -> info, (preferenceVal, defaultVal) -> preferenceVal))
-                    .values().stream().toList();
-            Compatibility compatibility = calculateScores(myMemberLifePatternInformationList, targetFinalLifePatternInformationList, preferenceConditionWeightList);
+            List<LifePatternInformation> targetLifePatternInformation = targetDefaultPatternMapById.getOrDefault(target.getId(), List.of());
+            Compatibility compatibility = calculateScores(myFinalLifePatternInformationList, targetLifePatternInformation, preferenceConditionWeightList);
             resultArray.put(target.getId(), compatibility);
         }
 
