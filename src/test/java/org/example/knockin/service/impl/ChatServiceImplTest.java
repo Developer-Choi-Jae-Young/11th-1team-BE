@@ -25,7 +25,6 @@ import org.example.knockin.dto.ChatRoomLeftEvent;
 import org.example.knockin.dto.ChatRoomListDto;
 import org.example.knockin.dto.ChatRoomMessageEvent;
 import org.example.knockin.dto.ChatSocketResponse;
-import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.EventType;
 import org.example.knockin.dto.MessageType;
 import org.example.knockin.dto.RoommateRequestDto.RoommateMatchingRequiredInfo;
@@ -294,7 +293,7 @@ class ChatServiceImplTest {
                         .updatedAt(LocalDateTime.of(2026, 6, 23, 10, 30))
                         .build()
         );
-        List<ChattingScore> chattingScores = List.of(ChattingScore.builder().score(87).build());
+        ChattingScore chattingScore = ChattingScore.builder().score(87).build();
         when(chattingRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chattingRoom));
         when(chatRoomMemberRepository.findActiveMemberByRoomIdAndMemberId(chatRoomId, memberId))
                 .thenReturn(Optional.of(roomMember));
@@ -310,10 +309,8 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(2L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(messages);
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(matchingRequiredList);
-        when(chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(100L, memberId))
-                .thenReturn(chattingScores);
-        when(roommateScoreService.calculateChattingCompatibility(memberId, chattingScores))
-                .thenReturn(new Compatibility(87, List.of()));
+        when(chattingScoreRepository.findOneByChattingRequiredIdAndMemberId(100L, memberId))
+                .thenReturn(Optional.of(chattingScore));
         when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(true);
         when(myRoomMateService.isExistRoomMate(opponent)).thenReturn(true);
 
@@ -397,8 +394,8 @@ class ChatServiceImplTest {
         when(chatRoomMessageRepository.markUnreadMessagesAsRead(chatRoomId, memberId)).thenReturn(0L);
         when(chatRoomMessageRepository.findChatMessageDto(chatRoomId)).thenReturn(List.of());
         when(roommateMatchingRequiredRepository.findRequiredDto(chattingRoom)).thenReturn(List.of());
-        when(chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(100L, memberId))
-                .thenReturn(List.of());
+        when(chattingScoreRepository.findOneByChattingRequiredIdAndMemberId(100L, memberId))
+                .thenReturn(Optional.empty());
         when(roommateScoreService.calculateSimpleScore(memberId, opponent.getId())).thenReturn(100);
         when(blockService.isBlockedBetween(memberId, opponent.getId())).thenReturn(false);
 

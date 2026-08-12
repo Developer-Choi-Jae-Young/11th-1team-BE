@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import org.example.knockin.dto.CalendarDto;
 import org.example.knockin.dto.CalendarEditDto;
-import org.example.knockin.dto.Compatibility;
 import org.example.knockin.dto.HouseRuleDto;
 import org.example.knockin.dto.HouseRuleListDto;
 import org.example.knockin.dto.MyRoommateCardDto;
@@ -124,7 +123,7 @@ class MyRoomMateServiceImplTest {
         Long opponentId = 2L;
         LocalDate opponentBirth = LocalDate.of(2000, 1, 1);
         MyRoommate myRoommate = myRoommate(10L, memberId, opponentId, 100L);
-        List<RoommateScore> roommateScores = List.of(RoommateScore.builder().score(80).build());
+        RoommateScore roommateScore = RoommateScore.builder().score(92).build();
         ChattingRoomBasicInfoRow basicInfoRow = new ChattingRoomBasicInfoRow(
                 opponentId,
                 "상대방",
@@ -135,9 +134,7 @@ class MyRoomMateServiceImplTest {
 
         when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
         when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
-        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(roommateScores);
-        when(roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores))
-                .thenReturn(new Compatibility(92, List.of()));
+        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(Optional.of(roommateScore));
 
         // When
         MyRoommateCardDto.Response response = myRoomMateService.findMyRoommate(memberId);
@@ -153,7 +150,7 @@ class MyRoomMateServiceImplTest {
         assertThat(response.getMyRoommateInfo().getMemberProfileImageUrl()).isEqualTo("opponent-profile.jpg");
         verify(basicInformationService).findChattingRoomBasicInfoRowByMemberId(opponentId);
         verify(myRoommateScoreService).findByRoommateIdAndMemberId(10L, memberId);
-        verify(roommateScoreService).calculateRoommateCompatibility(memberId, roommateScores);
+        verify(roommateScoreService, never()).calculateSimpleScore(memberId, opponentId);
     }
 
     @Test
@@ -173,7 +170,7 @@ class MyRoomMateServiceImplTest {
 
         when(myRoommateRepository.findWithRequiredByMemberId(memberId)).thenReturn(Optional.of(myRoommate));
         when(basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentId)).thenReturn(basicInfoRow);
-        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(List.of());
+        when(myRoommateScoreService.findByRoommateIdAndMemberId(10L, memberId)).thenReturn(Optional.empty());
         when(roommateScoreService.calculateSimpleScore(memberId, opponentId)).thenReturn(76);
 
         // When
@@ -181,7 +178,7 @@ class MyRoomMateServiceImplTest {
 
         // Then
         assertThat(response.getScore()).isEqualTo(76);
-        verify(roommateScoreService, never()).calculateRoommateCompatibility(any(), any());
+        verify(roommateScoreService).calculateSimpleScore(memberId, opponentId);
     }
 
     @Test
