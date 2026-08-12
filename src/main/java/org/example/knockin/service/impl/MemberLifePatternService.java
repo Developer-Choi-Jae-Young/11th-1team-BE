@@ -51,7 +51,7 @@ public class MemberLifePatternService {
     }
 
     public Long findMaxmemberLifePatternLogDegree(Member member) {
-        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(member);
+        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(member).orElse(null);
     }
 
     @Transactional

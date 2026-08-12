@@ -82,7 +82,7 @@ public class PreferenceConditionServiceImpl {
     }
 
     public Long findMaxPreferenceConditionLogDegree(Member member) {
-        return preferenceConditionLogDegreeRepository.findMaxPreferenceConditionLogDegree(member);
+        return preferenceConditionLogDegreeRepository.findMaxPreferenceConditionLogDegree(member).orElse(null);
     }
 
     @Transactional
@@ -91,7 +91,7 @@ public class PreferenceConditionServiceImpl {
     }
 
     public Long findMaxPreferenceConditionWeightLogDegree(Member member) {
-        return preferenceConditionWeightLogDegreeRepository.findMaxPreferenceConditionWeightLogDegree(member);
+        return preferenceConditionWeightLogDegreeRepository.findMaxPreferenceConditionWeightLogDegree(member).orElse(null);
     }
 
     @Transactional
