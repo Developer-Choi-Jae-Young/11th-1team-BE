@@ -1,8 +1,8 @@
 package org.example.knockin.repository.chat;
 
-import java.util.List;
+import java.util.Optional;
 import org.example.knockin.entity.chat.ChattingScore;
 
 public interface ChattingScoreRepositoryCustom {
-    List<ChattingScore> findWithScoreDetailsByChattingRequiredIdAndMemberId(Long chattingRequiredId, Long memberId);
+    Optional<ChattingScore> findOneByChattingRequiredIdAndMemberId(Long chattingRequiredId, Long memberId);
 }

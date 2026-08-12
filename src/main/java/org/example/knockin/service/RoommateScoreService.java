@@ -21,7 +21,4 @@ public interface RoommateScoreService {
 
     List<RoommateScore> createRoommateScores(MyRoommate myRoommate);
 
-    Compatibility calculateChattingCompatibility(Long memberId, List<ChattingScore> chattingScores);
-
-    Compatibility calculateRoommateCompatibility(Long memberId, List<RoommateScore> roommateScores);
 }

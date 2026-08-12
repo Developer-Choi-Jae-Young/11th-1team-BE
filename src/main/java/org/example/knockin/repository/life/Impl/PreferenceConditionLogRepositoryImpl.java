@@ -3,6 +3,7 @@ package org.example.knockin.repository.life.Impl;
 import static org.example.knockin.entity.life.QLifePattern.lifePattern;
 import static org.example.knockin.entity.life.QLifePatternInformation.lifePatternInformation;
 import static org.example.knockin.entity.life.QPreferenceConditionLog.preferenceConditionLog;
+import static org.example.knockin.entity.life.QPreferenceConditionLogDegree.preferenceConditionLogDegree;
 
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -10,6 +11,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.life.PreferenceConditionLog;
 import org.example.knockin.entity.life.QPreferenceConditionLog;
+import org.example.knockin.entity.life.QPreferenceConditionLogDegree;
 import org.example.knockin.repository.life.PreferenceConditionLogRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -25,24 +27,23 @@ public class PreferenceConditionLogRepositoryImpl implements PreferenceCondition
         }
 
         QPreferenceConditionLog subLog = new QPreferenceConditionLog("subLog");
+        QPreferenceConditionLogDegree subDegree = new QPreferenceConditionLogDegree("subDegree");
 
         return jpaQueryFactory
                 .selectFrom(preferenceConditionLog)
+                .join(preferenceConditionLog.preferenceConditionLogDegree, preferenceConditionLogDegree).fetchJoin()
                 .join(preferenceConditionLog.lifePatternInformation, lifePatternInformation).fetchJoin()
                 .join(lifePatternInformation.lifePattern, lifePattern).fetchJoin()
                 .where(
                         preferenceConditionLog.member.id.eq(memberId),
                         lifePatternInformation.id.in(lifePatternInformationIds),
                         lifePattern.isDeleted.isFalse(),
-                        preferenceConditionLog.id.in(
+                        preferenceConditionLogDegree.degree.eq(
                                 JPAExpressions
-                                        .select(subLog.id.max())
+                                        .select(subDegree.degree.max())
                                         .from(subLog)
-                                        .where(
-                                                subLog.member.id.eq(memberId),
-                                                subLog.lifePatternInformation.id.in(lifePatternInformationIds)
-                                        )
-                                        .groupBy(subLog.lifePatternInformation.id)
+                                        .join(subLog.preferenceConditionLogDegree, subDegree)
+                                        .where(subLog.member.id.eq(memberId))
                         )
                 )
                 .orderBy(lifePattern.sort.asc(), preferenceConditionLog.id.asc())

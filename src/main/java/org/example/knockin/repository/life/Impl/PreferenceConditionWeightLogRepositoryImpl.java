@@ -2,14 +2,16 @@ package org.example.knockin.repository.life.Impl;
 
 import static org.example.knockin.entity.life.QLifePattern.lifePattern;
 import static org.example.knockin.entity.life.QPreferenceConditionWeightLog.preferenceConditionWeightLog;
+import static org.example.knockin.entity.life.QPreferenceConditionWeightLogDegree.preferenceConditionWeightLogDegree;
+import static org.example.knockin.entity.life.QPreferenceConditionWeight.preferenceConditionWeight;
 
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
-import org.example.knockin.entity.life.QLifePattern;
 import org.example.knockin.entity.life.QPreferenceConditionWeightLog;
+import org.example.knockin.entity.life.QPreferenceConditionWeightLogDegree;
 import org.example.knockin.repository.life.PreferenceConditionWeightLogRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -22,23 +24,27 @@ public class PreferenceConditionWeightLogRepositoryImpl implements PreferenceCon
     @Override
     public List<PreferenceConditionWeightLog> findLatestLogsWithFetchByMemberId(Long memberId) {
         QPreferenceConditionWeightLog subLog = new QPreferenceConditionWeightLog("subLog");
-        QLifePattern subLifePattern = new QLifePattern("subLifePattern");
+        QPreferenceConditionWeightLogDegree subDegree = new QPreferenceConditionWeightLogDegree("subDegree");
 
         return jpaQueryFactory
                 .selectFrom(preferenceConditionWeightLog)
+                .join(preferenceConditionWeightLog.preferenceConditionWeightLogDegree, preferenceConditionWeightLogDegree).fetchJoin()
                 .join(preferenceConditionWeightLog.lifePattern, lifePattern).fetchJoin()
+                .join(preferenceConditionWeight)
+                .on(
+                        preferenceConditionWeight.member.eq(preferenceConditionWeightLog.member),
+                        preferenceConditionWeight.lifePattern.eq(preferenceConditionWeightLog.lifePattern)
+                )
                 .where(
-                        preferenceConditionWeightLog.id.in(
+                        preferenceConditionWeightLog.member.id.eq(memberId),
+                        preferenceConditionWeightLogDegree.degree.eq(
                                 JPAExpressions
-                                        .select(subLog.id.max())
+                                        .select(subDegree.degree.max())
                                         .from(subLog)
-                                        .join(subLog.lifePattern, subLifePattern)
-                                        .where(
-                                                subLog.member.id.eq(memberId),
-                                                subLifePattern.isDeleted.isFalse()
-                                        )
-                                        .groupBy(subLifePattern.id)
-                        )
+                                        .join(subLog.preferenceConditionWeightLogDegree, subDegree)
+                                        .where(subLog.member.id.eq(memberId))
+                        ),
+                        lifePattern.isDeleted.isFalse()
                 )
                 .orderBy(lifePattern.sort.asc())
                 .fetch();

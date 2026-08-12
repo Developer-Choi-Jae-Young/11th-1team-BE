@@ -15,8 +15,11 @@ import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.life.MemberLifePatternLog;
+import org.example.knockin.entity.life.MemberLifePatternLogDegree;
 import org.example.knockin.entity.life.PreferenceConditionLog;
+import org.example.knockin.entity.life.PreferenceConditionLogDegree;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.PreferenceConditionWeightLogDegree;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
 import org.example.knockin.entity.room.MyRoommate;
@@ -221,7 +224,7 @@ class RoommateScoreServiceTest {
     }
 
     @Test
-    @DisplayName("채팅 요청 기준 양방향 점수 row를 생성하고 저장된 row는 생활패턴별 최대 점수로 총점을 계산한다")
+    @DisplayName("채팅 요청 기준 양방향 최종점수 row를 각각 하나씩 생성한다")
     void createChattingScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
         // Given
         Member requester = member(1L);
@@ -267,27 +270,14 @@ class RoommateScoreServiceTest {
 
         // When
         List<ChattingScore> scores = roommateScoreService.createChattingScores(chattingRequired);
-        Compatibility requesterCompatibility = roommateScoreService.calculateChattingCompatibility(1L, scores);
-        Compatibility requesteeCompatibility = roommateScoreService.calculateChattingCompatibility(2L, scores);
-
         // Then
-        assertThat(scores).hasSize(5);
-        assertThat(scores)
-                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
-                .extracting(ChattingScore::getScore)
-                .containsExactly(0, 100, 100);
-        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(100);
-        assertThat(requesterCompatibility.getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("흡연", 100),
-                        org.assertj.core.groups.Tuple.tuple("반려동물", 100)
-                );
-        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(50);
+        assertThat(scores).hasSize(2);
+        assertThat(scores).extracting(ChattingScore::getScore).containsExactly(100, 50);
+        assertThat(scores).allSatisfy(score -> assertThat(score.getMemberLifePatternLogDegree()).isNotNull());
     }
 
     @Test
-    @DisplayName("룸메이트 확정 기준 양방향 점수 row를 생성하고 저장된 row로 사용자별 총점을 계산한다")
+    @DisplayName("룸메이트 확정 기준 양방향 최종점수 row를 각각 하나씩 생성한다")
     void createRoommateScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
         // Given
         Member requester = member(1L);
@@ -339,23 +329,10 @@ class RoommateScoreServiceTest {
 
         // When
         List<RoommateScore> scores = roommateScoreService.createRoommateScores(myRoommate);
-        Compatibility requesterCompatibility = roommateScoreService.calculateRoommateCompatibility(1L, scores);
-        Compatibility requesteeCompatibility = roommateScoreService.calculateRoommateCompatibility(2L, scores);
-
         // Then
-        assertThat(scores).hasSize(4);
-        assertThat(scores)
-                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
-                .extracting(RoommateScore::getScore)
-                .containsExactly(50, 0);
-        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(33);
-        assertThat(requesterCompatibility.getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("청결 민감도", 50),
-                        org.assertj.core.groups.Tuple.tuple("흡연", 0)
-                );
-        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(25);
+        assertThat(scores).hasSize(2);
+        assertThat(scores).extracting(RoommateScore::getScore).containsExactly(33, 25);
+        assertThat(scores).allSatisfy(score -> assertThat(score.getMemberLifePatternLogDegree()).isNotNull());
     }
 
     private MatchingLifestyleRow lifestyle(
@@ -433,6 +410,7 @@ class RoommateScoreServiceTest {
         return MemberLifePatternLog.builder()
                 .member(member)
                 .lifePatternInformation(information)
+                .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().degree(1L).build())
                 .build();
     }
 
@@ -440,6 +418,7 @@ class RoommateScoreServiceTest {
         return PreferenceConditionLog.builder()
                 .member(member)
                 .lifePatternInformation(information)
+                .preferenceConditionLogDegree(PreferenceConditionLogDegree.builder().degree(1L).build())
                 .build();
     }
 
@@ -447,6 +426,7 @@ class RoommateScoreServiceTest {
         return PreferenceConditionWeightLog.builder()
                 .member(member)
                 .lifePattern(lifePattern)
+                .preferenceConditionWeightLogDegree(PreferenceConditionWeightLogDegree.builder().degree(1L).build())
                 .build();
     }
 }

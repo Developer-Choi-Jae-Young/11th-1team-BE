@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import org.example.knockin.entity.room.RoommateScore;
 import org.example.knockin.repository.room.RoommateScoreRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -46,14 +47,14 @@ class MyRoommateScoreServiceImplTest {
         Long myRoommateId = 10L;
         RoommateScore roommateScore = RoommateScore.builder().score(80).build();
         Long memberId = 1L;
-        when(roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId))
-                .thenReturn(List.of(roommateScore));
+        when(roommateScoreRepository.findOneByMyRoommateIdAndMemberId(myRoommateId, memberId))
+                .thenReturn(Optional.of(roommateScore));
 
         // When
-        List<RoommateScore> result = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
+        Optional<RoommateScore> result = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
 
         // Then
-        assertThat(result).containsExactly(roommateScore);
-        verify(roommateScoreRepository).findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId);
+        assertThat(result).contains(roommateScore);
+        verify(roommateScoreRepository).findOneByMyRoommateIdAndMemberId(myRoommateId, memberId);
     }
 }

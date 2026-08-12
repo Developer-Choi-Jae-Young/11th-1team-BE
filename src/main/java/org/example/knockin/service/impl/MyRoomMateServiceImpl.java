@@ -70,18 +70,16 @@ public class MyRoomMateServiceImpl {
         MyRoommateInfo myRoommateInfo = toMyRoommateInfo(basicInfoRow);
 
         Long myRoommateId = myRoommate.getId();
-        List<RoommateScore> roommateScores = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId);
-        Integer totalScore = roommateScores.isEmpty()
-                ? roommateScoreService.calculateSimpleScore(memberId, opponentId)
-                : roommateScoreService.calculateRoommateCompatibility(memberId, roommateScores).getTotalScore();
-
+        Integer score = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId)
+                .map(RoommateScore::getScore)
+                .orElseGet(() -> roommateScoreService.calculateSimpleScore(memberId, opponentId));
         Long chatRoomId = roommateMatchingRequired.getChattingRoom().getId();
 
         return MyRoommateCardDto.Response.builder()
                 .id(myRoommateId)
                 .myRoommateInfo(myRoommateInfo)
                 .chatRoomId(chatRoomId)
-                .score(totalScore)
+                .score(score)
                 .build();
     }
 

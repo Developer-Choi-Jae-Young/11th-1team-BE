@@ -3,9 +3,8 @@ package org.example.knockin.repository.room;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
-import java.util.List;
+import java.util.Optional;
 import org.example.knockin.config.QueryDslConfig;
-import org.example.knockin.dto.Compatibility;
 import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
@@ -17,9 +16,6 @@ import org.example.knockin.entity.room.MyRoommate;
 import org.example.knockin.entity.room.RoommateMatchingRequired;
 import org.example.knockin.entity.room.RoommateRequiredStatus;
 import org.example.knockin.entity.room.RoommateScore;
-import org.example.knockin.service.impl.JavaRoommateScoreService;
-import org.example.knockin.service.impl.RoommateScorePolicy;
-import org.hibernate.Hibernate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,40 +36,32 @@ class RoommateScoreRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("내 룸메이트 점수 상세 조회는 평가자 방향의 점수와 계산에 필요한 연관 정보를 함께 조회한다")
-    void findWithScoreDetailsByMyRoommateIdFetchesAssociationsForCompatibilityCalculation() {
+    @DisplayName("내 룸메이트 점수 조회는 로그 차수의 회원으로 평가자 방향을 판별한다")
+    void findOneByMyRoommateIdAndMemberIdReturnsEvaluatorDirection() {
         // Given
         Member evaluator = persistMember("score-evaluator");
         Member target = persistMember("score-target");
         MyRoommate myRoommate = persistMyRoommate(evaluator, target);
         LifePattern lifePattern = persistLifePattern("청결 민감도", 1);
         LifePatternInformation information = persistLifePatternInformation(lifePattern, "3");
-        MemberLifePatternLog lifePatternLog = persistMemberLifePatternLog(evaluator, information);
-        MemberLifePatternLog targetLifePatternLog = persistMemberLifePatternLog(target, information);
-        PreferenceConditionWeightLog weightLog = persistPreferenceConditionWeightLog(evaluator, lifePattern);
-        persistRoommateScore(myRoommate, null, null, 80);
-        persistRoommateScore(myRoommate, null, null, 20);
+        MemberLifePatternLogDegree evaluatorDegree = persistMemberLifePatternLogDegree(1L);
+        MemberLifePatternLogDegree targetDegree = persistMemberLifePatternLogDegree(1L);
+        persistMemberLifePatternLog(evaluator, information, evaluatorDegree);
+        persistMemberLifePatternLog(evaluator, information, evaluatorDegree);
+        persistMemberLifePatternLog(target, information, targetDegree);
+        persistRoommateScore(myRoommate, evaluatorDegree, null, 80);
+        persistRoommateScore(myRoommate, targetDegree, null, 20);
         entityManager.flush();
         entityManager.clear();
 
         // When
-        List<RoommateScore> scores = roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(
+        Optional<RoommateScore> score = roommateScoreRepository.findOneByMyRoommateIdAndMemberId(
                 myRoommate.getId(),
                 evaluator.getId()
         );
-        RoommateScore score = scores.getFirst();
 
         // Then
-        assertThat(scores).hasSize(1);
-        assertThat(Hibernate.isInitialized(score.getMemberLifePatternLogDegree())).isTrue();
-        assertThat(Hibernate.isInitialized(score.getPreferenceConditionWeightLogDegree())).isTrue();
-
-        entityManager.clear();
-        Compatibility compatibility = roommateScoreService().calculateRoommateCompatibility(evaluator.getId(), scores);
-        assertThat(compatibility.getTotalScore()).isEqualTo(80);
-        assertThat(compatibility.getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("청결 민감도", 80));
+        assertThat(score).isPresent().get().extracting(RoommateScore::getScore).isEqualTo(80);
     }
 
     private Member persistMember(String providerId) {
@@ -139,10 +127,21 @@ class RoommateScoreRepositoryTest {
         return information;
     }
 
-    private MemberLifePatternLog persistMemberLifePatternLog(Member member, LifePatternInformation information) {
+    private MemberLifePatternLogDegree persistMemberLifePatternLogDegree(Long degree) {
+        MemberLifePatternLogDegree logDegree = MemberLifePatternLogDegree.builder().degree(degree).build();
+        entityManager.persist(logDegree);
+        return logDegree;
+    }
+
+    private MemberLifePatternLog persistMemberLifePatternLog(
+            Member member,
+            LifePatternInformation information,
+            MemberLifePatternLogDegree logDegree
+    ) {
         MemberLifePatternLog log = MemberLifePatternLog.builder()
                 .member(member)
                 .lifePatternInformation(information)
+                .memberLifePatternLogDegree(logDegree)
                 .build();
         entityManager.persist(log);
         return log;
@@ -172,20 +171,4 @@ class RoommateScoreRepositoryTest {
         entityManager.persist(roommateScore);
     }
 
-    private JavaRoommateScoreService roommateScoreService() {
-        RoommateScorePolicy roommateScorePolicy = new RoommateScorePolicy();
-        roommateScorePolicy.setPerfectScore(100);
-        roommateScorePolicy.setImportantPatternMultiplier(2);
-
-        return new JavaRoommateScoreService(
-                null,
-                null,
-                null,
-                null,
-                roommateScorePolicy,
-                null,
-                null,
-                null
-        );
-    }
 }
