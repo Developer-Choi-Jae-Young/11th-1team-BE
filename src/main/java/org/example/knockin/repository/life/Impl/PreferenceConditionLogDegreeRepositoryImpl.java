@@ -6,6 +6,8 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.life.PreferenceConditionLogDegreeRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 import static org.example.knockin.entity.life.QPreferenceConditionLogDegree.preferenceConditionLogDegree;
 import static org.example.knockin.entity.life.QPreferenceConditionLog.preferenceConditionLog;
 
@@ -15,10 +17,10 @@ public class PreferenceConditionLogDegreeRepositoryImpl implements PreferenceCon
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Long findMaxPreferenceConditionLogDegree(Member member) {
-        return jpaQueryFactory.select(preferenceConditionLogDegree.degree.max())
+    public Optional<Long> findMaxPreferenceConditionLogDegree(Member member) {
+        return Optional.ofNullable(jpaQueryFactory.select(preferenceConditionLogDegree.degree.max())
                 .from(preferenceConditionLogDegree)
                 .join(preferenceConditionLog).on(preferenceConditionLog.preferenceConditionLogDegree.eq(preferenceConditionLogDegree))
-                .where(preferenceConditionLog.member.eq(member)).fetchOne();
+                .where(preferenceConditionLog.member.eq(member)).fetchOne());
     }
 }

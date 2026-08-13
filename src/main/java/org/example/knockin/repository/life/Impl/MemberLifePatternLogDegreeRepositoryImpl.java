@@ -6,6 +6,8 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.life.MemberLifePatternLogDegreeRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 import static org.example.knockin.entity.life.QMemberLifePatternLogDegree.memberLifePatternLogDegree;
 import static org.example.knockin.entity.life.QMemberLifePatternLog.memberLifePatternLog;
 
@@ -15,10 +17,10 @@ public class MemberLifePatternLogDegreeRepositoryImpl implements MemberLifePatte
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Long findMaxmemberLifePatternLogDegree(Member member) {
-        return jpaQueryFactory.select(memberLifePatternLogDegree.degree.max())
+    public Optional<Long> findMaxmemberLifePatternLogDegree(Member member) {
+        return Optional.ofNullable(jpaQueryFactory.select(memberLifePatternLogDegree.degree.max())
                 .from(memberLifePatternLogDegree)
                 .join(memberLifePatternLog).on(memberLifePatternLog.memberLifePatternLogDegree.eq(memberLifePatternLogDegree))
-                .where(memberLifePatternLog.member.eq(member)).fetchOne();
+                .where(memberLifePatternLog.member.eq(member)).fetchOne());
     }
 }

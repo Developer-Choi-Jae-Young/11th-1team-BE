@@ -6,6 +6,8 @@ import org.example.knockin.entity.member.Member;
 import org.example.knockin.repository.life.PreferenceConditionWeightLogDegreeRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 import static org.example.knockin.entity.life.QPreferenceConditionWeightLogDegree.preferenceConditionWeightLogDegree;
 import static org.example.knockin.entity.life.QPreferenceConditionWeightLog.preferenceConditionWeightLog;
 
@@ -15,10 +17,10 @@ public class PreferenceConditionWeightLogDegreeRepositoryImpl implements Prefere
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Long findMaxPreferenceConditionWeightLogDegree(Member member) {
-        return jpaQueryFactory.select(preferenceConditionWeightLogDegree.degree.max())
+    public Optional<Long> findMaxPreferenceConditionWeightLogDegree(Member member) {
+        return Optional.ofNullable(jpaQueryFactory.select(preferenceConditionWeightLogDegree.degree.max())
                 .from(preferenceConditionWeightLogDegree)
                 .join(preferenceConditionWeightLog).on(preferenceConditionWeightLog.preferenceConditionWeightLogDegree.eq(preferenceConditionWeightLogDegree))
-                .where(preferenceConditionWeightLog.member.eq(member)).fetchOne();
+                .where(preferenceConditionWeightLog.member.eq(member)).fetchOne());
     }
 }

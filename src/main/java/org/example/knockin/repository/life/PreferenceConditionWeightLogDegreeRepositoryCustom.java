@@ -2,6 +2,8 @@ package org.example.knockin.repository.life;
 
 import org.example.knockin.entity.member.Member;
 
+import java.util.Optional;
+
 public interface PreferenceConditionWeightLogDegreeRepositoryCustom {
-    Long findMaxPreferenceConditionWeightLogDegree(Member member);
+    Optional<Long> findMaxPreferenceConditionWeightLogDegree(Member member);
 }
