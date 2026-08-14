@@ -749,7 +749,7 @@ public class SeedDataConfig implements CommandLineRunner {
         PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(PreferenceConditionWeightLog.builder().member(user1).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
 
         chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).file(chatRoomPic).build());
-        chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
+        ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
 
         // 16. 룸메이트 매칭 확정 및 내 룸메이트 (RoommateMatchingRequired, MyRoommate)
         RoommateMatchingRequired matchingReq = RoommateMatchingRequired.builder()
@@ -768,10 +768,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roommateScoreRepository.save(RoommateScore.builder()
                 .myRoommate(myRoommate)
-                .memberLifePatternLogDegree(memberLifePatternLogDegree)
-                .preferenceConditionLogDegree(preferenceConditionLogDegree)
-                .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
-                .score(88)
+                .chattingScore(chattingScore)
                 .build());
 
         // 17. 룸메이트 하우스 룰 (RoommateHouseRule)

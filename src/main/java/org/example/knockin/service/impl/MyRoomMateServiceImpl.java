@@ -16,6 +16,8 @@ import org.example.knockin.dto.MyRoommateDto;
 import org.example.knockin.dto.MyRoommateMonthlyCalendarListDto;
 import org.example.knockin.dto.RepeatCalendarDto;
 import org.example.knockin.dto.RepeatCalendarModifyDto;
+import org.example.knockin.entity.chat.ChattingRequired;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberPrivacy;
 import org.example.knockin.entity.member.MemberPrivacyType;
@@ -42,6 +44,7 @@ public class MyRoomMateServiceImpl {
     private final MyRoommateScoreServiceImpl myRoommateScoreService;
     private final CalendarServiceImpl calendarService;
     private final HouseRuleServiceImpl houseRuleService;
+    private final ChattingScoreServiceImpl chattingScoreService;
 
     public boolean isExistRoomMate(Member member) {
         return myRoommateRepository.isExistRoomMate(member);
@@ -54,7 +57,18 @@ public class MyRoomMateServiceImpl {
                 .isDeleted(false)
                 .build();
         MyRoommate savedMyRoommate = myRoommateRepository.save(myRoommate);
-        myRoommateScoreService.saveAll(roommateScoreService.createRoommateScores(savedMyRoommate));
+
+        ChattingRequired chattingRequired = roommateMatchingRequired.getChattingRoom().getChattingRequired();
+        List<ChattingScore> chattingScores = chattingScoreService.findByChattingRequiredId(chattingRequired.getId());
+        List<RoommateScore> roommateScores = chattingScores.stream()
+                .map(chattingScore -> RoommateScore.builder()
+                        .myRoommate(savedMyRoommate)
+                        .chattingScore(chattingScore)
+                        .build()
+                )
+                .toList();
+
+        myRoommateScoreService.saveAll(roommateScores);
         return savedMyRoommate;
     }
 
@@ -71,7 +85,10 @@ public class MyRoomMateServiceImpl {
 
         Long myRoommateId = myRoommate.getId();
         Integer score = myRoommateScoreService.findByRoommateIdAndMemberId(myRoommateId, memberId)
-                .map(RoommateScore::getScore)
+                .map(roommateScore -> {
+                    ChattingScore chattingScore = roommateScore.getChattingScore();
+                    return chattingScore.getScore();
+                })
                 .orElseGet(() -> roommateScoreService.calculateSimpleScore(memberId, opponentId));
         Long chatRoomId = roommateMatchingRequired.getChattingRoom().getId();
 

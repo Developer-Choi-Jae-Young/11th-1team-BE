@@ -1,6 +1,5 @@
 package org.example.knockin.entity.room;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.knockin.entity.life.*;
+import org.example.knockin.entity.chat.ChattingScore;
 
 
 import org.hibernate.annotations.OnDelete;
@@ -37,17 +36,6 @@ public class RoommateScore {
     private MyRoommate myRoommate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preference_condition_log_degree_id")
-    private PreferenceConditionLogDegree preferenceConditionLogDegree;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_life_pattern_log_degree_id", nullable = false)
-    private MemberLifePatternLogDegree memberLifePatternLogDegree;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "preference_condition_weight_log_degree_id")
-    private PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree;
-
-    @Column(name = "score", nullable = false)
-    private Integer score;
+    @JoinColumn(name = "chatting_score_id")
+    private ChattingScore chattingScore;
 }

@@ -27,7 +27,9 @@ public class RoommateScoreRepositoryImpl implements RoommateScoreRepositoryCusto
                                 JPAExpressions.selectOne()
                                         .from(evaluatorLog)
                                         .where(
-                                                evaluatorLog.memberLifePatternLogDegree.eq(roommateScore.memberLifePatternLogDegree),
+                                                evaluatorLog.memberLifePatternLogDegree.eq(
+                                                        roommateScore.chattingScore.memberLifePatternLogDegree
+                                                ),
                                                 evaluatorLog.member.id.eq(memberId)
                                         )
                                         .exists()
