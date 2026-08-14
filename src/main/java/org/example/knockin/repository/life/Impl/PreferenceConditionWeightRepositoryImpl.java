@@ -78,7 +78,10 @@ public class PreferenceConditionWeightRepositoryImpl implements PreferenceCondit
                 ))
                 .leftJoin(selectedPatternFile.file, patternImageFile)
                 .on(patternImageFile.isDeleted.isFalse())
-                .where(preferenceConditionWeight.member.id.in(memberIds))
+                .where(
+                        preferenceConditionWeight.member.id.in(memberIds),
+                        lifePattern.isDeleted.isFalse()
+                )
                 .orderBy(lifePattern.sort.asc(), preferenceConditionWeight.id.asc())
                 .fetch();
     }
