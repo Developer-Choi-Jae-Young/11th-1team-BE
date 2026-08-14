@@ -88,7 +88,10 @@ public class PreferenceConditionRepositoryImpl implements PreferenceConditionRep
                 ))
                 .leftJoin(selectedPatternFile.file, patternImageFile)
                 .on(patternImageFile.isDeleted.isFalse())
-                .where(preferenceCondition.member.id.in(memberIds))
+                .where(
+                        preferenceCondition.member.id.in(memberIds),
+                        lifePattern.isDeleted.isFalse()
+                )
                 .orderBy(lifePattern.sort.asc(), preferenceCondition.id.asc())
                 .fetch();
     }

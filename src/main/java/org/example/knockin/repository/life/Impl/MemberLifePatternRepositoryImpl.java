@@ -96,7 +96,10 @@ public class MemberLifePatternRepositoryImpl implements MemberLifePatternReposit
                 ))
                 .leftJoin(selectedPatternFile.file, patternImageFile)
                 .on(patternImageFile.isDeleted.isFalse())
-                .where(memberLifePattern.member.id.in(memberIds))
+                .where(
+                        memberLifePattern.member.id.in(memberIds),
+                        lifePattern.isDeleted.isFalse()
+                )
                 .orderBy(lifePattern.sort.asc(), memberLifePattern.id.asc())
                 .fetch();
     }
