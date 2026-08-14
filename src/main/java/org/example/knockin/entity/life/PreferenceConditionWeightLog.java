@@ -23,4 +23,8 @@ public class PreferenceConditionWeightLog {
     @ManyToOne
     @JoinColumn(name = "life_pattern_id")
     private LifePattern lifePattern;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preference_condition_weight_log_degree_id")
+    private PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree;
 }

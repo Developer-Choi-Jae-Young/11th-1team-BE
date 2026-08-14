@@ -1,6 +1,7 @@
 package org.example.knockin.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.room.RoommateScore;
 import org.example.knockin.repository.room.RoommateScoreRepository;
@@ -16,7 +17,7 @@ public class MyRoommateScoreServiceImpl {
         return roommateScoreRepository.saveAll(roommateScores);
     }
 
-    public List<RoommateScore> findByRoommateIdAndMemberId(Long myRoommateId, Long memberId) {
-        return roommateScoreRepository.findWithScoreDetailsByMyRoommateIdAndMemberId(myRoommateId, memberId);
+    public Optional<RoommateScore> findByRoommateIdAndMemberId(Long myRoommateId, Long memberId) {
+        return roommateScoreRepository.findOneByMyRoommateIdAndMemberId(myRoommateId, memberId);
     }
 }

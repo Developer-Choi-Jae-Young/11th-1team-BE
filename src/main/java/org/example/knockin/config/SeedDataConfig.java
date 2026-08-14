@@ -36,16 +36,7 @@ import org.example.knockin.entity.file.FileType;
 import org.example.knockin.entity.inquiry.Inquiry;
 import org.example.knockin.entity.inquiry.InquiryCategory;
 import org.example.knockin.entity.inquiry.InquiryComment;
-import org.example.knockin.entity.life.LifePattern;
-import org.example.knockin.entity.life.LifePatternFile;
-import org.example.knockin.entity.life.LifePatternInformation;
-import org.example.knockin.entity.life.LifePatternType;
-import org.example.knockin.entity.life.MemberLifePattern;
-import org.example.knockin.entity.life.MemberLifePatternLog;
-import org.example.knockin.entity.life.PreferenceCondition;
-import org.example.knockin.entity.life.PreferenceConditionLog;
-import org.example.knockin.entity.life.PreferenceConditionWeight;
-import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Block;
 import org.example.knockin.entity.member.Gender;
@@ -120,15 +111,7 @@ import org.example.knockin.repository.file.FileRepository;
 import org.example.knockin.repository.inquiry.InquiryCategoryRepository;
 import org.example.knockin.repository.inquiry.InquiryCommentRepository;
 import org.example.knockin.repository.inquiry.InquiryRepository;
-import org.example.knockin.repository.life.LifePatternFileRepository;
-import org.example.knockin.repository.life.LifePatternInformationRepository;
-import org.example.knockin.repository.life.LifePatternRepository;
-import org.example.knockin.repository.life.MemberLifePatternLogRepository;
-import org.example.knockin.repository.life.MemberLifePatternRepository;
-import org.example.knockin.repository.life.PreferenceConditionLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.life.*;
 import org.example.knockin.repository.member.BasicInformationRepository;
 import org.example.knockin.repository.member.BlockRepository;
 import org.example.knockin.repository.member.MemberDeclarationRepository;
@@ -251,6 +234,9 @@ public class SeedDataConfig implements CommandLineRunner {
     private final PaymentRepository paymentRepository;
     private final PointRepository pointRepository;
     private final PointLogRepository pointLogRepository;
+    private final MemberLifePatternLogDegreeRepository memberLifePatternLogDegreeRepository;
+    private final PreferenceConditionLogDegreeRepository preferenceConditionLogDegreeRepository;
+    private final PreferenceConditionWeightLogDegreeRepository preferenceConditionWeightLogDegreeRepository;
 
     @Override
     @Transactional
@@ -755,12 +741,15 @@ public class SeedDataConfig implements CommandLineRunner {
         chatRoomMessageRepository.saveAll(List.of(msg1, msg2));
 
         // 15. 이력 로그 및 궁합 점수 (MemberLifePatternLog, PreferenceConditionLog, WeightLog)
-        MemberLifePatternLog mlpLog = memberLifePatternLogRepository.save(MemberLifePatternLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build());
-        PreferenceConditionLog pcLog = preferenceConditionLogRepository.save(PreferenceConditionLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).build());
-        PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(PreferenceConditionWeightLog.builder().member(user1).lifePattern(bedtime).build());
+        PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionLogDegreeRepository.save(PreferenceConditionLogDegree.builder().degree(1L).build());
+        MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternLogDegreeRepository.save(MemberLifePatternLogDegree.builder().degree(1L).build());
+        PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionWeightLogDegreeRepository.save(PreferenceConditionWeightLogDegree.builder().degree(1L).build());
+        MemberLifePatternLog mlpLog = memberLifePatternLogRepository.save(MemberLifePatternLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).memberLifePatternLogDegree(memberLifePatternLogDegree).build());
+        PreferenceConditionLog pcLog = preferenceConditionLogRepository.save(PreferenceConditionLog.builder().member(user1).lifePatternInformation(lifePatternInformationList.get(0)).preferenceConditionLogDegree(preferenceConditionLogDegree).build());
+        PreferenceConditionWeightLog pcwLog = preferenceConditionWeightLogRepository.save(PreferenceConditionWeightLog.builder().member(user1).lifePattern(bedtime).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).build());
 
         chatRoomFileRepository.save(ChatRoomFile.builder().chatRoomMessage(msg1).file(chatRoomPic).build());
-        chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).lifePatternInformationLog(mlpLog).score(90).build());
+        ChattingScore chattingScore = chattingScoreRepository.save(ChattingScore.builder().chattingRequired(chatReq).memberLifePatternLogDegree(memberLifePatternLogDegree).preferenceConditionLogDegree(preferenceConditionLogDegree).preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree).score(90).build());
 
         // 16. 룸메이트 매칭 확정 및 내 룸메이트 (RoommateMatchingRequired, MyRoommate)
         RoommateMatchingRequired matchingReq = RoommateMatchingRequired.builder()
@@ -779,10 +768,7 @@ public class SeedDataConfig implements CommandLineRunner {
 
         roommateScoreRepository.save(RoommateScore.builder()
                 .myRoommate(myRoommate)
-                .lifePatternInformationLog(mlpLog)
-                .preferenceConditionLog(pcLog)
-                .preferenceConditionWeightLog(pcwLog)
-                .score(88)
+                .chattingScore(chattingScore)
                 .build());
 
         // 17. 룸메이트 하우스 룰 (RoommateHouseRule)
