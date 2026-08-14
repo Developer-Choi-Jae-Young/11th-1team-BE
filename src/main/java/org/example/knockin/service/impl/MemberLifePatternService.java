@@ -36,6 +36,7 @@ public class MemberLifePatternService {
     @Transactional
     public void deleteMemberLifePatternAll(List<MemberLifePattern> memberLifePatternList) {
         memberLifePatternRepository.deleteAll(memberLifePatternList);
+        memberLifePatternRepository.flush();
     }
 
     public List<MemberLifePattern> findByMember(Member member) {
