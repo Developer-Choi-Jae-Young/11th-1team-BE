@@ -5,8 +5,6 @@ import java.util.Map;
 import org.example.knockin.dto.Compatibility;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingScore;
-import org.example.knockin.entity.room.MyRoommate;
-import org.example.knockin.entity.room.RoommateScore;
 
 public interface RoommateScoreService {
     Map<Long, Compatibility> calculateScores(Long requesterId, List<Long> targetMemberIds);
@@ -18,7 +16,4 @@ public interface RoommateScoreService {
     Integer calculateSimpleScore(Long requesterId, Long targetMemberId);
 
     List<ChattingScore> createChattingScores(ChattingRequired chattingRequired);
-
-    List<RoommateScore> createRoommateScores(MyRoommate myRoommate);
-
 }

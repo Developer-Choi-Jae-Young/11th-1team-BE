@@ -9,6 +9,7 @@ import org.example.knockin.entity.auth.LoginProviderType;
 import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRequiredStatus;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
@@ -36,7 +37,7 @@ class RoommateScoreRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    @DisplayName("내 룸메이트 점수 조회는 로그 차수의 회원으로 평가자 방향을 판별한다")
+    @DisplayName("내 룸메이트 점수 조회는 연결된 채팅 점수의 로그 차수로 평가자 방향을 판별한다")
     void findOneByMyRoommateIdAndMemberIdReturnsEvaluatorDirection() {
         // Given
         Member evaluator = persistMember("score-evaluator");
@@ -47,10 +48,14 @@ class RoommateScoreRepositoryTest {
         MemberLifePatternLogDegree evaluatorDegree = persistMemberLifePatternLogDegree(1L);
         MemberLifePatternLogDegree targetDegree = persistMemberLifePatternLogDegree(1L);
         persistMemberLifePatternLog(evaluator, information, evaluatorDegree);
-        persistMemberLifePatternLog(evaluator, information, evaluatorDegree);
         persistMemberLifePatternLog(target, information, targetDegree);
-        persistRoommateScore(myRoommate, evaluatorDegree, null, 80);
-        persistRoommateScore(myRoommate, targetDegree, null, 20);
+        ChattingRequired chattingRequired = myRoommate.getRoommateMatchingRequired()
+                .getChattingRoom()
+                .getChattingRequired();
+        ChattingScore evaluatorScore = persistChattingScore(chattingRequired, evaluatorDegree, 80);
+        ChattingScore targetScore = persistChattingScore(chattingRequired, targetDegree, 20);
+        persistRoommateScore(myRoommate, evaluatorScore);
+        persistRoommateScore(myRoommate, targetScore);
         entityManager.flush();
         entityManager.clear();
 
@@ -61,7 +66,8 @@ class RoommateScoreRepositoryTest {
         );
 
         // Then
-        assertThat(score).isPresent().get().extracting(RoommateScore::getScore).isEqualTo(80);
+        assertThat(score).isPresent();
+        assertThat(score.orElseThrow().getChattingScore().getScore()).isEqualTo(80);
     }
 
     private Member persistMember(String providerId) {
@@ -156,17 +162,24 @@ class RoommateScoreRepositoryTest {
         return log;
     }
 
-    private void persistRoommateScore(
-            MyRoommate myRoommate,
+    private ChattingScore persistChattingScore(
+            ChattingRequired chattingRequired,
             MemberLifePatternLogDegree memberLifePatternLogDegree,
-            PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree,
             Integer score
     ) {
+        ChattingScore chattingScore = ChattingScore.builder()
+                .chattingRequired(chattingRequired)
+                .memberLifePatternLogDegree(memberLifePatternLogDegree)
+                .score(score)
+                .build();
+        entityManager.persist(chattingScore);
+        return chattingScore;
+    }
+
+    private void persistRoommateScore(MyRoommate myRoommate, ChattingScore chattingScore) {
         RoommateScore roommateScore = RoommateScore.builder()
                 .myRoommate(myRoommate)
-                .memberLifePatternLogDegree(memberLifePatternLogDegree)
-                .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
-                .score(score)
+                .chattingScore(chattingScore)
                 .build();
         entityManager.persist(roommateScore);
     }

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.room.RoommateScore;
 import org.example.knockin.repository.room.RoommateScoreRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +30,9 @@ class MyRoommateScoreServiceImplTest {
     @DisplayName("룸메이트 점수 목록을 저장한다")
     void saveAllSavesRoommateScores() {
         // Given
-        List<RoommateScore> roommateScores = List.of(RoommateScore.builder().score(80).build());
+        List<RoommateScore> roommateScores = List.of(RoommateScore.builder()
+                .chattingScore(ChattingScore.builder().score(80).build())
+                .build());
         when(roommateScoreRepository.saveAll(roommateScores)).thenReturn(roommateScores);
 
         // When
@@ -45,7 +48,9 @@ class MyRoommateScoreServiceImplTest {
     void findByRoommateIdReturnsScoreDetails() {
         // Given
         Long myRoommateId = 10L;
-        RoommateScore roommateScore = RoommateScore.builder().score(80).build();
+        RoommateScore roommateScore = RoommateScore.builder()
+                .chattingScore(ChattingScore.builder().score(80).build())
+                .build();
         Long memberId = 1L;
         when(roommateScoreRepository.findOneByMyRoommateIdAndMemberId(myRoommateId, memberId))
                 .thenReturn(Optional.of(roommateScore));

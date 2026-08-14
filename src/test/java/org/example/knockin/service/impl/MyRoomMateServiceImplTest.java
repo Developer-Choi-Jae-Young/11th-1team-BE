@@ -23,7 +23,9 @@ import org.example.knockin.dto.MyRoommateDailyCalendarListDto;
 import org.example.knockin.dto.MyRoommateMonthlyCalendarListDto;
 import org.example.knockin.dto.RepeatCalendarModifyDto;
 import org.example.knockin.dto.RepeatCalendarModifyType;
+import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRoom;
+import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.entity.member.Gender;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberPrivacy;
@@ -73,32 +75,53 @@ class MyRoomMateServiceImplTest {
     @Mock
     private HouseRuleServiceImpl houseRuleService;
 
+    @Mock
+    private ChattingScoreServiceImpl chattingScoreService;
+
     @InjectMocks
     private MyRoomMateServiceImpl myRoomMateService;
 
     @Test
-    @DisplayName("룸메이트를 저장하면 확정 시점의 양방향 궁합 점수도 저장한다")
-    void saveCreatesAndSavesRoommateScores() {
+    @DisplayName("룸메이트를 저장하면 채팅 시점의 양방향 궁합 점수를 룸메이트 점수로 전파한다")
+    void savePropagatesChattingScoresToRoommateScores() {
         // Given
         Member requester = Member.builder().id(1L).build();
         Member requestee = Member.builder().id(2L).build();
+        ChattingRequired chattingRequired = ChattingRequired.builder()
+                .id(10L)
+                .requester(requester)
+                .requestee(requestee)
+                .build();
+        ChattingRoom chattingRoom = ChattingRoom.builder()
+                .id(100L)
+                .chattingRequired(chattingRequired)
+                .build();
         RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
                 .requester(requester)
                 .requestee(requestee)
+                .chattingRoom(chattingRoom)
                 .status(RoommateRequiredStatus.ACCEPTED)
                 .build();
-        List<RoommateScore> roommateScores = List.of(RoommateScore.builder().score(80).build());
+        ChattingScore requesterScore = ChattingScore.builder().score(80).build();
+        ChattingScore requesteeScore = ChattingScore.builder().score(70).build();
 
         when(myRoommateRepository.save(any(MyRoommate.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(roommateScoreService.createRoommateScores(any(MyRoommate.class))).thenReturn(roommateScores);
+        when(chattingScoreService.findByChattingRequiredId(10L))
+                .thenReturn(List.of(requesterScore, requesteeScore));
 
         // When
         MyRoommate savedMyRoommate = myRoomMateService.save(matchingRequired);
 
         // Then
         assertThat(savedMyRoommate.getRoommateMatchingRequired()).isSameAs(matchingRequired);
-        verify(roommateScoreService).createRoommateScores(savedMyRoommate);
-        verify(myRoommateScoreService).saveAll(roommateScores);
+        verify(chattingScoreService).findByChattingRequiredId(10L);
+        verify(myRoommateScoreService).saveAll(org.mockito.ArgumentMatchers.argThat(roommateScores ->
+                roommateScores.size() == 2
+                        && roommateScores.stream().allMatch(score -> score.getMyRoommate() == savedMyRoommate)
+                        && roommateScores.get(0).getChattingScore() == requesterScore
+                        && roommateScores.get(1).getChattingScore() == requesteeScore
+        ));
+        verifyNoInteractions(roommateScoreService);
     }
 
     @Test
@@ -123,7 +146,8 @@ class MyRoomMateServiceImplTest {
         Long opponentId = 2L;
         LocalDate opponentBirth = LocalDate.of(2000, 1, 1);
         MyRoommate myRoommate = myRoommate(10L, memberId, opponentId, 100L);
-        RoommateScore roommateScore = RoommateScore.builder().score(92).build();
+        ChattingScore chattingScore = ChattingScore.builder().score(92).build();
+        RoommateScore roommateScore = RoommateScore.builder().chattingScore(chattingScore).build();
         ChattingRoomBasicInfoRow basicInfoRow = new ChattingRoomBasicInfoRow(
                 opponentId,
                 "상대방",

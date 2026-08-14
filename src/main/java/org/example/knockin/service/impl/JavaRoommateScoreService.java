@@ -155,21 +155,6 @@ public class JavaRoommateScoreService implements RoommateScoreService {
         );
     }
 
-    @Override
-    public List<RoommateScore> createRoommateScores(MyRoommate myRoommate) {
-        if (myRoommate == null || myRoommate.getRoommateMatchingRequired() == null) {
-            return List.of();
-        }
-
-        Long requesterId = myRoommate.getRoommateMatchingRequired().getRequester().getId();
-        Long requesteeId = myRoommate.getRoommateMatchingRequired().getRequestee().getId();
-
-        return List.of(
-                createScoreSnapshot(requesterId, requesteeId).toRoommateScore(myRoommate),
-                createScoreSnapshot(requesteeId, requesterId).toRoommateScore(myRoommate)
-        );
-    }
-
     private ScoreSnapshot createScoreSnapshot(Long evaluatorId, Long targetId) {
         List<MemberLifePatternLog> evaluatorLogs = memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(evaluatorId);
         if (evaluatorLogs.isEmpty()) throw new BusinessException(LifePatternErrorCode.DEGREE_NOT_FOUND);
@@ -577,16 +562,6 @@ public class JavaRoommateScoreService implements RoommateScoreService {
         ChattingScore toChattingScore(ChattingRequired chattingRequired) {
             return ChattingScore.builder()
                     .chattingRequired(chattingRequired)
-                    .memberLifePatternLogDegree(memberLifePatternLogDegree)
-                    .preferenceConditionLogDegree(preferenceConditionLogDegree)
-                    .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
-                    .score(score)
-                    .build();
-        }
-
-        RoommateScore toRoommateScore(MyRoommate myRoommate) {
-            return RoommateScore.builder()
-                    .myRoommate(myRoommate)
                     .memberLifePatternLogDegree(memberLifePatternLogDegree)
                     .preferenceConditionLogDegree(preferenceConditionLogDegree)
                     .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)

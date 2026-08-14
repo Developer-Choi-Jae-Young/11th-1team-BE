@@ -22,6 +22,7 @@ import org.example.knockin.dto.RoommateRequestListDto;
 import org.example.knockin.entity.alarm.AlarmSettingType;
 import org.example.knockin.entity.alarm.AlarmType;
 import org.example.knockin.entity.chat.ChatRoomMember;
+import org.example.knockin.entity.chat.ChattingRequired;
 import org.example.knockin.entity.chat.ChattingRoom;
 import org.example.knockin.entity.member.BasicInformation;
 import org.example.knockin.entity.member.Gender;
@@ -94,6 +95,9 @@ class RoommateRequestServiceImplTest {
     @Mock
     private MyRoommateScoreServiceImpl myRoommateScoreService;
 
+    @Mock
+    private ChattingScoreServiceImpl chattingScoreService;
+
     @InjectMocks
     private RoommateRequestServiceImpl roommateRequestService;
 
@@ -107,7 +111,8 @@ class RoommateRequestServiceImplTest {
                 null,
                 myRoommateScoreService,
                 null,
-                null
+                null,
+                chattingScoreService
         );
         RoommateMatchingRequiredAlarmServiceImpl roommateMatchingRequiredAlarmService =
                 new RoommateMatchingRequiredAlarmServiceImpl(alarmService);
@@ -634,7 +639,10 @@ class RoommateRequestServiceImplTest {
     }
 
     private ChattingRoom chattingRoom(Long id) {
-        return ChattingRoom.builder().id(id).build();
+        return ChattingRoom.builder()
+                .id(id)
+                .chattingRequired(ChattingRequired.builder().id(id).build())
+                .build();
     }
 
     private ChatRoomMember roomMember(Member member, ChattingRoom chattingRoom) {
