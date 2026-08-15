@@ -30,8 +30,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class JavaRoommateScoreV2Service extends RoommateScoreService {
     private final MemberLifePatternRepository memberLifePatternRepository;
+    private final MemberLifePatternLogRepository memberLifePatternLogRepository;
     private final PreferenceConditionRepository preferenceConditionRepository;
+    private final PreferenceConditionLogRepository preferenceConditionLogRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
+    private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
     private final List<LifePatternTypeScoreCalc> lifePatternTypeScoreCalcList;
     private final MemberServiceImpl memberServiceImpl;
 
@@ -95,7 +98,18 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
 
     private ChattingScore createChattingScore(Long requesterId, Long requesteeId, ChattingRequired chattingRequired) {
         int score = calculateScore(requesterId, requesteeId).getTotalScore();
-        return ChattingScore.builder().chattingRequired(chattingRequired).score(score).build();
+        List<MemberLifePatternLog> memberLifePatternLogList = memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
+        MemberLifePatternLogDegree memberLifePatternLogDegree = memberLifePatternLogList.isEmpty() ? null : memberLifePatternLogList.getFirst().getMemberLifePatternLogDegree();
+        List<PreferenceConditionLog> preferenceConditionLogList = preferenceConditionLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
+        PreferenceConditionLogDegree preferenceConditionLogDegree = preferenceConditionLogList.isEmpty() ? null : preferenceConditionLogList.getFirst().getPreferenceConditionLogDegree();
+        List<PreferenceConditionWeightLog> preferenceConditionWeightLogList = preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(requesterId);
+        PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegree = preferenceConditionWeightLogList.isEmpty() ? null : preferenceConditionWeightLogList.getFirst().getPreferenceConditionWeightLogDegree();
+
+        return ChattingScore.builder().chattingRequired(chattingRequired)
+                .memberLifePatternLogDegree(memberLifePatternLogDegree)
+                .preferenceConditionLogDegree(preferenceConditionLogDegree)
+                .preferenceConditionWeightLogDegree(preferenceConditionWeightLogDegree)
+                .score(score).build();
     }
 
     public Compatibility calculateScores(List<LifePatternInformation> me, List<LifePatternInformation> target, List<PreferenceConditionWeight> preferenceConditionWeightList) {

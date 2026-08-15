@@ -5,4 +5,5 @@ import org.example.knockin.entity.life.PreferenceConditionLog;
 
 public interface PreferenceConditionLogRepositoryCustom {
     List<PreferenceConditionLog> findLatestLogsWithFetchByMemberId(Long memberId, List<Long> lifePatternInformationIds);
+    List<PreferenceConditionLog> findLatestLogsWithFetchByMemberId(Long memberId);
 }
