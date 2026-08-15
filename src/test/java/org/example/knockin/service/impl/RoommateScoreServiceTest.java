@@ -15,14 +15,13 @@ import org.example.knockin.entity.life.LifePattern;
 import org.example.knockin.entity.life.LifePatternInformation;
 import org.example.knockin.entity.life.LifePatternType;
 import org.example.knockin.entity.life.MemberLifePatternLog;
+import org.example.knockin.entity.life.MemberLifePatternLogDegree;
 import org.example.knockin.entity.life.PreferenceConditionLog;
+import org.example.knockin.entity.life.PreferenceConditionLogDegree;
 import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.PreferenceConditionWeightLogDegree;
 import org.example.knockin.entity.member.Member;
 import org.example.knockin.entity.member.MemberRole;
-import org.example.knockin.entity.room.MyRoommate;
-import org.example.knockin.entity.room.RoommateMatchingRequired;
-import org.example.knockin.entity.room.RoommateRequiredStatus;
-import org.example.knockin.entity.room.RoommateScore;
 import org.example.knockin.repository.life.LifePatternInformationRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
@@ -221,7 +220,7 @@ class RoommateScoreServiceTest {
     }
 
     @Test
-    @DisplayName("채팅 요청 기준 양방향 점수 row를 생성하고 저장된 row는 생활패턴별 최대 점수로 총점을 계산한다")
+    @DisplayName("채팅 요청 기준 양방향 최종점수 row를 각각 하나씩 생성한다")
     void createChattingScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
         // Given
         Member requester = member(1L);
@@ -267,95 +266,10 @@ class RoommateScoreServiceTest {
 
         // When
         List<ChattingScore> scores = roommateScoreService.createChattingScores(chattingRequired);
-        Compatibility requesterCompatibility = roommateScoreService.calculateChattingCompatibility(1L, scores);
-        Compatibility requesteeCompatibility = roommateScoreService.calculateChattingCompatibility(2L, scores);
-
         // Then
-        assertThat(scores).hasSize(5);
-        assertThat(scores)
-                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
-                .extracting(ChattingScore::getScore)
-                .containsExactly(0, 100, 100);
-        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(100);
-        assertThat(requesterCompatibility.getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("흡연", 100),
-                        org.assertj.core.groups.Tuple.tuple("반려동물", 100)
-                );
-        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(50);
-    }
-
-    @Test
-    @DisplayName("룸메이트 확정 기준 양방향 점수 row를 생성하고 저장된 row로 사용자별 총점을 계산한다")
-    void createRoommateScoresCreatesBidirectionalRowsAndCalculatesCompatibilityBySavedScores() {
-        // Given
-        Member requester = member(1L);
-        Member requestee = member(2L);
-        RoommateMatchingRequired matchingRequired = RoommateMatchingRequired.builder()
-                .requester(requester)
-                .requestee(requestee)
-                .status(RoommateRequiredStatus.ACCEPTED)
-                .build();
-        MyRoommate myRoommate = MyRoommate.builder()
-                .roommateMatchingRequired(matchingRequired)
-                .isDeleted(false)
-                .build();
-
-        LifePattern cleaning = lifePattern(101L, "청결 민감도", LifePatternType.SCALE, 1);
-        LifePattern smoking = lifePattern(102L, "흡연", LifePatternType.SINGLE_CHOICE, 2);
-
-        LifePatternInformation cleaning3 = information(1001L, cleaning, "3");
-        LifePatternInformation cleaning5 = information(1002L, cleaning, "5");
-        LifePatternInformation nonSmoking = information(2001L, smoking, "NON_SMOKING");
-        LifePatternInformation smokingEveryday = information(2002L, smoking, "SMOKING");
-
-        MemberLifePatternLog requesterCleaningLog = lifePatternLog(requester, cleaning3);
-        MemberLifePatternLog requesterSmokingLog = lifePatternLog(requester, nonSmoking);
-        MemberLifePatternLog requesteeCleaningLog = lifePatternLog(requestee, cleaning5);
-        MemberLifePatternLog requesteeSmokingLog = lifePatternLog(requestee, smokingEveryday);
-        PreferenceConditionWeightLog requesterCleaningWeight = weightLog(requester, cleaning);
-
-        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(1L))
-                .thenReturn(List.of(requesterCleaningLog, requesterSmokingLog));
-        when(memberLifePatternLogRepository.findLatestLogsWithFetchByMemberId(2L))
-                .thenReturn(List.of(requesteeCleaningLog, requesteeSmokingLog));
-        when(preferenceConditionRepository.findLifeInformationIdByMemberId(1L))
-                .thenReturn(List.of());
-        when(preferenceConditionRepository.findLifeInformationIdByMemberId(2L))
-                .thenReturn(List.of());
-        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(1L))
-                .thenReturn(List.of(requesterCleaningWeight));
-        when(preferenceConditionWeightLogRepository.findLatestLogsWithFetchByMemberId(2L))
-                .thenReturn(List.of());
-        when(lifePatternInformationRepository.findAllValueRowsByLifePatternIdIn(List.of(101L, 102L)))
-                .thenReturn(List.of(
-                        new LifePatternInformationValueRow(101L, "1"),
-                        new LifePatternInformationValueRow(101L, "2"),
-                        new LifePatternInformationValueRow(101L, "3"),
-                        new LifePatternInformationValueRow(101L, "4"),
-                        new LifePatternInformationValueRow(101L, "5")
-                ));
-
-        // When
-        List<RoommateScore> scores = roommateScoreService.createRoommateScores(myRoommate);
-        Compatibility requesterCompatibility = roommateScoreService.calculateRoommateCompatibility(1L, scores);
-        Compatibility requesteeCompatibility = roommateScoreService.calculateRoommateCompatibility(2L, scores);
-
-        // Then
-        assertThat(scores).hasSize(4);
-        assertThat(scores)
-                .filteredOn(score -> score.getLifePatternInformationLog().getMember().getId().equals(1L))
-                .extracting(RoommateScore::getScore)
-                .containsExactly(50, 0);
-        assertThat(requesterCompatibility.getTotalScore()).isEqualTo(33);
-        assertThat(requesterCompatibility.getLifeStyleInfo())
-                .extracting(Compatibility.LifeStyleInfo::getName, Compatibility.LifeStyleInfo::getPercent)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("청결 민감도", 50),
-                        org.assertj.core.groups.Tuple.tuple("흡연", 0)
-                );
-        assertThat(requesteeCompatibility.getTotalScore()).isEqualTo(25);
+        assertThat(scores).hasSize(2);
+        assertThat(scores).extracting(ChattingScore::getScore).containsExactly(100, 50);
+        assertThat(scores).allSatisfy(score -> assertThat(score.getMemberLifePatternLogDegree()).isNotNull());
     }
 
     private MatchingLifestyleRow lifestyle(
@@ -433,6 +347,7 @@ class RoommateScoreServiceTest {
         return MemberLifePatternLog.builder()
                 .member(member)
                 .lifePatternInformation(information)
+                .memberLifePatternLogDegree(MemberLifePatternLogDegree.builder().degree(1L).build())
                 .build();
     }
 
@@ -440,6 +355,7 @@ class RoommateScoreServiceTest {
         return PreferenceConditionLog.builder()
                 .member(member)
                 .lifePatternInformation(information)
+                .preferenceConditionLogDegree(PreferenceConditionLogDegree.builder().degree(1L).build())
                 .build();
     }
 
@@ -447,6 +363,7 @@ class RoommateScoreServiceTest {
         return PreferenceConditionWeightLog.builder()
                 .member(member)
                 .lifePattern(lifePattern)
+                .preferenceConditionWeightLogDegree(PreferenceConditionWeightLogDegree.builder().degree(1L).build())
                 .build();
     }
 }

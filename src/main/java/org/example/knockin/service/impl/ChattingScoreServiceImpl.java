@@ -1,6 +1,7 @@
 package org.example.knockin.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.chat.ChattingScore;
 import org.example.knockin.repository.chat.ChattingScoreRepository;
@@ -16,7 +17,11 @@ public class ChattingScoreServiceImpl {
         return chattingScoreRepository.saveAll(chattingScores);
     }
 
-    public List<ChattingScore> findByChattingRequiredIdAndMemberId(Long chattingRequiredId, Long memberId) {
-        return chattingScoreRepository.findWithScoreDetailsByChattingRequiredIdAndMemberId(chattingRequiredId, memberId);
+    public Optional<ChattingScore> findByChattingRequiredIdAndMemberId(Long chattingRequiredId, Long memberId) {
+        return chattingScoreRepository.findOneByChattingRequiredIdAndMemberId(chattingRequiredId, memberId);
+    }
+
+    public List<ChattingScore> findByChattingRequiredId(Long chattingRequiredId) {
+        return chattingScoreRepository.findByChattingRequiredId(chattingRequiredId);
     }
 }

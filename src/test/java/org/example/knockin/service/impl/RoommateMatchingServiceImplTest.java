@@ -109,11 +109,13 @@ class RoommateMatchingServiceImplTest {
                 null,
                 null
         );
-        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null);
+        MemberLifePatternService memberLifePatternService = new MemberLifePatternService(memberLifePatternRepository, null, null);
         PreferenceConditionServiceImpl preferenceConditionService = new PreferenceConditionServiceImpl(
                 preferenceConditionRepository,
                 null,
+                null,
                 preferenceConditionWeightRepository,
+                null,
                 null
         );
         AuthenticationServiceImpl authenticationService = new AuthenticationServiceImpl(
@@ -145,8 +147,8 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long senderId = 1L;
         Long receiverId = 2L;
-        Member sender = Member.builder().id(senderId).build();
-        Member receiver = Member.builder().id(receiverId).build();
+        Member sender = Member.builder().id(senderId).isDelete(false).build();
+        Member receiver = Member.builder().id(receiverId).isDelete(false).build();
 
         when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
         when(memberRepository.findById(receiverId)).thenReturn(Optional.of(receiver));
@@ -172,8 +174,8 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long senderId = 1L;
         Long receiverId = 2L;
-        Member sender = Member.builder().id(senderId).build();
-        Member receiver = Member.builder().id(receiverId).build();
+        Member sender = Member.builder().id(senderId).isDelete(false).build();
+        Member receiver = Member.builder().id(receiverId).isDelete(false).build();
         MemberInterest memberInterest = MemberInterest.builder()
                 .sender(sender)
                 .receiver(receiver)
@@ -200,8 +202,8 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long senderId = 1L;
         Long receiverId = 2L;
-        Member sender = Member.builder().id(senderId).build();
-        Member receiver = Member.builder().id(receiverId).build();
+        Member sender = Member.builder().id(senderId).isDelete(false).build();
+        Member receiver = Member.builder().id(receiverId).isDelete(false).build();
         MemberInterest memberInterest = MemberInterest.builder()
                 .sender(sender)
                 .receiver(receiver)
@@ -244,7 +246,7 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long senderId = 1L;
         Long receiverId = 2L;
-        Member sender = Member.builder().id(senderId).build();
+        Member sender = Member.builder().id(senderId).isDelete(false).build();
         when(memberRepository.findById(senderId)).thenReturn(Optional.of(sender));
         when(memberRepository.findById(receiverId)).thenReturn(Optional.empty());
 
@@ -261,8 +263,8 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long reporterId = 1L;
         Long reportedId = 2L;
-        Member reporter = Member.builder().id(reporterId).build();
-        Member reported = Member.builder().id(reportedId).build();
+        Member reporter = Member.builder().id(reporterId).isDelete(false).build();
+        Member reported = Member.builder().id(reportedId).isDelete(false).build();
         MemberReportDto.Request request = new MemberReportDto.Request();
         request.setContents("불쾌한 메시지를 반복해서 보냈습니다.");
 
@@ -289,8 +291,8 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long reporterId = 1L;
         Long reportedId = 2L;
-        Member reporter = Member.builder().id(reporterId).build();
-        Member reported = Member.builder().id(reportedId).build();
+        Member reporter = Member.builder().id(reporterId).isDelete(false).build();
+        Member reported = Member.builder().id(reportedId).isDelete(false).build();
         MemberReportDto.Request request = new MemberReportDto.Request();
         request.setContents("이미 신고한 회원입니다.");
 
@@ -329,7 +331,7 @@ class RoommateMatchingServiceImplTest {
         // Given
         Long reporterId = 1L;
         Long reportedId = 2L;
-        Member reporter = Member.builder().id(reporterId).build();
+        Member reporter = Member.builder().id(reporterId).isDelete(false).build();
         MemberReportDto.Request request = new MemberReportDto.Request();
         request.setContents("신고 사유입니다.");
 
@@ -392,11 +394,11 @@ class RoommateMatchingServiceImplTest {
                 ));
         when(memberInterestRepository.findActiveReceiverIdsBySenderIdAndReceiverIds(viewerId, List.of(1L, 2L)))
                 .thenReturn(List.of(2L));
-//        when(roommateScoreService.calculateScores(any(), anyList()))
-//                .thenReturn(Map.of(
-//                        1L, new Compatibility(80, List.of()),
-//                        2L, new Compatibility(60, List.of())
-//                ));
+        when(roommateScoreService.calculateScores(any(), anyList()))
+                .thenReturn(Map.of(
+                        1L, new Compatibility(80, List.of()),
+                        2L, new Compatibility(60, List.of())
+                ));
 
         // When
         Slice<MatchListDto.Response> response = roommateMatchingService.findMatchingList(viewerId, request);

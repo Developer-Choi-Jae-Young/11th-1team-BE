@@ -3,15 +3,15 @@ package org.example.knockin.repository.life.Impl;
 import static org.example.knockin.entity.life.QLifePattern.lifePattern;
 import static org.example.knockin.entity.life.QLifePatternInformation.lifePatternInformation;
 import static org.example.knockin.entity.life.QMemberLifePatternLog.memberLifePatternLog;
+import static org.example.knockin.entity.life.QMemberLifePatternLogDegree.memberLifePatternLogDegree;
 
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.entity.life.MemberLifePatternLog;
-import org.example.knockin.entity.life.QLifePattern;
-import org.example.knockin.entity.life.QLifePatternInformation;
 import org.example.knockin.entity.life.QMemberLifePatternLog;
+import org.example.knockin.entity.life.QMemberLifePatternLogDegree;
 import org.example.knockin.repository.life.MemberLifePatternLogRepositoryCustom;
 import org.springframework.stereotype.Repository;
 
@@ -23,26 +23,23 @@ public class MemberLifePatternLogRepositoryImpl implements MemberLifePatternLogR
     @Override
     public List<MemberLifePatternLog> findLatestLogsWithFetchByMemberId(Long memberId) {
         QMemberLifePatternLog subLog = new QMemberLifePatternLog("subLog");
-        QLifePatternInformation subInfo = new QLifePatternInformation("subInfo");
-        QLifePattern subLifePattern = new QLifePattern("subLifePattern");
+        QMemberLifePatternLogDegree subDegree = new QMemberLifePatternLogDegree("subDegree");
 
         return jpaQueryFactory
                 .selectFrom(memberLifePatternLog)
+                .join(memberLifePatternLog.memberLifePatternLogDegree, memberLifePatternLogDegree).fetchJoin()
                 .join(memberLifePatternLog.lifePatternInformation, lifePatternInformation).fetchJoin()
                 .join(lifePatternInformation.lifePattern, lifePattern).fetchJoin()
                 .where(
-                        memberLifePatternLog.id.in(
+                        memberLifePatternLog.member.id.eq(memberId),
+                        memberLifePatternLogDegree.degree.eq(
                                 JPAExpressions
-                                        .select(subLog.id.max())
+                                        .select(subDegree.degree.max())
                                         .from(subLog)
-                                        .join(subLog.lifePatternInformation, subInfo)
-                                        .join(subInfo.lifePattern, subLifePattern)
-                                        .where(
-                                                subLog.member.id.eq(memberId),
-                                                subLifePattern.isDeleted.isFalse()
-                                        )
-                                        .groupBy(subLifePattern.id)
-                        )
+                                        .join(subLog.memberLifePatternLogDegree, subDegree)
+                                        .where(subLog.member.id.eq(memberId))
+                        ),
+                        lifePattern.isDeleted.isFalse()
                 )
                 .orderBy(lifePattern.sort.asc())
                 .fetch();

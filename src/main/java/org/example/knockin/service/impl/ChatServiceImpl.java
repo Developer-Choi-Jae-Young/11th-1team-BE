@@ -275,8 +275,10 @@ public class ChatServiceImpl {
     private ChatRoomDetailDto.ProfileInfo getOpponentProfileInfo(ChattingRoom chattingRoom, ChatRoomMember me, Member opponentMember) {
         ChattingRoomBasicInfoRow row = basicInformationService.findChattingRoomBasicInfoRowByMemberId(opponentMember.getId());
         Long memberId = me.getMember().getId();
-        List<ChattingScore> chattingScores = chattingScoreService.findByChattingRequiredIdAndMemberId(chattingRoom.getChattingRequired().getId(), memberId);
-        Integer score = calculateChattingScore(memberId, opponentMember.getId(), chattingScores);
+        Integer score = chattingScoreService
+                .findByChattingRequiredIdAndMemberId(chattingRoom.getChattingRequired().getId(), memberId)
+                .map(ChattingScore::getScore)
+                .orElseGet(() -> javaRoommateScoreV2Service.calculateSimpleScore(memberId, opponentMember.getId()));
 
         return ChatRoomDetailDto.ProfileInfo.builder()
                 .id(row.memberId())
@@ -286,15 +288,6 @@ public class ChatServiceImpl {
                 .memberProfileImageUrl(row.profileImageUrl())
                 .score(score)
                 .build();
-    }
-
-    private Integer calculateChattingScore(Long memberId, Long opponentMemberId, List<ChattingScore> chattingScores) {
-        if (chattingScores.isEmpty()) {
-            return javaRoommateScoreV2Service.calculateSimpleScore(memberId, opponentMemberId);
-        }
-
-        Compatibility compatibility = javaRoommateScoreV2Service.calculateChattingCompatibility(memberId, chattingScores);
-        return compatibility.getTotalScore();
     }
 
     @Transactional

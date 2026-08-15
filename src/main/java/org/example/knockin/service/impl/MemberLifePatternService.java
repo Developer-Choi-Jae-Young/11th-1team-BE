@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto.Response.Lifestyle;
 import org.example.knockin.entity.life.MemberLifePattern;
 import org.example.knockin.entity.life.MemberLifePatternLog;
+import org.example.knockin.entity.life.MemberLifePatternLogDegree;
+import org.example.knockin.entity.life.PreferenceConditionWeightLogDegree;
 import org.example.knockin.entity.member.Member;
+import org.example.knockin.repository.life.MemberLifePatternLogDegreeRepository;
 import org.example.knockin.repository.life.MemberLifePatternLogRepository;
 import org.example.knockin.repository.life.MemberLifePatternRepository;
 import org.example.knockin.repository.life.row.MatchingLifestyleRow;
@@ -18,7 +21,7 @@ import java.util.List;
 public class MemberLifePatternService {
     private final MemberLifePatternRepository memberLifePatternRepository;
     private final MemberLifePatternLogRepository memberLifePatternLogRepository;
-
+    private final MemberLifePatternLogDegreeRepository memberLifePatternLogDegreeRepository;
 
     @Transactional
     public List<MemberLifePatternLog> saveMemberLifePatternLogAll(List<MemberLifePatternLog> memberLifePatternLogList) {
@@ -33,6 +36,7 @@ public class MemberLifePatternService {
     @Transactional
     public void deleteMemberLifePatternAll(List<MemberLifePattern> memberLifePatternList) {
         memberLifePatternRepository.deleteAll(memberLifePatternList);
+        memberLifePatternRepository.flush();
     }
 
     public List<MemberLifePattern> findByMember(Member member) {
@@ -45,5 +49,14 @@ public class MemberLifePatternService {
 
     public List<Lifestyle> findLifeStyleDtoByMemberId(Long memberId) {
         return memberLifePatternRepository.getLifeStyleDto(memberId);
+    }
+
+    public Long findMaxmemberLifePatternLogDegree(Member member) {
+        return memberLifePatternLogDegreeRepository.findMaxmemberLifePatternLogDegree(member).orElse(null);
+    }
+
+    @Transactional
+    public MemberLifePatternLogDegree memberLifePatternLogDegreeSave(Long degree) {
+        return memberLifePatternLogDegreeRepository.save(MemberLifePatternLogDegree.builder().degree(degree).build());
     }
 }

@@ -1,8 +1,8 @@
 package org.example.knockin.repository.room;
 
-import java.util.List;
+import java.util.Optional;
 import org.example.knockin.entity.room.RoommateScore;
 
 public interface RoommateScoreRepositoryCustom {
-    List<RoommateScore> findWithScoreDetailsByMyRoommateIdAndMemberId(Long myRoommateId, Long memberId);
+    Optional<RoommateScore> findOneByMyRoommateIdAndMemberId(Long myRoommateId, Long memberId);
 }

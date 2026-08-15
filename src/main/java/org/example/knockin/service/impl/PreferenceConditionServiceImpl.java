@@ -3,15 +3,9 @@ package org.example.knockin.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.dto.BoardDetailDto.Response.Condition;
 import org.example.knockin.dto.BoardDetailDto.Response.ConditionWeight;
-import org.example.knockin.entity.life.PreferenceCondition;
-import org.example.knockin.entity.life.PreferenceConditionLog;
-import org.example.knockin.entity.life.PreferenceConditionWeight;
-import org.example.knockin.entity.life.PreferenceConditionWeightLog;
+import org.example.knockin.entity.life.*;
 import org.example.knockin.entity.member.Member;
-import org.example.knockin.repository.life.PreferenceConditionLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightLogRepository;
-import org.example.knockin.repository.life.PreferenceConditionWeightRepository;
+import org.example.knockin.repository.life.*;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionRow;
 import org.example.knockin.repository.life.row.MatchingPreferenceConditionWeightRow;
 import org.springframework.stereotype.Service;
@@ -24,8 +18,10 @@ import java.util.List;
 public class PreferenceConditionServiceImpl {
     private final PreferenceConditionRepository preferenceConditionRepository;
     private final PreferenceConditionLogRepository preferenceConditionLogRepository;
+    private final PreferenceConditionLogDegreeRepository preferenceConditionLogDegreeRepository;
     private final PreferenceConditionWeightRepository preferenceConditionWeightRepository;
     private final PreferenceConditionWeightLogRepository preferenceConditionWeightLogRepository;
+    private final PreferenceConditionWeightLogDegreeRepository preferenceConditionWeightLogDegreeRepository;
 
     @Transactional
     public List<PreferenceCondition> preferenceConditionSaveAll(List<PreferenceCondition> preferenceConditionList) {
@@ -83,5 +79,23 @@ public class PreferenceConditionServiceImpl {
         if (!existing.isEmpty()) {
             preferenceConditionRepository.deleteAll(existing);
         }
+    }
+
+    public Long findMaxPreferenceConditionLogDegree(Member member) {
+        return preferenceConditionLogDegreeRepository.findMaxPreferenceConditionLogDegree(member).orElse(null);
+    }
+
+    @Transactional
+    public PreferenceConditionLogDegree preferenceConditionLogDegreeSave(Long degree) {
+        return preferenceConditionLogDegreeRepository.save(PreferenceConditionLogDegree.builder().degree(degree).build());
+    }
+
+    public Long findMaxPreferenceConditionWeightLogDegree(Member member) {
+        return preferenceConditionWeightLogDegreeRepository.findMaxPreferenceConditionWeightLogDegree(member).orElse(null);
+    }
+
+    @Transactional
+    public PreferenceConditionWeightLogDegree preferenceConditionWeightLogDegreeSave(Long degree) {
+        return preferenceConditionWeightLogDegreeRepository.save(PreferenceConditionWeightLogDegree.builder().degree(degree).build());
     }
 }
