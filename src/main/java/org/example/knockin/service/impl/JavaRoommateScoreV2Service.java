@@ -54,8 +54,7 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
         List<LifePatternInformation> myPreferenceList = preferenceConditionRepository.findByMember(me).stream().map(PreferenceCondition::getLifePatternInformation).filter(Objects::nonNull).toList();
         List<LifePatternInformation> myDefaultList = memberLifePatternRepository.findByMember(me).stream().map(MemberLifePattern::getLifePatternInformation).filter(Objects::nonNull).toList();
         List<LifePatternInformation> myFinalLifePatternInformationList = Stream.concat(myPreferenceList.stream(), myDefaultList.stream()).filter(item -> item != null && item.getLifePattern() != null && item.getLifePattern().getId() != null)
-                .collect(Collectors.toMap(item -> item.getLifePattern().getId(), item -> item, (preferenceVal, defaultVal) -> preferenceVal))
-                .values().stream().toList();
+                .collect(Collectors.toMap(item -> item.getLifePattern().getId(), item -> item, (preferenceVal, defaultVal) -> preferenceVal)).values().stream().toList();
         List<PreferenceConditionWeight> preferenceConditionWeightList = preferenceConditionWeightRepository.findAllByMember(me);
 
         List<Member> targetList = memberServiceImpl.findAllById(targetMemberIds);
@@ -91,16 +90,34 @@ public class JavaRoommateScoreV2Service extends RoommateScoreService {
 
     @Override
     public List<ChattingScore> createChattingScores(ChattingRequired chattingRequired) {
-        List<ChattingScore> chattingScoreList = new ArrayList<>();
         Long requesterId = chattingRequired.getRequester().getId();
         Long requesteeId = chattingRequired.getRequestee().getId();
 
-        return chattingScoreList;
+        ChattingScore requesterChattingScore = createChattingScore(requesterId, requesteeId, chattingRequired);
+        ChattingScore requesteeChattingScore = createChattingScore(requesteeId, requesterId, chattingRequired);
+
+        return List.of(requesterChattingScore, requesteeChattingScore);
+    }
+
+    private ChattingScore createChattingScore(Long requesterId, Long requesteeId, ChattingRequired chattingRequired) {
+        int score = calculateScore(requesterId, requesteeId).getTotalScore();
+        return ChattingScore.builder().chattingRequired(chattingRequired).score(score).build();
     }
 
     @Override
     public List<RoommateScore> createRoommateScores(MyRoommate myRoommate) {
-        return null;
+        Long requesterId = myRoommate.getRoommateMatchingRequired().getRequester().getId();
+        Long requesteeId = myRoommate.getRoommateMatchingRequired().getRequestee().getId();
+
+        RoommateScore requesterRoomScore = createRoommateScore(requesterId, requesteeId, myRoommate);
+        RoommateScore requesteeRoomScore = createRoommateScore(requesteeId, requesterId, myRoommate);
+
+        return List.of(requesterRoomScore, requesteeRoomScore);
+    }
+
+    private RoommateScore createRoommateScore(Long requesterId, Long requesteeId, MyRoommate myRoommate) {
+        int score = calculateScore(requesterId, requesteeId).getTotalScore();
+        return RoommateScore.builder().myRoommate(myRoommate).score(score).build();
     }
 
     @Override
