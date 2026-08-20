@@ -40,7 +40,6 @@ public class SaveProfileAllDto {
         @NotNull
         private Gender gender;
         @Schema(description = "이메일")
-        @NotBlank
         @Email
         @Size(max = 50)
         private String email;

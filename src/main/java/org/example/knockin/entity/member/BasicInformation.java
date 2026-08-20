@@ -47,7 +47,7 @@ public class BasicInformation extends BaseEntity {
     @Column(name = "gender", nullable = false, length = 20)
     private Gender gender;
 
-    @Column(name = "email", nullable = false, length = 50)
+    @Column(name = "email", length = 50)
     private String email;
 
     public void modifyBasicInformation(ModifyProfileBasicDto.Request request) {

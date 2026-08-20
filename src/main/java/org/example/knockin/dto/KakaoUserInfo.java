@@ -55,4 +55,9 @@ public class KakaoUserInfo implements OAuth2UserInfo {
     public LoginProviderType getProviderType() {
         return LoginProviderType.KAKAO;
     }
+
+    @Override
+    public String getEmail() {
+        return kakaoAccount.getEmail();
+    }
 }
