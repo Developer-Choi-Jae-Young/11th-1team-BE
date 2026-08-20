@@ -11,7 +11,7 @@ import org.example.knockin.dto.OAuth2SdkRequest;
 @AllArgsConstructor
 public enum OAuth2SdkProvider {
     KAKAO("kakao", KakaoSdkRequest.class),
-    APPLE("apple",AppleSdkRequest .class);
+    APPLE("apple",AppleSdkRequest.class);
 
     private final String registrationId;
     private final Class<? extends OAuth2SdkRequest> dtoClass;

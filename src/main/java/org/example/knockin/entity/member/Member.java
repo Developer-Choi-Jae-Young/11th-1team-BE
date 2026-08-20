@@ -78,6 +78,9 @@ public class Member extends CreatedAtEntity {
     @Column(name = "fcm_token", length = 512, comment = "Firebase Messaging이 생성한 실제 토큰")
     private String fcmToken;
 
+    @Column(name = "email", length = 512, comment = "SSO 이메일")
+    private String email;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "platform", length = 50, comment = "디바이스 플랫폼")
     private DevicePlatform platform;

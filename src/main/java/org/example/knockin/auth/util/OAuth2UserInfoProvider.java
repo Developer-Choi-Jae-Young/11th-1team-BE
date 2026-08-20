@@ -3,9 +3,7 @@ package org.example.knockin.auth.util;
 import java.util.Arrays;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.example.knockin.dto.AppleUserInfo;
-import org.example.knockin.dto.KakaoUserInfo;
-import org.example.knockin.dto.OAuth2UserInfo;
+import org.example.knockin.dto.*;
 
 @Getter
 @AllArgsConstructor

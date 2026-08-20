@@ -61,6 +61,7 @@ public class MemberServiceImpl {
                     Member newMember = Member.builder()
                             .providerType(oAuth2UserInfo.getProviderType())
                             .providerId(String.valueOf(oAuth2UserInfo.getId()))
+                            .email(oAuth2UserInfo.getEmail())
                             .role(MemberRole.USER)
                             .isDelete(false)
                             .build();

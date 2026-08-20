@@ -22,4 +22,9 @@ public class AppleUserInfo implements OAuth2UserInfo {
     public LoginProviderType getProviderType() {
         return LoginProviderType.APPLE;
     }
+
+    @Override
+    public String getEmail() {
+        return email;
+    }
 }
