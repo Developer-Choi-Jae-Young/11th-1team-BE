@@ -37,7 +37,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 idToken = userRequest.getAccessToken().getTokenValue();
             }
 
-            oAuth2UserAttributes = decodeJwtPayload(idToken);
+            oAuth2UserAttributes = new java.util.HashMap<>(decodeJwtPayload(idToken));
+
+            Map<String, Object> additionalParams = userRequest.getAdditionalParameters();
+            if (additionalParams != null) {
+                String sdkName = (String) additionalParams.get("name");
+                if (sdkName != null && !sdkName.isBlank()) {
+                    oAuth2UserAttributes.put("name", sdkName);
+                }
+            }
         } else {
             oAuth2UserAttributes = super.loadUser(userRequest).getAttributes();
         }
