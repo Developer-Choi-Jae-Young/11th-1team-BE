@@ -5,11 +5,13 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Aspect
 @Component
+@ConditionalOnProperty(name = "app.performance.logging.enabled", havingValue = "true")
 public class MethodExecuteAspect {
 
     @Around("execution(public * org.example.knockin..service..*(..))")
