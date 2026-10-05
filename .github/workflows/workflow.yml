@@ -52,10 +52,11 @@ jobs:
           files: build/reports/jacoco/test/jacocoTestReport.xml
           fail_ci_if_error: true
 
-      # 이미 위에서 테스트했으므로 여기서는 test 제외
+      # 테스트는 위에서 완료했으므로 제외
       - name: Build with Gradle
         run: ./gradlew build -x test
 
+      # JAR EC2 전송
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -66,36 +67,182 @@ jobs:
           target: "/home/ubuntu/app/11th-1team-BE"
           strip_components: 2
 
-      - name: Execute deploy script directly via SSH
+      # Spring Boot 배포 + Alloy 설치/설정
+      - name: Deploy Spring Boot and Configure Alloy
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          LOKI_URL: ${{ secrets.LOKI_URL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: LOKI_URL
           script: |
-            REPOSITORY=/home/ubuntu/app/11th-1team-BE
-            cd $REPOSITORY
+            set -e
 
-            CURRENT_PID=$(ps -ef | grep java | grep "11th-1team-BE" | grep -v grep | awk '{print $2}')
+            REPOSITORY=/home/ubuntu/app/11th-1team-BE
+            cd "$REPOSITORY"
+
+            echo "================================="
+            echo "> Spring Boot 배포 시작"
+            echo "================================="
+
+            CURRENT_PID=$(ps -ef \
+              | grep java \
+              | grep "11th-1team-BE" \
+              | grep -v grep \
+              | awk '{print $2}' || true)
 
             if [ -z "$CURRENT_PID" ]; then
-              echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
+              echo "> 현재 구동중인 애플리케이션이 없습니다."
             else
-              echo "> kill -15 $CURRENT_PID"
-              sudo kill -15 $CURRENT_PID || true
-              sleep 10
+              echo "> 기존 애플리케이션 종료 PID: $CURRENT_PID"
+              sudo kill -15 "$CURRENT_PID" || true
+
+              # 최대 30초 동안 정상 종료 대기
+              for i in {1..30}; do
+                if ! ps -p "$CURRENT_PID" > /dev/null 2>&1; then
+                  echo "> 기존 애플리케이션 정상 종료"
+                  break
+                fi
+
+                sleep 1
+              done
             fi
 
-            JAR_NAME=$(ls -t *.jar | grep 'SNAPSHOT.jar' | head -n 1)
-            JAR_PATH="${REPOSITORY}/${JAR_NAME}"
+            JAR_NAME=$(ls -t *.jar 2>/dev/null \
+              | grep 'SNAPSHOT.jar' \
+              | head -n 1 || true)
 
-            if [ -z "${JAR_NAME}" ]; then
+            if [ -z "$JAR_NAME" ]; then
               echo "> 에러: 배포할 JAR 파일을 찾을 수 없습니다."
               exit 1
             fi
 
+            JAR_PATH="${REPOSITORY}/${JAR_NAME}"
+
             echo "> 새 애플리케이션 배포: ${JAR_PATH}"
-            sudo nohup java \
+
+            nohup java \
               -Dspring.profiles.active=prod \
               -jar "${JAR_PATH}" \
               > "${REPOSITORY}/nohup.out" 2>&1 < /dev/null &
+
+            NEW_PID=$!
+
+            echo "> 새 Spring Boot PID: ${NEW_PID}"
+
+
+            echo "================================="
+            echo "> Alloy 설치 확인"
+            echo "================================="
+
+            if ! command -v alloy > /dev/null 2>&1; then
+
+              echo "> Alloy가 설치되어 있지 않습니다. 설치를 시작합니다."
+
+              sudo apt-get update
+              sudo apt-get install -y wget gpg
+
+              sudo mkdir -p /etc/apt/keyrings
+
+              wget -q -O /tmp/grafana.key \
+                https://apt.grafana.com/gpg-full.key
+
+              gpg --dearmor < /tmp/grafana.key \
+                | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+
+              rm -f /tmp/grafana.key
+
+              echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" \
+                | sudo tee /etc/apt/sources.list.d/grafana.list > /dev/null
+
+              sudo apt-get update
+              sudo apt-get install -y alloy
+
+              echo "> Alloy 설치 완료"
+
+            else
+              echo "> Alloy가 이미 설치되어 있습니다."
+            fi
+
+
+            echo "================================="
+            echo "> Alloy 설정 생성"
+            echo "================================="
+
+            sudo mkdir -p /etc/alloy
+
+            sudo tee /etc/alloy/config.alloy > /dev/null <<EOF
+            loki.source.file "knockin_backend" {
+              targets = [
+                {
+                  __path__ = "${REPOSITORY}/nohup.out",
+                  job      = "knockin",
+                  app      = "knockin-backend",
+                  env      = "prod",
+                  server   = "was-ec2",
+                },
+              ]
+
+              forward_to = [
+                loki.write.monitoring.receiver,
+              ]
+            }
+
+            loki.write "monitoring" {
+              endpoint {
+                url = "${LOKI_URL}/loki/api/v1/push"
+              }
+            }
+            EOF
+
+
+            echo "================================="
+            echo "> Alloy 로그 접근 권한 설정"
+            echo "================================="
+
+            sudo chmod 755 /home/ubuntu
+            sudo chmod 755 /home/ubuntu/app
+            sudo chmod 755 "$REPOSITORY"
+
+            touch "$REPOSITORY/nohup.out"
+            chmod 644 "$REPOSITORY/nohup.out"
+
+
+            echo "================================="
+            echo "> Alloy 실행"
+            echo "================================="
+
+            sudo systemctl enable alloy
+            sudo systemctl restart alloy
+
+            sleep 3
+
+            if sudo systemctl is-active --quiet alloy; then
+              echo "> Alloy 정상 실행 중"
+            else
+              echo "> Alloy 실행 실패"
+              sudo systemctl status alloy --no-pager
+              exit 1
+            fi
+
+
+            echo "================================="
+            echo "> Spring Boot 실행 확인"
+            echo "================================="
+
+            sleep 5
+
+            if ps -p "$NEW_PID" > /dev/null 2>&1; then
+              echo "> Spring Boot 정상 실행 중"
+              echo "> PID: $NEW_PID"
+            else
+              echo "> Spring Boot 실행 실패"
+              tail -n 100 "$REPOSITORY/nohup.out"
+              exit 1
+            fi
+
+            echo "================================="
+            echo "> 배포 완료"
+            echo "================================="
