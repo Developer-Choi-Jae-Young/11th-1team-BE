@@ -454,17 +454,27 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
             return null;
         }
 
-        return JPAExpressions
+        BooleanExpression requesterBlock = JPAExpressions
                 .selectOne()
                 .from(block)
                 .where(
                         block.isDeleted.isFalse(),
-                        block.blocker.id.eq(requesterId)
-                                .and(block.blocked.id.eq(member.id))
-                                .or(block.blocker.id.eq(member.id)
-                                        .and(block.blocked.id.eq(requesterId)))
+                        block.blocker.id.eq(requesterId),
+                        block.blocked.id.eq(member.id)
                 )
                 .notExists();
+
+        BooleanExpression requesterBlocked = JPAExpressions
+                .selectOne()
+                .from(block)
+                .where(
+                        block.isDeleted.isFalse(),
+                        block.blocked.id.eq(requesterId),
+                        block.blocker.id.eq(member.id)
+                )
+                .notExists();
+
+        return requesterBlocked.and(requesterBlock);
     }
 
     private BooleanExpression searchName(String name) {
