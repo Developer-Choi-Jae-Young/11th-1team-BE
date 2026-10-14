@@ -60,7 +60,7 @@ import org.example.knockin.member.entity.Gender;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.meta.entity.Region;
-import org.example.knockin.meta.service.impl.SearchServiceImpl;
+import org.example.knockin.meta.event.SearchKeywordSearchedEvent;
 import org.example.knockin.room.entity.RoomExtraOption;
 import org.example.knockin.room.entity.RoomType;
 import org.example.knockin.global.exception.BusinessException;
@@ -101,6 +101,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -159,7 +160,7 @@ class RoommateBoardServiceImplTest {
     private RoommateBoardPolicy roommateBoardPolicy;
 
     @Mock
-    private SearchServiceImpl searchServiceImpl;
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private AlarmServiceImpl alarmService;
@@ -189,7 +190,7 @@ class RoommateBoardServiceImplTest {
                 roommateBoardRepository, memberService, metaService, roommateScoreService,
                 roommateBoardFileService, preferenceConditionService, memberLifePatternService,
                 authenticationService, roommateBoardOptionService, roommateBoardInterestService,
-                roommateBoardPolicy, searchServiceImpl, alarmService, pushNotificationService, declarationService);
+                roommateBoardPolicy, eventPublisher, alarmService, pushNotificationService, declarationService);
     }
 
     @Captor
@@ -830,15 +831,13 @@ class RoommateBoardServiceImplTest {
     }
 
     @Test
-    @DisplayName("로그인 사용자의 키워드는 검색 결과가 없어도 저장한다")
-    void getBoardListSavesKeywordForAuthenticatedRequesterEvenWhenResultIsEmpty() {
+    @DisplayName("로그인 사용자의 키워드는 검색 결과가 없어도 이벤트로 전달하며 회원을 조회하지 않는다")
+    void getBoardListPublishesKeywordForAuthenticatedRequesterEvenWhenResultIsEmpty() {
         // Given
         Long requesterId = 42L;
-        Member member = org.mockito.Mockito.mock(Member.class);
         BoardListDto.Request request = new BoardListDto.Request();
         request.setKeyword("  원룸  ");
         Pageable pageable = PageRequest.of(0, 20);
-        when(memberService.findByIdOrThrow(requesterId)).thenReturn(member);
         when(roommateBoardRepository.search(eq(request), eq(pageable), any(LocalDateTime.class), eq(requesterId)))
                 .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
@@ -846,8 +845,8 @@ class RoommateBoardServiceImplTest {
         roommateBoardService.getBoardList(request, pageable, requesterId);
 
         // Then
-        verify(memberService).findByIdOrThrow(requesterId);
-        verify(searchServiceImpl).save(member, "  원룸  ");
+        verify(eventPublisher).publishEvent(new SearchKeywordSearchedEvent(requesterId, "원룸"));
+        verifyNoInteractions(memberService);
     }
 
     @Test
@@ -864,7 +863,7 @@ class RoommateBoardServiceImplTest {
         roommateBoardService.getBoardList(request, pageable, null);
 
         // Then
-        verifyNoInteractions(memberService, searchServiceImpl);
+        verifyNoInteractions(memberService, eventPublisher);
     }
 
     @Test
@@ -884,7 +883,7 @@ class RoommateBoardServiceImplTest {
         roommateBoardService.getBoardList(request, pageable, requesterId);
 
         // Then
-        verifyNoInteractions(memberService, searchServiceImpl);
+        verifyNoInteractions(memberService, eventPublisher);
     }
 
     @ParameterizedTest

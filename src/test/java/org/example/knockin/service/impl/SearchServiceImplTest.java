@@ -2,6 +2,7 @@ package org.example.knockin.service.impl;
  
 import org.example.knockin.meta.dto.PopularSearchDto;
 import org.example.knockin.member.entity.Member;
+import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.meta.entity.Search;
 import org.example.knockin.meta.repository.SearchRepository;
 import org.example.knockin.meta.service.impl.SearchServiceImpl;
@@ -26,6 +27,9 @@ class SearchServiceImplTest {
  
     @Mock
     private SearchRepository searchRepository;
+
+    @Mock
+    private MemberRepository memberRepository;
  
     @InjectMocks
     private SearchServiceImpl searchService;
@@ -48,11 +52,12 @@ class SearchServiceImplTest {
     void saveSearchKeywordTest() {
         // Given
         Member member = mock(Member.class);
+        given(memberRepository.getReferenceById(42L)).willReturn(member);
         given(searchRepository.save(any(Search.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        Search result = searchService.save(member, "  원룸  ");
+        Search result = searchService.save(42L, "  원룸  ");
 
         // Then
         ArgumentCaptor<Search> searchCaptor = ArgumentCaptor.forClass(Search.class);
