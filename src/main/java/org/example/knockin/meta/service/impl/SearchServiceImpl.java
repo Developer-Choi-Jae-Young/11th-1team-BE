@@ -7,7 +7,6 @@ import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.meta.entity.Search;
 import org.example.knockin.meta.repository.SearchRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
