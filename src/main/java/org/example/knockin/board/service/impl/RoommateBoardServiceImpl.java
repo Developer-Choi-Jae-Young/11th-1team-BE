@@ -74,7 +74,7 @@ import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
-import org.example.knockin.meta.event.SearchKeywordSearchedEvent;
+import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -184,7 +184,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     @Transactional(readOnly = true)
     public Slice<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
         validateLikedOnlyRequest(request.getLikedOnly(), requesterId);
-        publishSearchKeywordEvent(requesterId, request.getKeyword());
+        publishBoardKeywordSearchedEvent(requesterId, request.getKeyword());
 
         LocalDateTime endDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
@@ -246,9 +246,9 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         return Set.copyOf(roommateBoardInterestService.findActiveBoardIdsByMemberIdAndBoardIds(requesterId, boardIds));
     }
 
-    private void publishSearchKeywordEvent(@Nullable Long requesterId, @Nullable String keyword) {
+    private void publishBoardKeywordSearchedEvent(@Nullable Long requesterId, @Nullable String keyword) {
         if (requesterId == null || keyword == null || keyword.isBlank()) return;
-        eventPublisher.publishEvent(new SearchKeywordSearchedEvent(requesterId, keyword));
+        eventPublisher.publishEvent(new BoardKeywordSearchedEvent(requesterId, keyword));
     }
 
     private List<RoommateBoardBadgeType> getBadges(long activeInterestCount) {

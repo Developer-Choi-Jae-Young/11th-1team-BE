@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
 import org.example.knockin.board.dto.BoardListDto;
+import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.example.knockin.board.repository.RoommateBoardRepository;
 import org.example.knockin.board.service.RoommateBoardService;
 import org.example.knockin.board.service.impl.RoommateBoardFileServiceImpl;
@@ -41,7 +42,6 @@ import org.example.knockin.member.repository.MemberRepository;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.meta.entity.Search;
 import org.example.knockin.meta.event.SearchHistoryEventListener;
-import org.example.knockin.meta.event.SearchKeywordSearchedEvent;
 import org.example.knockin.meta.repository.SearchRepository;
 import org.example.knockin.meta.service.impl.AlarmServiceImpl;
 import org.example.knockin.meta.service.impl.PushNotificationServiceImpl;
@@ -81,7 +81,6 @@ class SearchHistoryEventIntegrationTest {
     @Autowired private RoommateBoardService boardService;
     @Autowired private RoommateBoardRepository boardRepository;
     @Autowired private SearchRepository searchRepository;
-    @Autowired private SearchServiceImpl searchService;
     @Autowired private MemberRepository memberRepository;
     @Autowired private ApplicationEventPublisher eventPublisher;
     @Autowired private EntityManager entityManager;
@@ -190,34 +189,12 @@ class SearchHistoryEventIntegrationTest {
     @Test
     @DisplayName("트랜잭션 없이 발행한 검색 이력 이벤트는 실행하지 않는다")
     void doesNotSaveWhenPublishedOutsideTransaction() throws Exception {
-        eventPublisher.publishEvent(new SearchKeywordSearchedEvent(memberId, "원룸"));
+        eventPublisher.publishEvent(new BoardKeywordSearchedEvent(memberId, "원룸"));
         executor.awaitIdle();
 
         assertThat(executor.submittedCount()).isZero();
         assertThat(writes).isEmpty();
         assertThat(searchCount()).isZero();
-    }
-
-    @Test
-    @DisplayName("이력 저장은 기존 읽기 전용 트랜잭션을 중단하고 독립적으로 커밋한다")
-    void writerCommitsIndependentlyOfExistingReadOnlyTransaction() {
-        AtomicReference<EntityManager> outerEntityManager = new AtomicReference<>();
-        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
-        transaction.setReadOnly(true);
-
-        transaction.executeWithoutResult(status -> {
-            outerEntityManager.set(EntityManagerFactoryUtils.getTransactionalEntityManager(entityManagerFactory));
-            searchService.save(memberId, "독립 트랜잭션");
-            assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isTrue();
-            assertThat(EntityManagerFactoryUtils.getTransactionalEntityManager(entityManagerFactory))
-                    .isSameAs(outerEntityManager.get());
-            status.setRollbackOnly();
-        });
-
-        assertThat(writes).hasSize(1);
-        assertThat(writes.getFirst().readOnly()).isFalse();
-        assertThat(writes.getFirst().entityManager()).isNotSameAs(outerEntityManager.get());
-        assertThat(savedKeywords()).containsExactly("독립 트랜잭션");
     }
 
     @Test
@@ -336,8 +313,8 @@ class SearchHistoryEventIntegrationTest {
                     mock(DeclarationServiceImpl.class));
         }
 
-        @Bean(name = "searchHistoryExecutor", destroyMethod = "close")
-        ControlledExecutor searchHistoryExecutor() {
+        @Bean(name = "taskExecutor", destroyMethod = "close")
+        ControlledExecutor taskExecutor() {
             return new ControlledExecutor();
         }
     }

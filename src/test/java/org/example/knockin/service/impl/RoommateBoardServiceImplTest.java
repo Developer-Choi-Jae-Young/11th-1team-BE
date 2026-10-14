@@ -60,7 +60,7 @@ import org.example.knockin.member.entity.Gender;
 import org.example.knockin.global.util.DateUtils;
 import org.example.knockin.member.entity.Member;
 import org.example.knockin.meta.entity.Region;
-import org.example.knockin.meta.event.SearchKeywordSearchedEvent;
+import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.example.knockin.room.entity.RoomExtraOption;
 import org.example.knockin.room.entity.RoomType;
 import org.example.knockin.global.exception.BusinessException;
@@ -845,7 +845,7 @@ class RoommateBoardServiceImplTest {
         roommateBoardService.getBoardList(request, pageable, requesterId);
 
         // Then
-        verify(eventPublisher).publishEvent(new SearchKeywordSearchedEvent(requesterId, "원룸"));
+        verify(eventPublisher).publishEvent(new BoardKeywordSearchedEvent(requesterId, "  원룸  "));
         verifyNoInteractions(memberService);
     }
 

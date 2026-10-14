@@ -2,6 +2,7 @@ package org.example.knockin.meta.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.example.knockin.meta.service.impl.SearchServiceImpl;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -16,7 +17,7 @@ public class SearchHistoryEventListener {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onSearchKeywordSearched(SearchKeywordSearchedEvent event) {
+    public void onBoardKeywordSearched(BoardKeywordSearchedEvent event) {
         try {
             searchService.save(event.memberId(), event.keyword());
         } catch (RuntimeException exception) {
