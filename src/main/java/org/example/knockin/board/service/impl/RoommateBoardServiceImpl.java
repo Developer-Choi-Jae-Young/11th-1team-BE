@@ -74,8 +74,9 @@ import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.declaration.service.impl.DeclarationServiceImpl;
 import org.example.knockin.mate.service.impl.MetaServiceImpl;
 import org.example.knockin.life.service.impl.PreferenceConditionServiceImpl;
-import org.example.knockin.meta.service.impl.SearchServiceImpl;
+import org.example.knockin.board.event.BoardKeywordSearchedEvent;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -100,7 +101,7 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     private final RoommateBoardOptionServiceImpl roommateBoardOptionService;
     private final RoommateBoardInterestServiceImpl roommateBoardInterestService;
     private final RoommateBoardPolicy roommateBoardPolicy;
-    private final SearchServiceImpl searchServiceImpl;
+    private final ApplicationEventPublisher eventPublisher;
     private final AlarmServiceImpl alarmService;
     private final PushNotificationServiceImpl pushNotificationService;
     private final DeclarationServiceImpl declarationService;
@@ -180,10 +181,10 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Slice<BoardListDto.Response> getBoardList(BoardListDto.Request request, Pageable pageable, @Nullable Long requesterId) {
         validateLikedOnlyRequest(request.getLikedOnly(), requesterId);
-        saveSearchKeyword(requesterId, request.getKeyword());
+        publishBoardKeywordSearchedEvent(requesterId, request.getKeyword());
 
         LocalDateTime endDate = LocalDateTime.now()
                 .minusDays(roommateBoardPolicy.getComeableDateVisibleGraceDays());
@@ -245,11 +246,9 @@ public class RoommateBoardServiceImpl implements RoommateBoardService {
         return Set.copyOf(roommateBoardInterestService.findActiveBoardIdsByMemberIdAndBoardIds(requesterId, boardIds));
     }
 
-    private void saveSearchKeyword(@Nullable Long requesterId, @Nullable String keyword) {
+    private void publishBoardKeywordSearchedEvent(@Nullable Long requesterId, @Nullable String keyword) {
         if (requesterId == null || keyword == null || keyword.isBlank()) return;
-
-        Member member = memberService.findByIdOrThrow(requesterId);
-        searchServiceImpl.save(member, keyword);
+        eventPublisher.publishEvent(new BoardKeywordSearchedEvent(requesterId, keyword));
     }
 
     private List<RoommateBoardBadgeType> getBadges(long activeInterestCount) {
