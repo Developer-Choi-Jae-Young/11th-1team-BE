@@ -3,6 +3,8 @@ package org.example.knockin.board.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.board.repository.row.BasicInfoRow;
 import org.example.knockin.board.repository.row.BoardBaseRow;
 import org.example.knockin.board.repository.row.EditFormRow;
@@ -23,4 +25,6 @@ public interface RoommateBoardRepositoryCustom {
     Optional<EditFormRow> getEditRow(Long boardId);
     List<BoBoardListDto.Response.BoardInfo> findBackOfficeBoardList(Pageable pageable, BoBoardListDto.Request request);
     BoBoardDetailDto.Response findBackOffcieBoard(Long id);
+    int increaseHitsById(Long boardId);
+    Optional<RoommateBoard> findByIdForUpdate(Long boardId);
 }
