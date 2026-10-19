@@ -44,6 +44,7 @@ import org.example.knockin.room.entity.RoomSeekerProfile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -109,15 +110,10 @@ public class MemberServiceImpl {
         return DeleteUserDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
-    @Transactional
-    public void hardDeleteMember() {
-        LocalDateTime thresholdDate = LocalDateTime.now().minusDays(5);
-
-        List<Member> memberList = memberRepository.findMemberByDelete();
-        List<Member> membersToDelete = memberList.stream().filter(item -> item.getDeletedAt() != null && item.getDeletedAt().isBefore(thresholdDate)).toList();
-
-        if (!membersToDelete.isEmpty()) {
-            memberRepository.deleteAll(membersToDelete);
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void hardDeleteMember(List<Long> memberIds, LocalDateTime thresholdDate) {
+        if (!memberIds.isEmpty()) {
+            memberRepository.deleteMembersByDelete(memberIds, thresholdDate);
         }
     }
 

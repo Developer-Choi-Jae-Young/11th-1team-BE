@@ -28,6 +28,7 @@ public class RoommateCalendarMember {
     @MapsId("roommateCalendarId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "my_roommate_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RoommateCalendar roommateCalendar;
 
     @MapsId("memberId")

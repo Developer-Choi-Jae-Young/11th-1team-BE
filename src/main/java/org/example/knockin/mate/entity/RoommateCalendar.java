@@ -36,6 +36,7 @@ public class RoommateCalendar extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "my_roommate_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private MyRoommate myRoommate;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -20,6 +20,9 @@ public class FirebaseConfig {
 
     @Bean
     public FirebaseApp firebaseApp() {
+        if (!FirebaseApp.getApps().isEmpty()) {
+            return FirebaseApp.getInstance();
+        }
         try {
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(

@@ -18,6 +18,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "roommate_matching_required_alarm")
 @DiscriminatorValue(AlarmType.Values.ROOM_MATCHING)
+@OnDelete(action = OnDeleteAction.CASCADE)
 public class RoommateMatchingRequiredAlarm extends Alarm{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_matching_required_id", nullable = false)
