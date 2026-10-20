@@ -17,5 +17,7 @@ public interface FileService {
 
     void deleteAll(List<File> files);
 
-    PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request);
+    File savePresigned(String fileKey, String originalFilename, Long memberId, FileType type);
+
+    PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId);
 }

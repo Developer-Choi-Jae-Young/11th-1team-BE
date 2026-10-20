@@ -1,6 +1,8 @@
 package org.example.knockin.meta.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +18,9 @@ public class PresignedUrlDto {
     @NoArgsConstructor
     public static class Request {
         @Schema(description = "업로드할 파일 정보 목록")
+        @Valid
+        @NotEmpty
+        @Size(max = 10)
         private List<FileInfo> fileInfoList;
 
         @Data
@@ -24,8 +29,12 @@ public class PresignedUrlDto {
         @NoArgsConstructor
         public static class FileInfo {
             @Schema(description = "원본 파일명")
+            @NotBlank
+            @Size(max = 500)
             private String originalFilename;
             @Schema(description = "파일의 MIME 타입")
+            @NotBlank
+            @Pattern(regexp = "image/(jpeg|png|webp|gif)")
             private String contentType;
         }
     }

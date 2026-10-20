@@ -5,12 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.knockin.board.dto.BoardDetailDto;
-import org.example.knockin.board.dto.BoardDto;
+import org.example.knockin.board.dto.*;
 import org.example.knockin.board.dto.BoardDto.Response;
-import org.example.knockin.board.dto.BoardEditDto;
-import org.example.knockin.board.dto.BoardListDto;
-import org.example.knockin.board.dto.BoardModifyDto;
 import org.example.knockin.util.dto.MatchDetailDto;
 import org.example.knockin.util.dto.MatchDto;
 import org.example.knockin.util.dto.MatchListDto;
@@ -106,6 +102,15 @@ public class RoomMateController {
         Long memberId = details.getMember().getId();
         Response response = roommateBoardService.save(request, memberId, files);
         return CommonResponse.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping(value = "/boards/presigned", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "게시글 저장 (R2 직접 업로드)", description = "R2 PUT 완료 후 fileKey와 게시글 정보를 전달합니다.")
+    public CommonResponse<BoardPreSignedDto.Response> saveBoardPreSigned(
+            @Valid @RequestBody BoardPreSignedDto.Request request,
+            @AuthenticationPrincipal PrincipalDetails details) {
+        Long memberId = details.getMember().getId();
+        return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.saveBoardPreSigned(request, memberId));
     }
 
     @PutMapping(value = "/boards/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

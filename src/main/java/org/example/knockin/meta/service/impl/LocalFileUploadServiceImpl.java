@@ -61,7 +61,11 @@ public class LocalFileUploadServiceImpl implements FileUploadService {
     }
 
     @Override
-    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request) {
-        return PresignedUrlDto.Response.builder().build();
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId) {
+        throw new BusinessException(FileErrorCode.FILE_UPLOAD_UNAVAILABLE);
+    }
+    @Override
+    public String getUploadedImageUrl(String fileKey, Long memberId) {
+        throw new BusinessException(FileErrorCode.FILE_UPLOAD_UNAVAILABLE);
     }
 }

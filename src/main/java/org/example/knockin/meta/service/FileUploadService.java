@@ -11,5 +11,7 @@ public interface FileUploadService {
 
     void deleteImage(String savedFileName) throws IOException;
 
-    PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request);
+    String getUploadedImageUrl(String fileKey, Long memberId);
+
+    PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId);
 }

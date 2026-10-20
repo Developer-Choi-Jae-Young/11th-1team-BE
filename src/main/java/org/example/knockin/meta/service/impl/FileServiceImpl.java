@@ -60,8 +60,18 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional
-    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request) {
-        return fileUploadService.presignedUploadUrl(request);
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId) {
+        return fileUploadService.presignedUploadUrl(request, memberId);
+    }
+
+    @Override
+    public File savePresigned(String fileKey, String originalFilename, Long memberId, FileType type) {
+        if (originalFilename == null || originalFilename.isBlank() || originalFilename.length() > 500) {
+            throw new BusinessException(FileErrorCode.FILE_UPLOAD_INVALID);
+        }
+        String fileUrl = fileUploadService.getUploadedImageUrl(fileKey, memberId);
+        return fileRepository.save(File.builder().type(type).originalFileName(originalFilename)
+                .savedFileName(fileUrl).fileExt(fileKey.substring(fileKey.lastIndexOf('.') + 1)).build());
     }
 
     private String getExtension(MultipartFile multipartFile) {

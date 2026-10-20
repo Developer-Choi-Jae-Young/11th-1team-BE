@@ -1,5 +1,8 @@
 package org.example.knockin.meta.controller;
 
+import jakarta.validation.Valid;
+import org.example.knockin.global.auth.dto.PrincipalDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -114,8 +117,9 @@ public class UtilsController {
 
     @PostMapping("/presigned-url")
     @Operation(summary = "R2 PreSigned Url 호출")
-    public CommonResponse<PresignedUrlDto.Response> presignedUploadUrl(@RequestBody PresignedUrlDto.Request request) {
-        return CommonResponse.status(HttpStatus.OK).body(metaService.presignedUploadUrl(request));
+    public CommonResponse<PresignedUrlDto.Response> presignedUploadUrl(@Valid @RequestBody PresignedUrlDto.Request request, @AuthenticationPrincipal PrincipalDetails principalDetails) {
+        Long memberId = principalDetails.getMember().getId();
+        return CommonResponse.status(HttpStatus.OK).body(metaService.presignedUploadUrl(request, memberId));
     }
 }
 

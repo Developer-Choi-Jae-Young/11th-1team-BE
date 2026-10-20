@@ -118,7 +118,7 @@ public class MetaServiceImpl {
                 .roomAddOption(roomExtraOptionService.findAllByIsDeleted(false)).build();
     }
 
-    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request) {
-        return fileService.presignedUploadUrl(request);
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request, Long memberId) {
+        return fileService.presignedUploadUrl(request, memberId);
     }
 }
