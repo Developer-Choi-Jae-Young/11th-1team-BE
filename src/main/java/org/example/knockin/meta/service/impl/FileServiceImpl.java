@@ -3,6 +3,7 @@ package org.example.knockin.meta.service.impl;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.meta.dto.PresignedUrlDto;
 import org.example.knockin.meta.entity.File;
 import org.example.knockin.meta.entity.FileType;
 import org.example.knockin.global.exception.BusinessException;
@@ -11,6 +12,7 @@ import org.example.knockin.meta.repository.FileRepository;
 import org.example.knockin.meta.service.FileService;
 import org.example.knockin.meta.service.FileUploadService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -54,6 +56,12 @@ public class FileServiceImpl implements FileService {
                 // 보상 삭제 실패는 원래 예외를 가리지 않도록 삼킨다.
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public PresignedUrlDto.Response presignedUploadUrl(PresignedUrlDto.Request request) {
+        return fileUploadService.presignedUploadUrl(request);
     }
 
     private String getExtension(MultipartFile multipartFile) {
