@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
+import org.example.knockin.board.entity.RoommateBoard;
 import org.example.knockin.board.repository.RoommateBoardRepositoryCustom;
 import org.example.knockin.board.repository.row.BasicInfoRow;
 import org.example.knockin.board.repository.row.BoardBaseRow;
@@ -431,6 +434,22 @@ public class RoommateBoardRepositoryImpl implements RoommateBoardRepositoryCusto
                 .leftJoin(roommateBoardFile.file, file)
                 .where(roommateBoard.id.eq(id))
                 .fetchOne();
+    }
+
+    @Override
+    public int increaseHitsById(Long boardId) {
+        return Math.toIntExact(jpaQueryFactory.update(roommateBoard)
+                .set(roommateBoard.hits, roommateBoard.hits.add(1))
+                .where(roommateBoard.id.eq(boardId), roommateBoard.isDeleted.isFalse())
+                .execute());
+    }
+
+    @Override
+    public Optional<RoommateBoard> findByIdForUpdate(Long boardId) {
+        return Optional.ofNullable(jpaQueryFactory.selectFrom(roommateBoard)
+                .where(roommateBoard.id.eq(boardId), roommateBoard.isDeleted.isFalse())
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne());
     }
 
     private BooleanExpression regionIn(List<Long> regionIds, QRegion boardRegion, QRegion parentRegion, QRegion grandParentRegion) {
