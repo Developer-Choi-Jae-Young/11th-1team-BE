@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import org.example.knockin.board.controller.RoomMateController;
 import org.example.knockin.board.dto.BoardPreSignedDto;
+import org.example.knockin.board.dto.BoardPreSignedModifyDto;
 import org.example.knockin.board.service.RoommateBoardService;
 import org.example.knockin.global.auth.dto.PrincipalDetails;
 import org.example.knockin.mate.service.RoommateMatchingService;
@@ -91,4 +92,49 @@ class BoardPresignedControllerTest {
                 .andExpect(status().isOk());
         verify(service).saveBoardPreSigned(any(), eq(42L));
     }
+    @Test
+    void presignedModifyRoutesExistingIdsAndNewKeysWithAuthenticatedMember() throws Exception {
+        String body = BOARD.replace("mountlyRent", "monthlyRent").strip().replace("}",
+                ",\"existingImages\":[{\"boardFileId\":7,\"thumbnail\":false}],\"newImages\":[{\"fileKey\":\"uploads/42/new.jpg\",\"originalFilename\":\"new.jpg\",\"thumbnail\":true}]}");
+        mvc.perform(put("/roommate/boards/3/presigned").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        var request = ArgumentCaptor.forClass(BoardPreSignedModifyDto.Request.class);
+        verify(service).modifyBoardPreSigned(eq(42L), eq(3L), request.capture());
+        assertThat(request.getValue().getMonthlyRent()).isEqualTo(50);
+        assertThat(request.getValue().getExistingImages().getFirst().getBoardFileId()).isEqualTo(7L);
+        assertThat(request.getValue().getNewImages().getFirst().getFileKey()).isEqualTo("uploads/42/new.jpg");
+        verify(service, never()).modify(any(), any(), any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "\"existingImages\":[{\"thumbnail\":true}]",
+            "\"newImages\":[{\"fileKey\":\"\",\"originalFilename\":\"new.jpg\"}]",
+            "\"newImages\":[{\"fileKey\":\"uploads/42/new.jpg\"}]"})
+    void presignedModifyRejectsInvalidImageMetadata(String field) throws Exception {
+        String body = BOARD.replace("mountlyRent", "monthlyRent").strip().replace("}", "," + field + "}");
+        mvc.perform(put("/roommate/boards/3/presigned").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", ",\"existingImages\":null,\"newImages\":null", ",\"existingImages\":[],\"newImages\":[]"})
+    void presignedModifyAllowsNoImages(String images) throws Exception {
+        String body = BOARD.replace("mountlyRent", "monthlyRent").strip().replace("}", images + "}");
+        mvc.perform(put("/roommate/boards/3/presigned").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        verify(service).modifyBoardPreSigned(eq(42L), eq(3L), any());
+    }
+
+    @Test
+    void originalMultipartModifyStillUsesOriginalService() throws Exception {
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT, "/roommate/boards/3")
+                        .file(new MockMultipartFile("request", "", "application/json",
+                                BOARD.replace("mountlyRent", "monthlyRent").getBytes(StandardCharsets.UTF_8))))
+                .andExpect(status().isOk());
+        verify(service).modify(eq(42L), eq(3L), any(), isNull());
+        verify(service, never()).modifyBoardPreSigned(any(), any(), any());
+    }
+
 }

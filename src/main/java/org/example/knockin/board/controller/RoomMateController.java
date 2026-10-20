@@ -126,6 +126,16 @@ public class RoomMateController {
         return CommonResponse.status(HttpStatus.OK).body(response);
     }
 
+    @PutMapping(value = "/boards/{boardId}/presigned", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "게시글 수정 (R2 직접 업로드)", description = "기존 이미지는 boardFileId로 유지하고, 새 이미지는 R2 PUT 완료 후 fileKey로 추가합니다. 유지 목록에 없는 기존 이미지는 삭제됩니다.")
+    public CommonResponse<BoardPreSignedModifyDto.Response> modifyBoardPreSigned(
+            @PathVariable Long boardId,
+            @Valid @RequestBody BoardPreSignedModifyDto.Request request,
+            @AuthenticationPrincipal PrincipalDetails details) {
+        Long memberId = details.getMember().getId();
+        return CommonResponse.status(HttpStatus.OK).body(roommateBoardService.modifyBoardPreSigned(memberId, boardId, request));
+    }
+
     @PostMapping("/boards/{boardId}/reports")
     @Operation(summary = "게시글 신고")
     public CommonResponse<ReportDto.Response> reportBoard(
