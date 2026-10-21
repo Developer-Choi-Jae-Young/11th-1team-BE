@@ -19,6 +19,11 @@ import org.example.knockin.member.repository.StateRepository;
 import org.example.knockin.member.service.impl.MemberServiceImpl;
 import org.example.knockin.room.repository.RoomProfileRepository;
 import org.example.knockin.global.auth.service.Oauth2DeleteFactory;
+import org.example.knockin.global.auth.service.Oauth2DeleteService;
+import org.example.knockin.global.exception.AuthErrorCode;
+import org.example.knockin.verification.entity.LoginProviderType;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,6 +69,67 @@ class MemberServiceImplTest {
 
     @InjectMocks
     private MemberServiceImpl memberService;
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @DisplayName("소셜 연결 해제 성공 여부와 관계없이 회원을 탈퇴 처리한다")
+    void deletesMemberRegardlessOfUnlinkResult(boolean unlinked) {
+        Member member = memberForDeletion(LoginProviderType.KAKAO);
+        Oauth2DeleteService unlinkService = mock(Oauth2DeleteService.class);
+        given(oauth2DeleteFactory.getDeleteService(LoginProviderType.KAKAO)).willReturn(unlinkService);
+        given(unlinkService.requestUnlink("provider-id")).willReturn(unlinked);
+
+        var response = memberService.deleteMember("provider-id", LoginProviderType.KAKAO);
+
+        assertThat(member.isDelete()).isTrue();
+        assertThat(member.getDeletedAt()).isNotNull();
+        assertThat(response.getUpdatedAt()).isNotNull();
+        verify(unlinkService).requestUnlink("provider-id");
+    }
+
+    @Test
+    @DisplayName("소셜 연결 해제 호출에서 예외가 발생해도 회원을 탈퇴 처리한다")
+    void deletesMemberWhenUnlinkThrows() {
+        Member member = memberForDeletion(LoginProviderType.KAKAO);
+        Oauth2DeleteService unlinkService = mock(Oauth2DeleteService.class);
+        given(oauth2DeleteFactory.getDeleteService(LoginProviderType.KAKAO)).willReturn(unlinkService);
+        given(unlinkService.requestUnlink("provider-id")).willThrow(new IllegalStateException("upstream failure"));
+
+        memberService.deleteMember("provider-id", LoginProviderType.KAKAO);
+
+        assertThat(member.isDelete()).isTrue();
+        assertThat(member.getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Apple 연결 해제 서비스가 없어도 회원을 탈퇴 처리한다")
+    void deletesAppleMemberWithoutUnlinkService() {
+        Member member = memberForDeletion(LoginProviderType.APPLE);
+        given(oauth2DeleteFactory.getDeleteService(LoginProviderType.APPLE))
+                .willThrow(new IllegalArgumentException("지원하지 않는 로그인 제공자입니다: APPLE"));
+
+        memberService.deleteMember("provider-id", LoginProviderType.APPLE);
+
+        assertThat(member.isDelete()).isTrue();
+        assertThat(member.getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("회원 조회 실패는 무시하지 않고 연결 해제도 호출하지 않는다")
+    void rejectsDeletionForMissingMember() {
+        given(memberRepository.findMemberByProvider("missing", LoginProviderType.APPLE)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.deleteMember("missing", LoginProviderType.APPLE))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+        verifyNoInteractions(oauth2DeleteFactory);
+    }
+
+    private Member memberForDeletion(LoginProviderType providerType) {
+        Member member = Member.builder().id(1L).providerId("provider-id").providerType(providerType).build();
+        given(memberRepository.findMemberByProvider("provider-id", providerType)).willReturn(Optional.of(member));
+        return member;
+    }
 
     @Test
     @DisplayName("백오피스 회원 목록 조회 성공 테스트")
