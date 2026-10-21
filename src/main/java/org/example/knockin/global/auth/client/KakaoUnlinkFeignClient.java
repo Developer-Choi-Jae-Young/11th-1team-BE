@@ -3,6 +3,7 @@ package org.example.knockin.global.auth.client;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
@@ -19,7 +20,7 @@ public interface KakaoUnlinkFeignClient {
     String unlink(@RequestHeader("Authorization") String authorization, @RequestBody Map<String, ?> form);
 
     default String unlinkFallback(String authorization, Map<String, ?> form, Exception e) {
-        var log = LoggerFactory.getLogger(KakaoUnlinkFeignClient.class);
+        Logger log = LoggerFactory.getLogger(KakaoUnlinkFeignClient.class);
         if (e instanceof CallNotPermittedException) {
             log.warn("카카오 연결 끊기(Unlink) 생략. 서킷이 열려 있습니다.");
         } else if (e instanceof FeignException feignException) {
