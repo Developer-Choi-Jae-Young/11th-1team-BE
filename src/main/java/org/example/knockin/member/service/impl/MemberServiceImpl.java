@@ -101,12 +101,15 @@ public class MemberServiceImpl {
     public DeleteUserDto.Response deleteMember(String userName, LoginProviderType providerType) {
         Member member = memberRepository.findMemberByProvider(userName, providerType).orElseThrow(() -> new BusinessException(AuthErrorCode.MEMBER_NOT_FOUND));
 
-        if(oauth2DeleteFactory.getDeleteService(member.getProviderType()).requestUnlink(member.getProviderId())) {
-            member.delete();
-        } else {
-            throw new BusinessException(AuthErrorCode.OAUTH_UNLINK_FAIL);
+        try {
+            if (!oauth2DeleteFactory.getDeleteService(member.getProviderType()).requestUnlink(member.getProviderId())) {
+                log.warn("소셜 연결 해제 실패. 회원 탈퇴는 진행합니다. providerType: {}", member.getProviderType());
+            }
+        } catch (RuntimeException e) {
+            log.warn("소셜 연결 해제 중 오류. 회원 탈퇴는 진행합니다. providerType: {}, errorType: {}", member.getProviderType(), e.getClass().getSimpleName());
         }
 
+        member.delete();
         return DeleteUserDto.Response.builder().updatedAt(LocalDateTime.now()).build();
     }
 
@@ -298,7 +301,7 @@ public class MemberServiceImpl {
 
     public MyAccountDto.Response findMyAccountRole(Long memberId) {
         Member member = findByIdOrThrow(memberId);
-        return MyAccountDto.Response.builder().role(member.getRole()).build();
+        return MyAccountDto.Response.builder().role(member.getRole()).providerType(member.getProviderType()).build();
     }
 
     public State findStateByMemberId(Long memberId) {

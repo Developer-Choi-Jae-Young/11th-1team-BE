@@ -225,7 +225,7 @@ public class UserController {
     }
 
     @GetMapping("/account")
-    @Operation(summary = "내 계정 권한(Role) 조회")
+    @Operation(summary = "내 계정 권한 및 로그인 제공자 조회")
     public CommonResponse<MyAccountDto.Response> findMyAccount(@AuthenticationPrincipal PrincipalDetails principalDetails) {
         return CommonResponse.status(HttpStatus.OK).body(memberService.findMyAccountRole(principalDetails.getMember().getId()));
     }
