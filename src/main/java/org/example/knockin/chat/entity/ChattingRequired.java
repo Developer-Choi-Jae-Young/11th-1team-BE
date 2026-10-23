@@ -47,6 +47,7 @@ public class ChattingRequired extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_board_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private RoommateBoard roommateBoard;
 
     @Enumerated(EnumType.STRING)

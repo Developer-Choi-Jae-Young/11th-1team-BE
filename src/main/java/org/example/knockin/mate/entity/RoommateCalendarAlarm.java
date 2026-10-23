@@ -24,6 +24,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "roommate_calendar_alarm")
 @DiscriminatorValue(Values.ROOMMATE_CALENDAR)
+@OnDelete(action = OnDeleteAction.CASCADE)
 public class RoommateCalendarAlarm extends Alarm {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roommate_calendar_id", nullable = false)

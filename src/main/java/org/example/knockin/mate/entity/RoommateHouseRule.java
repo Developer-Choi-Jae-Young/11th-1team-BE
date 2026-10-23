@@ -38,6 +38,7 @@ public class RoommateHouseRule extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "my_roommate_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private MyRoommate myRoommate;
 
     @Column(name = "title", length = 50)

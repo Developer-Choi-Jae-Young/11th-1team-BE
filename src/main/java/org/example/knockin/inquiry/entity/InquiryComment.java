@@ -34,6 +34,7 @@ public class InquiryComment extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inquiry_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Inquiry inquiry;
 
     @Column(name = "contents", nullable = false, length = 500)

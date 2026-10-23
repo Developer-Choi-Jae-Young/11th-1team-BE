@@ -7,8 +7,11 @@ import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLSubQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Objects;
+import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.example.knockin.member.dto.BoMemberDetailDto;
 import org.example.knockin.member.dto.BoMemberListDto;
@@ -35,6 +38,14 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import static org.example.knockin.chat.entity.QChattingRequired.chattingRequired;
+import static org.example.knockin.chat.entity.QChattingRequiredAlarm.chattingRequiredAlarm;
+import static org.example.knockin.mate.entity.QRoommateMatchingRequired.roommateMatchingRequired;
+import static org.example.knockin.mate.entity.QRoommateMatchingRequiredAlarm.roommateMatchingRequiredAlarm;
+import static org.example.knockin.mate.entity.QRoommateCalendar.roommateCalendar;
+import static org.example.knockin.mate.entity.QRoommateCalendarAlarm.roommateCalendarAlarm;
+import static org.example.knockin.mate.entity.QMyRoommate.myRoommate;
 
 import static org.example.knockin.member.entity.QBlock.block;
 import static org.example.knockin.member.entity.QMember.member;
@@ -230,8 +241,21 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
         return Optional.ofNullable(jpaQueryFactory.selectFrom(member).where(member.providerId.eq(providerId)).fetchOne());
     }
 
-    public List<Member> findMemberByDelete() {
-        return jpaQueryFactory.selectFrom(member).where(member.isDelete.eq(true)).fetch();
+    @Override
+    public long deleteMembersByDelete(List<Long> memberIds, LocalDateTime thresholdDate) {
+        List<Long> eligibleIds = jpaQueryFactory.select(member.id).from(member).where(member.id.in(memberIds), member.isDelete.isTrue(), member.deletedAt.lt(thresholdDate)).orderBy(member.id.asc()).setLockMode(LockModeType.PESSIMISTIC_WRITE).fetch();
+
+        if (eligibleIds.isEmpty()) return 0;
+
+        JPQLSubQuery<Long> chatRequestIds = JPAExpressions.select(chattingRequired.id).from(chattingRequired).where(chattingRequired.requester.id.in(eligibleIds).or(chattingRequired.requestee.id.in(eligibleIds)));
+        JPQLSubQuery<Long> matchingRequestIds = JPAExpressions.select(roommateMatchingRequired.id).from(roommateMatchingRequired).where(roommateMatchingRequired.requester.id.in(eligibleIds).or(roommateMatchingRequired.requestee.id.in(eligibleIds)).or(roommateMatchingRequired.chattingRoom.chattingRequired.id.in(chatRequestIds)));
+        JPQLSubQuery<Long> calendarIds = JPAExpressions.select(roommateCalendar.id).from(roommateCalendar).join(roommateCalendar.myRoommate, myRoommate).where(myRoommate.roommateMatchingRequired.id.in(matchingRequestIds));
+
+        jpaQueryFactory.delete(chattingRequiredAlarm).where(chattingRequiredAlarm.chattingRequired.id.in(chatRequestIds)).execute();
+        jpaQueryFactory.delete(roommateMatchingRequiredAlarm).where(roommateMatchingRequiredAlarm.roommateMatchingRequired.id.in(matchingRequestIds)).execute();
+        jpaQueryFactory.delete(roommateCalendarAlarm).where(roommateCalendarAlarm.roommateCalendar.id.in(calendarIds)).execute();
+
+        return jpaQueryFactory.delete(member).where(member.id.in(eligibleIds)).execute();
     }
 
     @Override

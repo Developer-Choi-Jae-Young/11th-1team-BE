@@ -37,5 +37,6 @@ public class RoommateScore {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chatting_score_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ChattingScore chattingScore;
 }

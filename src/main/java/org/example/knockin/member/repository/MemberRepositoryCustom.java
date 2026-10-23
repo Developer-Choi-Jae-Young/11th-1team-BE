@@ -1,6 +1,7 @@
 package org.example.knockin.member.repository;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.example.knockin.member.dto.BoMemberDetailDto;
@@ -22,7 +23,7 @@ public interface MemberRepositoryCustom {
     Optional<Member> findMemberByProvider(String providerId, LoginProviderType providerType);
     Optional<AuthResponse> findMemberInfo(Member member);
     Optional<Member> findByProviderId(String providerId);
-    List<Member> findMemberByDelete();
+    long deleteMembersByDelete(List<Long> memberIds, LocalDateTime thresholdDate);
     MyProfileAllDto.Response.UserInfo findByProfile(Member memberEntity);
     List<MyProfileAllDto.Response.Lifestyle> findByLifePattern(Member memberEntity);
     Optional<RoomProfile> findByRoomProfile(Member memberEntity);

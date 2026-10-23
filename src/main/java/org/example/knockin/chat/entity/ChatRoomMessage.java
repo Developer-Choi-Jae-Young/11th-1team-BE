@@ -40,6 +40,7 @@ public class ChatRoomMessage extends CreatedAtEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chatting_room_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ChattingRoom chattingRoom;
 
     @Enumerated(EnumType.STRING)
