@@ -1,1 +1,19 @@
 rootProject.name = 'KnockIn'
+
+include 'member'
+
+include 'agreement'
+include 'board'
+include 'chat'
+include 'declaration'
+include 'global'
+include 'inquiry'
+include 'life'
+include 'mate'
+include 'meta'
+include 'payment'
+include 'room'
+include 'util'
+include 'verification'
+
+include 'common'
