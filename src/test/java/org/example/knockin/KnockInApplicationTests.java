@@ -1,11 +1,14 @@
 package org.example.knockin;
 
+import org.example.knockin.support.IsolatedExternalServices;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@IsolatedExternalServices
+@SpringBootTest(properties = "seed.load-test.records-per-entity=0")
 @ActiveProfiles("test")
 @DisplayName("애플리케이션 컨텍스트")
 class KnockInApplicationTests {

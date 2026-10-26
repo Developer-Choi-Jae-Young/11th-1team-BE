@@ -1,5 +1,7 @@
 package org.example.knockin.service.impl;
 
+import org.example.knockin.support.IsolatedExternalServices;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Constructor;
@@ -38,7 +40,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@SpringBootTest
+@IsolatedExternalServices
+@SpringBootTest(properties = "seed.load-test.records-per-entity=0")
 @ActiveProfiles("test")
 @Tag("performance")
 @DisplayName("룸메이트 게시글 좋아요 락 성능 관찰")

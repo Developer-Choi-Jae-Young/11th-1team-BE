@@ -1,5 +1,7 @@
 package org.example.knockin.global.batch;
 
+import org.example.knockin.support.IsolatedExternalServices;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+@IsolatedExternalServices
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:member-delete-batch;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
         "batch.member-delete.chunk-size=2", "batch.member-delete.cron=-",
